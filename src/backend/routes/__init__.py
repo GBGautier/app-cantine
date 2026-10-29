@@ -11,6 +11,7 @@ from .export import router as export_router
 from .files import router as files_router
 from .grammages import router as grammages_router
 from .meals import router as meals_router
+from .meta import router as meta_router
 from .orders import router as orders_router
 from .products import router as products_router
 from .recipes import router as recipes_router
@@ -27,6 +28,7 @@ __all__ = [
     "files_router",
     "grammages_router",
     "meals_router",
+    "meta_router",
     "orders_router",
     "products_router",
     "recipes_router",

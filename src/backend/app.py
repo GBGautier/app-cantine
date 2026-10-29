@@ -23,6 +23,7 @@ from src.backend.routes import (
     files_router,
     grammages_router,
     meals_router,
+    meta_router,
     orders_router,
     products_router,
     recipes_router,
@@ -124,6 +125,7 @@ app.include_router(grammages_router)
 app.include_router(export_router)
 app.include_router(backup_router)
 app.include_router(files_router)
+app.include_router(meta_router)
 
 
 # Route pour servir le frontend
