@@ -16,21 +16,26 @@ from fastapi.staticfiles import StaticFiles
 from src.backend.config import get_static_dir, settings
 from src.backend.db import init as init_db
 from src.backend.routes import (
+    action_log_router,
     auth_router,
     backup_router,
     commitments_router,
+    convives_defaults_router,
     export_router,
     files_router,
     grammages_router,
+    grammages_rows_router,
     meals_router,
     meta_router,
     orders_router,
     products_router,
     recipes_router,
     settings_router,
+    stock_router,
     stocks_router,
     suppliers_router,
     users_router,
+    stats_router,
 )
 from src.backend.utils import (
     current_user,
@@ -111,21 +116,26 @@ async def security_headers(request: Request, call_next):
 
 
 # Enregistrement des routes
+app.include_router(action_log_router)
 app.include_router(auth_router)
-app.include_router(users_router)
-app.include_router(suppliers_router)
-app.include_router(products_router)
-app.include_router(orders_router)
-app.include_router(meals_router)
-app.include_router(recipes_router)
-app.include_router(stocks_router)
-app.include_router(commitments_router)
-app.include_router(settings_router)
-app.include_router(grammages_router)
-app.include_router(export_router)
 app.include_router(backup_router)
+app.include_router(commitments_router)
+app.include_router(convives_defaults_router)
+app.include_router(export_router)
 app.include_router(files_router)
+app.include_router(grammages_router)
+app.include_router(grammages_rows_router)
+app.include_router(meals_router)
 app.include_router(meta_router)
+app.include_router(orders_router)
+app.include_router(products_router)
+app.include_router(recipes_router)
+app.include_router(settings_router)
+app.include_router(stock_router)
+app.include_router(stocks_router)
+app.include_router(suppliers_router)
+app.include_router(users_router)
+app.include_router(stats_router)
 
 
 # Route pour servir le frontend
