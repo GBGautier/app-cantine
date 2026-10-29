@@ -32,7 +32,6 @@ from src.backend.routes import (
     users_router,
 )
 from src.backend.utils import (
-    COOKIE,
     current_user,
     now_iso,
     PROVENANCES,
@@ -148,7 +147,6 @@ except Exception as e:
 
 
 # Export des variables pour compatibilité
-COOKIE = "cgrs_session"
 PROVENANCES = {
     "cc_nozay": "CC Nozay",
     "loire_atlantique": "Loire-Atlantique",

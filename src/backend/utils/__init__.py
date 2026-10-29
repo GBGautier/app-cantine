@@ -287,6 +287,9 @@ def metric_options() -> list[tuple]:
     return opts
 
 
+# Constantes pour les cookies et sessions
+COOKIE = "cgrs_session"
+
 # Compteur d'administrateurs
 def admin_count() -> int:
     """Retourne le nombre d'administrateurs."""
