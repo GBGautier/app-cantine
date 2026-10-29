@@ -18,7 +18,7 @@ router = APIRouter(prefix="/meta", tags=["Métadonnées"])
 
 
 @router.get("/")
-async def get_meta(user: dict = Depends(READ)):
+async def get_meta():
     """Retourne les métadonnées de l'application."""
     return {
         "provenances": PROVENANCES,
