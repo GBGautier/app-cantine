@@ -222,7 +222,7 @@ def current_user(request: Request) -> dict | None:
     if not tok:
         return None
     return one(
-        "SELECT u.id, u.username, u.role FROM sessions s JOIN users u ON u.id=s.user_id "
+        "SELECT u.id, u.username, u.role, u.created FROM sessions s JOIN users u ON u.id=s.user_id "
         "WHERE s.token_hash=? AND s.expires > ?",
         (sha(tok), now_iso())
     )
