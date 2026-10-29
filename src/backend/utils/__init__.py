@@ -291,3 +291,26 @@ def metric_options() -> list[tuple]:
 def admin_count() -> int:
     """Retourne le nombre d'administrateurs."""
     return one("SELECT COUNT(*) AS n FROM users WHERE role='admin'")["n"]
+
+
+def load_history() -> dict:
+    """Charge l'historique des prix depuis la base de données."""
+    rows_ = rows("SELECT product_id, date, price, unit FROM price_history ORDER BY product_id, date")
+    hist = {}
+    for r in rows_:
+        hist.setdefault(r["product_id"], []).append(r)
+    return hist
+
+
+def price_at(hist: dict, product_id: int, date: str, default_price: float | None = None) -> float | None:
+    """Retourne le prix d'un produit à une date donnée."""
+    if product_id not in hist:
+        return default_price
+    prices = hist[product_id]
+    # Trouver le prix le plus récent avant ou à la date donnée
+    best = None
+    for p in prices:
+        if p["date"] <= date:
+            if best is None or p["date"] > best["date"]:
+                best = p
+    return best["price"] if best else default_price
