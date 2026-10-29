@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends
 
 from src.backend.utils import READ, PROVENANCES, GAMMES, CATEGORIES, DAYS, ORDER_METHODS, ROLES
 
-router = APIRouter(prefix="/meta", tags=["Métadonnées"])
+router = APIRouter(prefix="/api/meta", tags=["Métadonnées"])
 
 
 @router.get("/")
