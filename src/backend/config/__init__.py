@@ -5,6 +5,7 @@ y compris les paramètres par défaut et la lecture des variables d'environnemen
 """
 
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -96,7 +97,6 @@ def get_data_dir() -> Path:
     # En mode développement, utiliser le répertoire courant
     # En mode production (exécutable), utiliser %LOCALAPPDATA%/CGRS/
     if getattr(sys, "frozen", False):
-        import sys
         base = Path.home() / "AppData" / "Local" / "CGRS"
     else:
         base = Path(__file__).parent.parent.parent.parent
