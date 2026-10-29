@@ -116,7 +116,7 @@ def parse_date_header(text):
     # Ex: "lundi 30 novembre" ou "lundi 30 novembre 2026"
     m = re.search(
         r"(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\s+(\d{1,2})\s+"
-        r"(janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre)"
+        r"(janvier|f[\u00e9e]vrier|mars|avril|mai|juin|juillet|ao[u\u00fb]t|septembre|octobre|novembre|d[\u00e9e]cembre)"
         r"(?:\s+(\d{4}))?",
         text_l,
     )
@@ -157,133 +157,6 @@ def build_date(day_num, month_num, year):
         return datetime(year, month_num, day_num).strftime("%Y-%m-%d")
     except ValueError:
         return None
-
-
-def parse_menu_text(text):
-    """Parse le texte brut extrait du PDF sous forme de blocs de semaines."""
-    results = []
-    lines = [l.strip() for l in text.splitlines() if l.strip()]
-
-    # On cherche les lignes qui contiennent une année (ex: "2026lundi 30 novembre...")
-    # Le PDF peut avoir l'année collée au début
-    full_text = " ".join(lines)
-
-    # Détecte l'année globale du document
-    year_match = re.search(r"\b(20\d{2})\b", full_text)
-    doc_year = int(year_match.group(1)) if year_match else None
-
-    # Reconstruit le texte pour splitter par semaines
-    # Cherche les blocs "lundi X mois ... vendredi Y mois"
-    # On va parcourir les lignes et construire des colonnes
-
-    # Approche : chercher toutes les dates dans le texte
-    date_pattern = re.compile(
-        r"(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\s+(\d{1,2})\s+"
-        r"(janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre)"
-        r"(?:\s+(\d{4}))?",
-        re.IGNORECASE,
-    )
-
-    # Cherche toutes les dates
-    dates_found = []
-    for m in date_pattern.finditer(full_text):
-        day_name = m.group(1).lower()
-        day_num = int(m.group(2))
-        month_str = unicodedata.normalize("NFKD", m.group(3)).encode("ascii", "ignore").decode().lower()
-        month_num = MONTHS_FR.get(month_str)
-        year = resolve_year(day_name, day_num, month_num, int(m.group(4)) if m.group(4) else None, doc_year)
-        date_str = build_date(day_num, month_num, year)
-        if date_str:
-            dates_found.append({"date": date_str, "pos": m.start()})
-
-    if not dates_found:
-        return results
-
-    # Cherche les catégories et les plats associés
-    cat_pattern = re.compile(
-        r"(entree|entrée|plat|accompagnement|acompagnement|laitage|dessert)\s*(.+?)(?=entree|entrée|plat|accompagnement|acompagnement|laitage|dessert|$)",
-        re.IGNORECASE | re.DOTALL,
-    )
-
-    return dates_found
-
-
-def _parse_menu_tables_old(tables, doc_year=None):
-    """Ancienne version (ne lisait que le premier bloc de dates par tableau). Inutilisée."""
-    results = []
-    for table in tables:
-        if not table or len(table) < 2:
-            continue
-
-        # Identifie les lignes d'en-tête (contenant des dates) vs lignes de catégories
-        header_row = None
-        cat_rows = []
-
-        for row_idx, row in enumerate(table):
-            # Cherche si c'est une ligne de dates
-            dates = []
-            for cell in row:
-                if not cell:
-                    continue
-                parsed = parse_date_header(str(cell))
-                if parsed:
-                    dates.append(parsed)
-
-            if dates:
-                header_row = row
-                header_row_idx = row_idx
-                cat_rows = table[row_idx + 1:]
-                break
-
-        if header_row is None:
-            continue
-
-        # Construit le mapping colonne -> date
-        col_dates = {}
-        for col_idx, cell in enumerate(header_row):
-            if not cell:
-                continue
-            parsed = parse_date_header(str(cell))
-            if parsed:
-                day_name, day_num, month_num, year = parsed
-                if year is None:
-                    year = doc_year or infer_year(day_num, month_num)
-                date_str = build_date(day_num, month_num, year)
-                if date_str:
-                    col_dates[col_idx] = date_str
-
-        if not col_dates:
-            continue
-
-        # Initialise les repas
-        meals = {date: {"date": date, "entree": None, "plat": None,
-                        "accompagnement": None, "laitage": None, "dessert": None}
-                 for date in col_dates.values()}
-
-        # Remplit les catégories
-        for row in cat_rows:
-            if not row:
-                continue
-            # Cherche la catégorie dans la première colonne non vide
-            cat = None
-            for cell in row[:2]:
-                if cell:
-                    cat = classify_cat(str(cell))
-                    if cat:
-                        break
-            if not cat:
-                continue
-
-            for col_idx, date_str in col_dates.items():
-                if col_idx < len(row) and row[col_idx]:
-                    val = str(row[col_idx]).strip()
-                    val = clean_value(val, cat)
-                    if val and val.lower() not in ("", "-", "—"):
-                        meals[date_str][cat] = val
-
-        results.extend(meals.values())
-
-    return results
 
 
 def _empty_meal(date):
@@ -360,7 +233,7 @@ def parse_menu_tables(tables, doc_year=None, ctx=None):
             for col_idx, date_str in col_dates.items():
                 if col_idx < len(row) and row[col_idx]:
                     val = clean_value(str(row[col_idx]), cat)
-                    if val and val not in ("-", "—"):
+                    if val and val not in ("-", "\u2014"):
                         prev = meals[date_str][cat]
                         # une même catégorie sur plusieurs lignes : on concatène
                         meals[date_str][cat] = (prev + " " + val) if prev else val
@@ -426,7 +299,7 @@ def parse_menu_from_raw_text(text, doc_year=None):
 
     date_pattern = re.compile(
         r"(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\s+(\d{1,2})\s+"
-        r"(janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre)"
+        r"(janvier|f[\u00e9e]vrier|mars|avril|mai|juin|juillet|ao[u\u00fb]t|septembre|octobre|novembre|d[\u00e9e]cembre)"
         r"(?:\s+(\d{4}))?",
         re.IGNORECASE,
     )

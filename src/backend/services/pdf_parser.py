@@ -16,12 +16,9 @@ import unicodedata
 from difflib import SequenceMatcher
 from pathlib import Path
 
-
-
 import pdfplumber
 
 # ---------------------------------------------------------------- utilitaires
-
 
 def to_float(s):
     if s is None:
@@ -182,7 +179,7 @@ def table_row_lines(r, cols, extras):
         return []
     if total is None and price is None and "total" in cols and not cell("total") and "price" in cols:
         return []
-    mu = re.search(r"€\s*/\s*([A-Za-zÀ-ÿ]+)", price_cell.replace("\n", " "))
+    mu = re.search(r"\u20ac\s*/\s*([A-Za-z\u00c0-\u00ff]+)", price_cell.replace("\n", " "))
     price_unit = unit_norm(mu.group(1)) if mu else None
     unit = unit_norm(cell("unit")) or price_unit
     mw = re.search(r"(\d+(?:[.,]\d+)?)\s*(kg|g|l)\b", extra("qty"), re.I)
@@ -220,7 +217,7 @@ def read_pages(path):
     return pages, ocr_used
 
 
-# Bandeau de page des bons : « Rest scolaire … - 28/08/2026 - BL_70618 »
+# Bandeau de page des bons : « Rest scolaire – 28/08/2026 - BL_70618 »
 PAGE_REF_RE = re.compile(r"-\s*\d{2}/\d{2}/\d{4}\s*-\s*((?:BL|BC)[_\- ]?\d+)\s*$", re.I)
 
 
@@ -250,7 +247,7 @@ N = r"-?\d+(?:[.,]\d+)?"
 PROFILES = [
     # Biocoop / Manger Bio : MEBRJ5 Melon Charentais 15P L 600/780 France 2.08 € / Unité 30 62.40 5.5 2 Colis
     ("code_eur", re.compile(
-        rf"^(?P<code>[A-Z0-9]{{4,}})\s+(?P<label>.+?)\s+(?P<unit_price>{N})\s*€\s*/\s*(?P<unit>[A-Za-zÀ-ÿ.]+)\s+"
+        rf"^(?P<code>[A-Z0-9]{{4,}})\s+(?P<label>.+?)\s+(?P<unit_price>{N})\s*\u20ac\s*/\s*(?P<unit>[A-Za-z\u00c0-\u00ff.]+)\s+"
         rf"(?P<qty>{N})\s+(?P<total>-?\d+[.,]\d{{2}})\b")),
     # CapMarée : 12LN559 FLT L.NOIR 150/+ V/CUT 10kg ANE - 632022 3C 30,000K 10,950 328,50 1
     ("capmaree", re.compile(
@@ -260,7 +257,7 @@ PROFILES = [
     # Le montant est recalculé (poids × prix) : l'OCR lit mal les chiffres.
     ("teba", re.compile(
         rf"^(?P<code>\d{{4,}})\s+(?P<label>.+?)\s+(?P<lot>\d{{9,}})\s+(?P<pieces>\S+)\s+(?P<weight>\d+[.,]\d+)\s+"
-        rf"(?P<unit_price>\d+[.,]\d+)\s*€?\s*/?\s*(?P<unit>[Kk]g|[Ll])\b")),
+        rf"(?P<unit_price>\d+[.,]\d+)\s*\u20ac?\s*/?\s*(?P<unit>[Kk]g|[Ll])\b")),
     # Grossiste (Passionfroid / Pomona) : 40/ 267328 Emmental rapé BIO 1KGx10 6,000COL 66,000SAC 9,360 F 1 617,76
     ("pomona", re.compile(
         rf"^\d+/\s*(?P<code>\d{{5,7}})\s+(?P<label>.+?)\s+\d+[.,]\d{{3}}\s*[A-Z]{{2,4}}\s+(?P<qty>-?\d+[.,]\d{{3}})\s*(?P<unit>[A-Z]{{1,4}})\s+"
@@ -273,17 +270,17 @@ PROFILES = [
         rf"(?P<total>-?\d+[.,]\d{{2}})\s+-?\d+[.,]\d{{2}}\s+\d+(?:[.,]\d+)?\s*$", re.I)),
     # Producteur : 1 carottes kg 105,00 2,90 € 304,50 €
     ("unit_first", re.compile(
-        rf"^\d{{1,3}}\s+(?P<label>.+?)\s+(?P<unit>kg|g|l|litres?|pi[eè]ces?|botte|barquette|unit[eé]s?)\s+"
-        rf"(?P<qty>{N})\s+(?P<unit_price>{N})\s*€\s+(?P<total>-?\d+[.,]\d{{2}})\s*€", re.I)),
+        rf"^\d{{1,3}}\s+(?P<label>.+?)\s+(?P<unit>kg|g|l|litres?|pi[e\u00e8]ces?|botte|barquette|unit[e\u00e9]s?)\s+"
+        rf"(?P<qty>{N})\s+(?P<unit_price>{N})\s*\u20ac\s+(?P<total>-?\d+[.,]\d{{2}})\s*\u20ac", re.I)),
     # Factures de fermes : [Libellé] 420 unités 0,45 € 5,5 % 189,00 €
     ("platform", re.compile(
-        rf"^(?:(?P<label>.+?)\s+)?(?P<qty>{N})\s+(?P<unit>unit[eé]s?|kg|g|l|litres?|pi[eè]ces?|u)\s+"
-        rf"(?P<unit_price>{N})\s*€\s+(?P<tva>{N})\s*%\s+(?P<total>-?\d+[.,]\d{{2}})\s*€", re.I)),
+        rf"^(?:(?P<label>.+?)\s+)?(?P<qty>{N})\s+(?P<unit>unit[e\u00e9]s?|kg|g|l|litres?|pi[e\u00e8]ces?|u)\s+"
+        rf"(?P<unit_price>{N})\s*\u20ac\s+(?P<tva>{N})\s*%\s+(?P<total>-?\d+[.,]\d{{2}})\s*\u20ac", re.I)),
     # Générique : libellé quantité unité PU total
     ("generic", re.compile(
-        rf"^(?P<label>.*?[A-Za-zÀ-ÿ].*?)\s+(?P<qty>{NUM})\s*"
-        rf"(?P<unit>kg|g|l|pc|pce|pièce|piece|u|col|colis|bt|bte|botte|barq|barquette|x)?\s+"
-        rf"(?P<unit_price>\d+[.,]\d{{2,4}})\s*€?\s+(?P<total>-?\d+[.,]\d{{2}})\s*€?\s*$", re.I)),
+        rf"^(?P<label>.*?[A-Za-z\u00c0-\u00ff].*?)\s+(?P<qty>{NUM})\s*"
+        rf"(?P<unit>kg|g|l|pc|pce|pi\u00e8ce|piece|u|col|colis|bt|bte|botte|barq|barquette|x)?\s+"
+        rf"(?P<unit_price>\d+[.,]\d{{2,4}})\s*\u20ac?\s+(?P<total>-?\d+[.,]\d{{2}})\s*\u20ac?\s*$", re.I)),
 ]
 
 SKIP_LINE = ("total", "sous-total", "sous total", "tva", "net à payer", "net a payer", "base ht")
@@ -335,22 +332,22 @@ def parse_lines(text, custom_regex=None):
 
 DATE_RE = re.compile(r"(\d{2})[/.-](\d{2})[/.-](\d{4})")
 LONG_DATE_RE = re.compile(
-    r"(\d{1,2})\s*(janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre)\s+(\d{4})",
+    r"(\d{1,2})\s*(janvier|f[\u00e9e]vrier|mars|avril|mai|juin|juillet|ao[u\u00fb]t|septembre|octobre|novembre|d[\u00e9e]cembre)\s+(\d{4})",
     re.I)
 DOC_TOKEN_RE = re.compile(r"\b((?:BL|BC|FA|FAC|FC)[_\- ]?\d{3,}(?:[\-/]\d+)*)\b")
 INVOICE_TOKEN_RE = re.compile(r"\b((?:FA|FAC|FC)[_\- ]?\d{3,}(?:[\-/]\d+)*)\b")
-FACT_NUM_RE = re.compile(r"facture\s*(?:n[°o]\s*)?[:#]?\s*([A-Z]*[\-_]?\d[\w\-/]*)", re.I)
-HEADER_N_RE = re.compile(r"N°[^\n]*\n\s*\d{2}/\d{2}/\d{4}\s+(\d{3,})")
+FACT_NUM_RE = re.compile(r"facture\s*(?:n[\u00b0o]\s*)?[:#]?\s*([A-Z]*[\-/]?\d[\w\-/]*)", re.I)
+HEADER_N_RE = re.compile(r"N\u00b0[^\n]*\n\s*\d{2}/\d{2}/\d{4}\s+(\d{3,})")
 REF_RE = re.compile(
-    r"(?:n[°o]|num[ée]ro|facture|commande|bon de livraison|bon)\b[ \t]*(?:n[°o]|:|#)?[ \t]*"
+    r"(?:n[\u00b0o]|num[\u00e9e]ro|facture|commande|bon de livraison|bon)\b[ \t]*(?:n[\u00b0o]|:|#)?[ \t]*"
     r"([A-Z0-9\-/_.]*\d[A-Z0-9\-/_.]*)",
     re.IGNORECASE,
 )
-# bons de livraison cités sur une facture : « BL-K52438 (03/09/2026) », « BL N°7364 du … », « B.L No 333713 du … »
-BL_CITED_RE = re.compile(r"\bB\.?\s?L\.?\s*(?:n[°o]\.?|:|#)?\s*[-_]?\s*([A-Z]{0,2}[-_]?\d{3,}[A-Z0-9\-_]*)", re.I)
+# bons de livraison cités sur une facture : « BL-K52438 (03/09/2026) », « BL N°7364 du » , « B.L No 333713 du »
+BL_CITED_RE = re.compile(r"\bB\.?\s?L\.?\s*(?:n[\u00b0o]\.?|:|#)?\s*[-_]?\s*([A-Z]{0,2}[-_]?\d{3,}[A-Z0-9\-_]*)", re.I)
 AMOUNT = r"-?(?:\d{1,3}(?:[. \u00a0\u202f]\d{3})+|\d+)[.,]\d{2}"   # 4.342,93 · 4 342,93 · 143,01
 TOTAL_RE = re.compile(rf"(?:total|montant)\s*(?:h\.?t\.?|hors taxes?)\s*:?\s*({AMOUNT})", re.IGNORECASE)
-AVOIR_RE = re.compile(r"avoir\s*n[°o]\s*:?\s*([A-Z0-9][A-Z0-9\-/]*)", re.IGNORECASE)
+AVOIR_RE = re.compile(r"avoir\s*n[\u00b0o]\s*:?\s*([A-Z0-9][A-Z0-9\-/]*)", re.IGNORECASE)
 TOTAL_NET_RE = re.compile(rf"total\s*net\s*ht\s*:?\s*({AMOUNT})", re.IGNORECASE)
 TOTAL_ALT_RE = re.compile(rf"(?im)^\s*HT\s*:?\s*({AMOUNT})")
 
@@ -362,7 +359,7 @@ URL_RE = re.compile(r"https?://(?:[a-z0-9\-]+\.)*?([a-z0-9\-]{4,})\.(?:fr|com|bz
 GENERIC_MAIL = ("gmail", "orange", "free", "wanadoo", "hotmail", "outlook", "yahoo", "sfr", "laposte", "live", "icloud")
 WWW_RE = re.compile(r"www\.([a-z0-9\-]{4,})\.(?:fr|com|bzh|org|net|eu)", re.IGNORECASE)
 MAIL_RE = re.compile(r"@([a-z0-9\-]+)\.(?:fr|com|bzh|org|net|eu)", re.IGNORECASE)
-ANCHOR_RE = re.compile(r"^(?:[ée]metteur|emetteur|fournisseur|vendeur|donneur d.ordre)\s*:?$", re.IGNORECASE)
+ANCHOR_RE = re.compile(r"^(?:[\u00e9e]metteur|emetteur|fournisseur|vendeur|donneur d.ordre)\s*:?$", re.IGNORECASE)
 TAIL_RE = re.compile(r"\s+(?:Facture|FACTURE|Date|N°|Numéro)\b.*$")
 
 
@@ -378,7 +375,7 @@ KNOWN_SUPPLIERS = (
     ("grainesdebio", "Graines de Bio"),
 )
 # Factures dont le texte du PDF est mélangé (numéro et date superposés à d'autres mots) : le nom du fichier
-# « …FACTURW0000638917 20260917 8282885435.pdf » porte la date (AAAAMMJJ) et le numéro (10 chiffres).
+# « 26FACTURW0000638917 20260917 8282885435.pdf » porte la date (AAAAMMJJ) et le numéro (10 chiffres).
 FILENAME_REF_RE = re.compile(r"(20\d{2})(\d{2})(\d{2})(\d{10})$")
 
 
@@ -440,13 +437,13 @@ def guess_supplier_name(text, client_names=(), filename=None, ocr=False):
             if m and m.group(1).lower() not in GENERIC_MAIL and not is_client(line):
                 return fix_supplier_name(m.group(1).replace("-", " ").capitalize())
     for raw in lines[:14]:                    # 3) première ligne d'en-tête plausible
-        line = TAIL_RE.sub("", re.split(r"\s+[A-Z]{2,4}\s*:", raw)[0])   # « PASSIONFROID OUEST ASC: certifié … »
+        line = TAIL_RE.sub("", re.split(r"\s+[A-Z]{2,4}\s*:", raw)[0])   # « PASSIONFROID OUEST ASC: certifié »
         low = line.lower()
         if len(line) < 3 or len(line) > 70 or is_client(line) or low.strip() in COUNTRIES:
             continue
         if any(low.startswith(w) for w in SKIP_WORDS) or any(w in low for w in ADDRESS_WORDS + HEADER_WORDS):
             continue
-        if sum(ch.isdigit() for ch in line) > 4 or not re.search(r"[A-Za-zÀ-ÿ]{3}", line):
+        if sum(ch.isdigit() for ch in line) > 4 or not re.search(r"[A-Za-z\u00c0-\u00ff]{3}", line):
             continue
         if sum(len(t) == 1 for t in line.split()) >= 2 or "(" in line:   # en-têtes de colonnes, codes…
             continue
@@ -557,7 +554,7 @@ def parse_document(text, table_lines, warnings, ocr_used, filename, suppliers, p
         m = FACT_NUM_RE.search(text) or HEADER_N_RE.search(text) or INVOICE_TOKEN_RE.search(text) or REF_RE.search(text)
     else:
         m = DOC_TOKEN_RE.search(text) or HEADER_N_RE.search(text) or REF_RE.search(text)
-    credit = bool(re.search(r"(?im)^\s*(?:page\s*\d+\s*/\s*\d+\s*)?avoir\s*n[°o]", text))
+    credit = bool(re.search(r"(?im)^\s*(?:page\s*\d+\s*/\s*\d+\s*)?avoir\s*n[\u00b0o]", text))
     if credit:                                  # avoir : note de crédit (quantités et montants négatifs), n'annule aucun bon
         am = AVOIR_RE.search(text)
         kind = "facture"

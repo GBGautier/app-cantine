@@ -1,0 +1,87 @@
+# =====================================================================================
+# Docker Compose pour l'application CGRS - Réceptions & stocks
+# =====================================================================================
+# Ce fichier permet de lancer l'application avec Docker Compose.
+#
+# Usage:
+#   - Développement: docker-compose up
+#   - Production: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# =====================================================================================
+
+version: '3.8'
+
+services:
+  # -----------------------------------------------------------------------------
+  # Service principal de l'application
+  # -----------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cgrs-app
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DATABASE_PATH=/app/data/cantine.db
+      - UPLOADS_DIR=uploads
+      - BACKUPS_DIR=sauvegardes-auto
+      - STATIC_DIR=static
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - SESSION_COOKIE_NAME=cgrs_session
+      - LOG_LEVEL=INFO
+      - MAX_UPLOAD_SIZE=25
+    volumes:
+      # Persistance des données
+      - ./data:/app/data
+      # Montage du code pour le développement (hot-reload)
+      - ./src:/app/src
+      - ./static:/app/static
+    ports:
+      - "8000:8000"
+    networks:
+      - cgrs-network
+    # Pour le développement, on peut utiliser un volume pour les dépendances
+    # et activer le reload automatique
+    command: >
+      sh -c "uvicorn src.backend.app:app --host 0.0.0.0 --port 8000 --reload --workers 1"
+
+  # -----------------------------------------------------------------------------
+  # Service pour les tests
+  # -----------------------------------------------------------------------------
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cgrs-test
+    environment:
+      - ENVIRONMENT=test
+      - DEBUG=true
+      - DATABASE_PATH=/app/data/test_cantine.db
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+      - ./tests:/app/tests
+    depends_on:
+      - app
+    networks:
+      - cgrs-network
+    command: >
+      sh -c "pytest /app/tests -v --tb=short"
+
+# -----------------------------------------------------------------------------
+# Réseaux
+# -----------------------------------------------------------------------------
+networks:
+  cgrs-network:
+    driver: bridge
+
+# -----------------------------------------------------------------------------
+# Volumes (pour la production)
+# -----------------------------------------------------------------------------
+volumes:
+  cgrs-data:
+    driver: local

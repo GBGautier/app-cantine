@@ -9,6 +9,8 @@ import io
 
 from fastapi import Response
 
+from src.backend.db import rows as db_rows, one as db_one
+
 # catégories CGRS → id de la liste Dolibarr « options_categorie »
 DOL_CATS = {
     "Fruits: pommes, poires, kiwis": 1, "Fruits: autres": 2, "Légumes": 3, "Viande de porc": 4,
@@ -45,13 +47,15 @@ def _csv(filename, rows):
                     headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
 
-def products_csv(db):
+def products_csv(db=None):
     """Produits : ref, libellé, prix HT, TVA, à vendre/acheter, champs personnalisés."""
     rows = [["ref", "label", "price", "tva_tx", "status", "status_buy",
              "options_categorie", "options_gamme", "options_provenance", "options_label_egalim",
              "options_unite_de_prix", "options_commerce_equitable", "options_direct_producteur"]]
-    for p in db.rows("SELECT ref, name, unit_price, category, gamme, provenance, label_egalim, unit, "
-                     "commerce_equitable, direct_producteur FROM products ORDER BY name"):
+    products = db_rows("SELECT ref, name, unit_price, category, gamme, provenance, label_egalim, unit, "
+                     "commerce_equitable, direct_producteur FROM products ORDER BY name") if db is None else db.rows("SELECT ref, name, unit_price, category, gamme, provenance, label_egalim, unit, "
+                     "commerce_equitable, direct_producteur FROM products ORDER BY name")
+    for p in products:
         rows.append([p["ref"] or "", p["name"], p["unit_price"], TVA, "1", "1",
                     DOL_CATS.get(p["category"], ""), p["gamme"] or "", DOL_PROV.get(p["provenance"], ""),
                     DOL_LABELS.get(p["label_egalim"] or "sans", ""),
@@ -59,10 +63,11 @@ def products_csv(db):
     return _csv("produits_dolibarr.csv", rows)
 
 
-def suppliers_csv(db):
-    """Fournisseurs : nom, adresse (découpée adresse / CP / ville si « …, CP, Ville »), contact, SIRET."""
+def suppliers_csv(db=None):
+    """Fournisseurs : nom, adresse (découpée adresse / CP / ville si « , CP, Ville »), contact, SIRET."""
     rows = [["name", "address", "zip", "town", "phone", "email", "idprof1", "fournisseur", "tva_assuj", "url"]]
-    for s in db.rows("SELECT name, address, phone, email, siret, order_url FROM suppliers ORDER BY name"):
+    suppliers = db_rows("SELECT name, address, phone, email, siret, order_url FROM suppliers ORDER BY name") if db is None else db.rows("SELECT name, address, phone, email, siret, order_url FROM suppliers ORDER BY name")
+    for s in suppliers:
         adr = [x.strip() for x in (s["address"] or "").split(",")]
         rows.append([s["name"], ", ".join(adr[:-2]) if len(adr) >= 3 else (s["address"] or ""),
                      adr[-2] if len(adr) >= 3 else "", adr[-1] if len(adr) >= 3 else "",
@@ -70,46 +75,72 @@ def suppliers_csv(db):
     return _csv("fournisseurs_dolibarr.csv", rows)
 
 
-def orders_csv(db):
+def orders_csv(db=None):
     """Réceptions exportées en commandes fournisseurs : une ligne par ligne de réception."""
     rows = [["ref", "ref_fournisseur", "date_commande", "produit_ref", "produit_label", "qty", "pu_ht", "tva_tx"]]
-    lines = db.rows(
-        "SELECT o.ref AS order_ref, s.name AS supplier_name, o.date, "
-        "COALESCE(NULLIF(p.ref, ''), NULLIF(l.ref, ''), p.name, '') AS produit_ref, "
-        "l.label, l.qty, l.unit_price "
-        "FROM order_lines l "
-        "JOIN orders o ON o.id = l.order_id "
-        "LEFT JOIN suppliers s ON s.id = o.supplier_id "
-        "LEFT JOIN products p ON p.id = l.product_id "
-        "WHERE l.qty IS NOT NULL AND l.qty != 0 "
-        "ORDER BY o.date, o.id, l.id")
+    if db is None:
+        lines = db_rows(
+            "SELECT o.ref AS order_ref, s.name AS supplier_name, o.date, "
+            "COALESCE(NULLIF(p.ref, ''), NULLIF(l.ref, ''), p.name, '') AS produit_ref, "
+            "l.label, l.qty, l.unit_price "
+            "FROM order_lines l "
+            "JOIN orders o ON o.id = l.order_id "
+            "LEFT JOIN suppliers s ON s.id = o.supplier_id "
+            "LEFT JOIN products p ON p.id = l.product_id "
+            "WHERE l.qty IS NOT NULL AND l.qty != 0 "
+            "ORDER BY o.date, o.id, l.id")
+    else:
+        lines = db.rows(
+            "SELECT o.ref AS order_ref, s.name AS supplier_name, o.date, "
+            "COALESCE(NULLIF(p.ref, ''), NULLIF(l.ref, ''), p.name, '') AS produit_ref, "
+            "l.label, l.qty, l.unit_price "
+            "FROM order_lines l "
+            "JOIN orders o ON o.id = l.order_id "
+            "LEFT JOIN suppliers s ON s.id = o.supplier_id "
+            "LEFT JOIN products p ON p.id = l.product_id "
+            "WHERE l.qty IS NOT NULL AND l.qty != 0 "
+            "ORDER BY o.date, o.id, l.id")
     for l in lines:
         rows.append([l["order_ref"] or "", l["supplier_name"] or "", dfr(l["date"]),
                      l["produit_ref"], l["label"] or "", l["qty"], l["unit_price"], TVA])
     return _csv("commandes_fournisseurs_dolibarr.csv", rows)
 
 
-def meals_csv(db):
+def meals_csv(db=None):
     """Repas exportés en commandes clientes Dolibarr (module commande) :
     une ligne par produit sorti, groupées par la référence REP-<date> du repas.
     Champs personnalisés remplis : nombre total de repas / maternelles / élémentaires / adultes."""
     client = ""
-    r = db.one("SELECT value FROM settings WHERE key='client_names'")
+    if db is None:
+        r = db_one("SELECT value FROM settings WHERE key='client_names'")
+    else:
+        r = db.one("SELECT value FROM settings WHERE key='client_names'")
     if r and r["value"]:
         client = r["value"].split(";")[0].strip()
     rows = [["ref", "tiers", "date_commande",
              "options_nombre_total_repas", "options_nombre_maternelles",
              "options_nombre_elementaires", "options_nombre_adultes",
              "produit_ref", "produit_label", "qty", "pu_ht", "tva_tx"]]
-    lines = db.rows(
-        "SELECT m.date, m.guests, m.nb_maternelles, m.nb_elementaires, m.nb_adultes, "
-        "COALESCE(NULLIF(p.ref, ''), p.name) AS produit_ref, p.name AS produit_label, mi.qty, "
-        "CASE WHEN mi.prix_reel IS NOT NULL THEN mi.prix_reel ELSE p.unit_price END AS pu "
-        "FROM meal_items mi "
-        "JOIN meals m ON m.id = mi.meal_id "
-        "LEFT JOIN products p ON p.id = mi.product_id "
-        "WHERE mi.qty IS NOT NULL AND mi.qty != 0 "
-        "ORDER BY m.date, m.id, mi.id")
+    if db is None:
+        lines = db_rows(
+            "SELECT m.date, m.guests, m.nb_maternelles, m.nb_elementaires, m.nb_adultes, "
+            "COALESCE(NULLIF(p.ref, ''), p.name) AS produit_ref, p.name AS produit_label, mi.qty, "
+            "CASE WHEN mi.prix_reel IS NOT NULL THEN mi.prix_reel ELSE p.unit_price END AS pu "
+            "FROM meal_items mi "
+            "JOIN meals m ON m.id = mi.meal_id "
+            "LEFT JOIN products p ON p.id = mi.product_id "
+            "WHERE mi.qty IS NOT NULL AND mi.qty != 0 "
+            "ORDER BY m.date, m.id, mi.id")
+    else:
+        lines = db.rows(
+            "SELECT m.date, m.guests, m.nb_maternelles, m.nb_elementaires, m.nb_adultes, "
+            "COALESCE(NULLIF(p.ref, ''), p.name) AS produit_ref, p.name AS produit_label, mi.qty, "
+            "CASE WHEN mi.prix_reel IS NOT NULL THEN mi.prix_reel ELSE p.unit_price END AS pu "
+            "FROM meal_items mi "
+            "JOIN meals m ON m.id = mi.meal_id "
+            "LEFT JOIN products p ON p.id = mi.product_id "
+            "WHERE mi.qty IS NOT NULL AND mi.qty != 0 "
+            "ORDER BY m.date, m.id, mi.id")
     for l in lines:
         rows.append(["REP-" + (l["date"] or ""), client, dfr(l["date"]),
                      l["guests"], l["nb_maternelles"], l["nb_elementaires"], l["nb_adultes"],

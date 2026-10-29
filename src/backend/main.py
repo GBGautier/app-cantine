@@ -1,8 +1,8 @@
-"""Point d'entree de l'app de bureau Windows (pywebview).
+"""Point d'entrée de l'app de bureau Windows (pywebview).
 
-Lance le serveur FastAPI (uvicorn) dans un thread, puis ouvre une fenetre
-de bureau pointant dessus. L'import de webview est differe dans main()
-pour que ce meme dossier reste deployable sur un serveur sans pywebview
+Lance le serveur FastAPI (uvicorn) dans un thread, puis ouvre une fenêtre
+de bureau pointant dessus. L'import de webview est différé dans main()
+pour que ce même dossier reste déployable sur un serveur sans pywebview
 (uvicorn app:app).
 """
 import socket
@@ -11,13 +11,13 @@ import time
 
 import uvicorn
 
-from app import app
+from src.backend.app import app
 
-server = None  # reference globale pour l'arret propre
+server = None  # référence globale pour l'arrêt propre
 
 
 def find_free_port() -> int:
-    """Port libre pour eviter les conflits entre instances."""
+    """Port libre pour éviter les conflits entre instances."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
         return s.getsockname()[1]
@@ -33,14 +33,14 @@ def run_server(port: int):
 def main():
     port = find_free_port()
 
-    # FastAPI dans un thread daemon (tue avec le process principal)
+    # FastAPI dans un thread daemon (tué avec le process principal)
     threading.Thread(target=run_server, args=(port,), daemon=True).start()
 
-    # attendre que le serveur soit pret (evite la fenetre blanche)
+    # attendre que le serveur soit prêt (évite la fenêtre blanche)
     while not (server and server.started):
         time.sleep(0.05)
 
-    import webview  # import differe : evite d'exiger pywebview sur un serveur
+    import webview  # import différé : évite d'exiger pywebview sur un serveur
 
     webview.create_window(
         "CGRS – réceptions & stocks",
@@ -51,7 +51,7 @@ def main():
     )
     webview.start(gui="edgechromium")  # force WebView2 sur Windows
 
-    # arret propre a la fermeture de la fenetre
+    # arrêt propre à la fermeture de la fenêtre
     if server:
         server.should_exit = True
 

@@ -1,10 +1,20 @@
+"""Module de gestion de la base de données.
+
+Ce module centralise toutes les opérations liées à la base de données SQLite,
+y compris l'initialisation du schéma, les migrations et les requêtes.
+"""
+
 import sqlite3
 from pathlib import Path
+from typing import Any
 
-import paths
+from src.backend.config import get_database_path
 
-DB_PATH = paths.DB_PATH   # %LOCALAPPDATA%/CGRS/cantine.db (exe) ou a cote du code (serveur/dev)
+# Chemin vers la base de données
+DB_PATH = get_database_path()
 
+
+# Schéma de la base de données
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS suppliers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -178,8 +188,7 @@ CREATE TABLE IF NOT EXISTS action_log (
 CREATE INDEX IF NOT EXISTS ix_action_log_ts ON action_log(ts DESC);
 """
 
-
-# colonnes ajoutées après la première version : ajoutées aux bases existantes
+# Colonnes ajoutées après la première version
 NEW_COLUMNS = {
     "suppliers": {"keywords": "TEXT", "delivery_days": "TEXT", "franco": "REAL", "order_method": "TEXT",
                   "order_url": "TEXT", "categories": "TEXT"},
@@ -190,7 +199,7 @@ NEW_COLUMNS = {
     "meals": {"nb_maternelles": "INTEGER DEFAULT 0", "nb_elementaires": "INTEGER DEFAULT 0",
               "nb_adultes": "INTEGER DEFAULT 0", "entree": "TEXT", "plat": "TEXT",
               "accompagnement": "TEXT", "laitage": "TEXT", "dessert": "TEXT",
-              "commentaire_post": "TEXT", "statut": "TEXT DEFAULT x27prevux27",
+              "commentaire_post": "TEXT", "statut": "TEXT DEFAULT 'prevu'",
               "recipe_entree": "TEXT", "recipe_plat": "TEXT", "recipe_accompagnement": "TEXT", "recipe_laitage": "TEXT", "recipe_dessert": "TEXT",
               "estimation": "TEXT",
               "modif_prevu": "INTEGER DEFAULT 0"},
@@ -202,6 +211,7 @@ NEW_COLUMNS = {
 
 
 def conn():
+    """Crée une nouvelle connexion à la base de données."""
     c = sqlite3.connect(DB_PATH)
     c.row_factory = sqlite3.Row
     c.execute("PRAGMA foreign_keys = ON")
@@ -209,6 +219,7 @@ def conn():
 
 
 def init():
+    """Initialise la base de données avec le schéma et les migrations."""
     with conn() as c:
         c.executescript(SCHEMA)
         for table, cols in NEW_COLUMNS.items():
@@ -216,21 +227,22 @@ def init():
             for col, typ in cols.items():
                 if col not in existing:
                     c.execute(f"ALTER TABLE {table} ADD COLUMN {col} {typ}")
-        # migrations de données (sans effet si déjà faites)
+        
+        # Migrations de données
         c.execute("UPDATE orders SET kind='livraison' WHERE kind IS NULL OR kind NOT IN ('livraison','facture')")
         c.execute("UPDATE products SET category='Fruit: autres' WHERE category='fruits'")
         c.execute("UPDATE commitments SET category='Fruit: autres' WHERE category='fruits'")
         c.execute("UPDATE suppliers SET categories=REPLACE(categories, '\"fruits\"', '\"Fruit: autres\"') "
                   "WHERE categories LIKE '%\"fruits\"%'")
-        # renommage des catégories (2026) : nouveaux libellés appliqués aux données existantes, sans effet si déjà faits
+        
+        # Renommage des catégories
         renames = [
             ("Fruit: pommes, poires, kiwis", "Fruits: pommes, poires, kiwis"), ("Fruit: autres", "Fruits: autres"),
             ("légume", "Légumes"), ("viande porc", "Viande de porc"), ("viande volaille", "Viande de volaille"),
-            ("viande boeuf", "Viande boeuf"), ("pêche", "Produits de la pêche"), ("laitier", "Produits laitiers"),
+            ("viande boeuf", "Viande de boeuf"), ("pêche", "Produits de la pêche"), ("laitier", "Produits laitiers"),
             ("ovoproduit", "Ovoproduits"), ("épicerie légumineuse", "Épicerie: légumineuses"),
             ("épicerie céréale", "Épicerie: céréales"), ("épicerie autre", "Épicerie: autre"),
             ("pain", "Pain"), ("autre", "Autre"),
-            # libellés intermédiaires (si la première version de la migration a été exécutée) → libellés définitifs
             ("Viande porc", "Viande de porc"), ("Viande volaille", "Viande de volaille"), ("Ovoproduit", "Ovoproduits"),
             ("Épicerie légumineuse", "Épicerie: légumineuses"), ("Épicerie céréale", "Épicerie: céréales"),
             ("Épicerie autre", "Épicerie: autre"), ("Viande boeuf", "Viande de boeuf"),
@@ -244,17 +256,32 @@ def init():
                       ('"' + old + '"', '"' + new + '"', '%"' + old + '"%'))
 
 
-def rows(sql, args=()):
+def rows(sql: str, args: tuple = ()) -> list[dict]:
+    """Exécute une requête et retourne tous les résultats sous forme de dictionnaires."""
     with conn() as c:
         return [dict(r) for r in c.execute(sql, args).fetchall()]
 
 
-def one(sql, args=()):
+def one(sql: str, args: tuple = ()) -> dict | None:
+    """Exécute une requête et retourne le premier résultat sous forme de dictionnaire."""
     r = rows(sql, args)
     return r[0] if r else None
 
 
-def execute(sql, args=()):
+def execute(sql: str, args: tuple = ()) -> int:
+    """Exécute une requête et retourne l'ID de la dernière ligne insérée."""
     with conn() as c:
         cur = c.execute(sql, args)
         return cur.lastrowid
+
+
+def execute_many(sql: str, args_list: list[tuple]) -> None:
+    """Exécute une requête avec plusieurs jeux de paramètres."""
+    with conn() as c:
+        c.executemany(sql, args_list)
+
+
+def execute_script(sql: str) -> None:
+    """Exécute un script SQL."""
+    with conn() as c:
+        c.executescript(sql)
