@@ -122,7 +122,7 @@ def get_backups_dir() -> Path:
 
 def get_static_dir() -> Path:
     """Retourne le répertoire des fichiers statiques."""
-    return Path(__file__).parent.parent / "frontend" / settings.STATIC_DIR
+    return Path(__file__).parent.parent.parent / "frontend" / settings.STATIC_DIR
 
 
 def get_database_path() -> Path:
