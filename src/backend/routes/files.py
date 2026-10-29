@@ -23,5 +23,5 @@ async def get_file(name: str, user: dict = Depends(READ)):
     p = uploads_dir / Path(name).name
     if not p.is_file() or p.suffix.lower() not in ALLOWED_EXT:
         raise HTTPException(404, "Fichier introuvable")
-    pretty = re.sub(r"^(?:fiche_)?[0-9a-f]{12}_\", "", p.name)
+    pretty = re.sub(r"^(?:fiche_)?[0-9a-f]{12}_", "", p.name)
     return FileResponse(p, filename=pretty, content_disposition_type="inline")
