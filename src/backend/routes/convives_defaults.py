@@ -12,6 +12,7 @@ router = APIRouter(prefix="/api/convives-defaults", tags=["Paramètres"])
 
 
 @router.get("/")
+@router.get("")
 async def get_convives_defaults(user: dict = Depends(READ)):
     """Retourne les convives par défaut."""
     result = one("SELECT value FROM settings WHERE key='convives_defaults'")
@@ -21,6 +22,7 @@ async def get_convives_defaults(user: dict = Depends(READ)):
 
 
 @router.put("/")
+@router.put("")
 async def update_convives_defaults(request: Request, user: dict = Depends(EDIT)):
     """Met à jour les convives par défaut."""
     data = await request.json()

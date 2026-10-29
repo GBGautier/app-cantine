@@ -12,6 +12,7 @@ router = APIRouter(prefix="/api/stats", tags=["Statistiques"])
 
 
 @router.get("/")
+@router.get("")
 async def get_stats(request: Request, user: dict = Depends(READ)):
     """Retourne des statistiques globales."""
     # Récupérer les paramètres de la requête

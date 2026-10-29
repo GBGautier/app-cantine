@@ -12,12 +12,14 @@ router = APIRouter(prefix="/api/grammages-rows", tags=["Grammages"])
 
 
 @router.get("/")
+@router.get("")
 async def get_grammages_rows(user: dict = Depends(READ)):
     """Retourne toutes les lignes de grammages."""
     return rows("SELECT * FROM grammages ORDER BY section_key, label")
 
 
 @router.put("/")
+@router.put("")
 async def update_grammages_rows(request: Request, user: dict = Depends(EDIT)):
     """Met à jour les lignes de grammages."""
     data = await request.json()

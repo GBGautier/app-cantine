@@ -13,6 +13,7 @@ router = APIRouter(prefix="/api/stock", tags=["Stocks"])
 
 
 @router.get("/")
+@router.get("")
 async def get_stock(user: dict = Depends(READ)):
     """Retourne les stocks actuels."""
     # Cette route est appelée par le frontend pour afficher les stocks

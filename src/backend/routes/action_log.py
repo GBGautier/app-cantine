@@ -12,6 +12,7 @@ router = APIRouter(prefix="/api/action-log", tags=["Journal"])
 
 
 @router.get("/")
+@router.get("")
 async def get_action_log(user: dict = Depends(READ)):
     """Retourne le journal des actions."""
     return rows(
