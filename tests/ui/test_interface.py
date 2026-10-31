@@ -176,3 +176,19 @@ def test_navigation_par_adresse_et_page_inconnue(admin):
     page.locator("#nav a.on", has_text="Produits").wait_for()
     page.goto(page.base + "/#nimporte-quoi")  # page inconnue : retour à la première page autorisée
     page.locator("#nav a.on", has_text="Statistiques").wait_for()
+
+
+def test_une_page_lente_n_ecrase_pas_la_page_demandee_ensuite(page, api):
+    """Clic rapide sur le menu : la page affichée doit être la dernière demandée, même si une précédente répond plus tard."""
+    api.post("/api/auth/setup", {"username": "admin", "password": MOT_DE_PASSE})
+    page.add_init_script(
+        "const f = window.fetch; window.fetch = (u, o) => String(u).startsWith('/api/stats?')"
+        " ? new Promise(r => setTimeout(r, 2500)).then(() => f(u, o)) : f(u, o);"
+    )
+    page.goto(page.base)  # page d'accueil = Statistiques, dont la réponse arrive tard
+    page.locator("#nav").wait_for()
+    aller(page, "Paramètres")
+    page.get_by_role("button", name="Sauvegarder toutes les données").wait_for()
+    page.wait_for_timeout(3500)  # la réponse tardive de Statistiques arrive maintenant
+    assert page.get_by_role("button", name="Sauvegarder toutes les données").count() == 1
+    assert page.locator("#nav a.on").inner_text().strip() == "Paramètres"
