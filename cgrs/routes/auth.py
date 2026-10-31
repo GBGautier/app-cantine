@@ -4,11 +4,13 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
 import db
+from cgrs import journal
 from cgrs.security import ANY, check_password_rule, check_rate, clean_username, COOKIE, current_user, DUMMY_HASH, FAILS, hash_password, register_fail, sha, start_session, verify_password
 from cgrs.utils import now_iso
 
 
 router = APIRouter()
+log = journal.get("auth")
 
 
 class Credentials(BaseModel):
@@ -43,11 +45,16 @@ def auth_login(c: Credentials, request: Request, response: Response):
         raise HTTPException(403, "Requête refusée")
     username = (c.username or "").strip().lower()
     key = (request.client.host if request.client else "?", username)
-    check_rate(key)
+    try:
+        check_rate(key)
+    except HTTPException:
+        log.warning("Connexion bloquée (trop de tentatives) : identifiant %r depuis %s", username, key[0])
+        raise
     u = db.one("SELECT * FROM users WHERE username=?", (username,))
     ok = verify_password(c.password, u["password_hash"] if u else DUMMY_HASH)
     if not u or not ok:
         register_fail(key)
+        log.warning("Connexion refusée : identifiant %r depuis %s", username, key[0])
         raise HTTPException(401, "Identifiant ou mot de passe incorrect")
     FAILS.pop(key, None)
     start_session(request, response, u["id"])

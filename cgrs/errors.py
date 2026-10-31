@@ -3,9 +3,14 @@
 Le frontend affiche le champ `detail` de la réponse : ces messages sont donc ceux que voit l'utilisateur.
 """
 import sqlite3
+import uuid
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+
+from cgrs import journal
+
+log = journal.get("erreurs")
 
 
 def integrity_response(exc: sqlite3.IntegrityError) -> tuple[int, str]:
@@ -33,4 +38,18 @@ def register(app: FastAPI) -> None:
         if "locked" in str(exc).lower() or "busy" in str(exc).lower():
             return JSONResponse({"detail": "La base de données est occupée : réessayez dans un instant."},
                                 status_code=503, headers={"Retry-After": "2"})
-        raise exc   # autre erreur technique : traitée comme une erreur interne
+        return unexpected(request, exc)   # autre erreur technique : traitée comme une erreur interne
+
+    @app.exception_handler(Exception)
+    async def unexpected_error(request: Request, exc: Exception):
+        return unexpected(request, exc)
+
+
+def unexpected(request: Request, exc: Exception) -> JSONResponse:
+    """Erreur imprévue : le détail technique va dans le journal, l'utilisateur reçoit un message et une référence."""
+    ref = uuid.uuid4().hex[:8]
+    log.error("Erreur interne [%s] %s %s", ref, request.method, request.url.path,
+              exc_info=(type(exc), exc, exc.__traceback__))
+    return JSONResponse({"detail": f"Erreur interne du serveur. Référence à communiquer : {ref}"}, status_code=500,
+                        headers={"X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY",
+                                 "Referrer-Policy": "same-origin", "Cache-Control": "no-store"})

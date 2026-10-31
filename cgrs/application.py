@@ -6,8 +6,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 import db
-from cgrs import errors
-from cgrs.config import STATIC
+from cgrs import errors, journal
+from cgrs.config import LOGS, STATIC
 from cgrs.routes.commitments import seed_commitments
 from cgrs.routes import auth
 from cgrs.routes import users
@@ -29,6 +29,7 @@ from cgrs.routes import backup
 from cgrs.routes import action_log
 
 
+journal.setup(LOGS)
 db.init()
 app = FastAPI(title="CGRS – réceptions & stocks")
 

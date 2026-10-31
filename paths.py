@@ -32,4 +32,5 @@ def data_dir() -> pathlib.Path:
 STATIC = app_dir() / "static"
 UPLOADS = data_dir() / "uploads"
 BACKUPS = data_dir() / "sauvegardes-auto"
+LOGS = data_dir() / "logs"
 DB_PATH = data_dir() / "cantine.db"
