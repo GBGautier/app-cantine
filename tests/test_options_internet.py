@@ -1,4 +1,5 @@
 """Options d'exposition sur Internet : désactivées par défaut (comportement d'origine), actives par variables d'environnement."""
+
 import os
 import subprocess
 import sys

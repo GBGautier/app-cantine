@@ -5,6 +5,7 @@ de bureau pointant dessus. L'import de webview est differe dans main()
 pour que ce meme dossier reste deployable sur un serveur sans pywebview
 (uvicorn app:app).
 """
+
 import socket
 import threading
 import time

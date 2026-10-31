@@ -5,6 +5,7 @@ testpaths = ["tests"]
 filterwarnings = ["ignore::DeprecationWarning"]
 
 [tool.ruff]
+line-length = 120
 # Contrôle qualité : erreurs réelles (imports inutiles, noms indéfinis, comparaisons fautives, pièges courants).
 # Pas de contrainte de longueur de ligne ni de reformatage automatique : le code d'origine reste lisible tel quel.
 target-version = "py311"

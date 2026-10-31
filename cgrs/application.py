@@ -1,6 +1,5 @@
 """Assemblage de l'application FastAPI : base de données, en-têtes de sécurité, routes, fichiers statiques."""
 
-
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -100,7 +99,9 @@ DEFAULT_CLIENTS = "C.G.R.S. SAFFRE; CGRS; Saffré; Restaurant scolaire; Rest sco
 _cn = db.one("SELECT value FROM settings WHERE key='client_names'")
 if not _cn:
     db.execute("INSERT INTO settings (key, value) VALUES ('client_names', ?)", (DEFAULT_CLIENTS,))
-elif _cn["value"] == "C.G.R.S. SAFFRE":   # ancienne valeur par défaut : on l'élargit aux variantes vues sur les documents
+elif (
+    _cn["value"] == "C.G.R.S. SAFFRE"
+):  # ancienne valeur par défaut : on l'élargit aux variantes vues sur les documents
     db.execute("UPDATE settings SET value=? WHERE key='client_names'", (DEFAULT_CLIENTS,))
 
 

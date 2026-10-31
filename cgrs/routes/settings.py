@@ -12,7 +12,7 @@ router = APIRouter()
 
 
 class Settings(BaseModel):
-    client_names: str = ""   # noms de la cantine, séparés par « ; » (jamais pris pour un fournisseur)
+    client_names: str = ""  # noms de la cantine, séparés par « ; » (jamais pris pour un fournisseur)
 
 
 def get_client_names():
@@ -27,7 +27,10 @@ def get_settings(user: dict = ADMIN):
 
 @router.put("/api/settings")
 def put_settings(s: Settings, user: dict = ADMIN):
-    db.execute("INSERT INTO settings (key, value) VALUES ('client_names', ?) "
-               "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (s.client_names,))
+    db.execute(
+        "INSERT INTO settings (key, value) VALUES ('client_names', ?) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (s.client_names,),
+    )
     log_action(user, "update", "settings", None, f"Nom de la cantine : {s.client_names!r}")
     return {"ok": True}

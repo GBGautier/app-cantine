@@ -5,7 +5,21 @@ from pydantic import BaseModel
 
 from cgrs import db
 from cgrs import journal
-from cgrs.security import ANY, check_password_rule, check_rate, clean_username, COOKIE, current_user, DUMMY_HASH, FAILS, hash_password, register_fail, sha, start_session, verify_password
+from cgrs.security import (
+    ANY,
+    check_password_rule,
+    check_rate,
+    clean_username,
+    COOKIE,
+    current_user,
+    DUMMY_HASH,
+    FAILS,
+    hash_password,
+    register_fail,
+    sha,
+    start_session,
+    verify_password,
+)
 from cgrs.utils import now_iso
 
 
@@ -33,8 +47,10 @@ def auth_setup(c: Credentials, request: Request, response: Response):
         raise HTTPException(403, "Un compte existe déjà")
     username = clean_username(c.username)
     check_password_rule(c.password)
-    uid = db.execute("INSERT INTO users (username, password_hash, role, created) VALUES (?,?,?,?)",
-                     (username, hash_password(c.password), "admin", now_iso()))
+    uid = db.execute(
+        "INSERT INTO users (username, password_hash, role, created) VALUES (?,?,?,?)",
+        (username, hash_password(c.password), "admin", now_iso()),
+    )
     start_session(request, response, uid)
     return {"user": {"id": uid, "username": username, "role": "admin"}}
 

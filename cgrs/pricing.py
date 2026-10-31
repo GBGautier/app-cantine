@@ -4,13 +4,17 @@ from cgrs import db
 
 
 def add_history(product_id, day, price, unit, order_id, source):
-    db.execute("INSERT INTO price_history (product_id, date, price, unit, order_id, source) VALUES (?,?,?,?,?,?)",
-               (product_id, day, price, unit, order_id, source))
+    db.execute(
+        "INSERT INTO price_history (product_id, date, price, unit, order_id, source) VALUES (?,?,?,?,?,?)",
+        (product_id, day, price, unit, order_id, source),
+    )
 
 
 def refresh_product_price(product_id):
     """Le prix courant d'un produit = dernier prix de son historique."""
-    last = db.one("SELECT price FROM price_history WHERE product_id=? ORDER BY date DESC, id DESC LIMIT 1", (product_id,))
+    last = db.one(
+        "SELECT price FROM price_history WHERE product_id=? ORDER BY date DESC, id DESC LIMIT 1", (product_id,)
+    )
     if last:
         db.execute("UPDATE products SET unit_price=? WHERE id=?", (last["price"], product_id))
 

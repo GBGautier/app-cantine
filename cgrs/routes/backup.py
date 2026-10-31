@@ -30,7 +30,7 @@ def backup(user: dict = ADMIN):
     src, dst = sqlite3.connect(db.DB_PATH), sqlite3.connect(tmp_db)
     try:
         src.backup(dst)
-        dst.execute("DELETE FROM sessions")   # on ne sauvegarde pas les connexions en cours
+        dst.execute("DELETE FROM sessions")  # on ne sauvegarde pas les connexions en cours
         dst.commit()
     finally:
         src.close()
@@ -40,17 +40,24 @@ def backup(user: dict = ADMIN):
         for p in sorted(UPLOADS.rglob("*")):
             if p.is_file():
                 z.write(p, f"uploads/{p.relative_to(UPLOADS).as_posix()}")
-        z.writestr("LISEZ-MOI.txt", (
-            f"Sauvegarde CGRS du {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
-            "Contenu : cantine.db (toutes les données, y compris les comptes utilisateurs et leurs mots de passe chiffrés)\n"
-            "et uploads/ (PDF des réceptions, fiches techniques).\n\n"
-            "Ce fichier contient des données sensibles : ne le partagez pas.\n\n"
-            "Restauration : arrêter l'application, remplacer cantine.db et le dossier uploads/ du dossier de l'application\n"
-            "par ceux de cette archive, puis relancer l'application.\n"))
+        z.writestr(
+            "LISEZ-MOI.txt",
+            (
+                f"Sauvegarde CGRS du {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
+                "Contenu : cantine.db (toutes les données, y compris les comptes utilisateurs et leurs mots de passe chiffrés)\n"
+                "et uploads/ (PDF des réceptions, fiches techniques).\n\n"
+                "Ce fichier contient des données sensibles : ne le partagez pas.\n\n"
+                "Restauration : arrêter l'application, remplacer cantine.db et le dossier uploads/ du dossier de l'application\n"
+                "par ceux de cette archive, puis relancer l'application.\n"
+            ),
+        )
     os.remove(tmp_db)
-    return FileResponse(tmp_zip, media_type="application/zip",
-                        filename=f"cgrs-sauvegarde-{date_cls.today().isoformat()}.zip",
-                        background=BackgroundTask(os.remove, tmp_zip))
+    return FileResponse(
+        tmp_zip,
+        media_type="application/zip",
+        filename=f"cgrs-sauvegarde-{date_cls.today().isoformat()}.zip",
+        background=BackgroundTask(os.remove, tmp_zip),
+    )
 
 
 MAX_RESTORE = 500 * 1024 * 1024
@@ -92,7 +99,9 @@ async def restore(file: UploadFile = File(...), user: dict = ADMIN):
                 c = sqlite3.connect(new_db)
                 ok = c.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
                 tables = {r[0] for r in c.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-                admins = c.execute("SELECT COUNT(*) FROM users WHERE role='admin'").fetchone()[0] if "users" in tables else 0
+                admins = (
+                    c.execute("SELECT COUNT(*) FROM users WHERE role='admin'").fetchone()[0] if "users" in tables else 0
+                )
                 c.close()
             except sqlite3.DatabaseError:
                 raise HTTPException(400, "La base de données de l'archive est illisible") from None
@@ -117,11 +126,16 @@ async def restore(file: UploadFile = File(...), user: dict = ADMIN):
             finally:
                 s_.close()
                 d_.close()
-            db.init()   # ajoute les colonnes manquantes si la sauvegarde vient d'une ancienne version
+            db.init()  # ajoute les colonnes manquantes si la sauvegarde vient d'une ancienne version
             files = 0
             for name in z.namelist():
                 parts = Path(name).parts
-                if len(parts) == 2 and parts[0] == "uploads" and parts[1] not in ("", ".", "..") and not name.endswith("/"):
+                if (
+                    len(parts) == 2
+                    and parts[0] == "uploads"
+                    and parts[1] not in ("", ".", "..")
+                    and not name.endswith("/")
+                ):
                     dest = UPLOADS / Path(parts[1]).name
                     with z.open(name) as src, open(dest, "wb") as out:
                         out.write(src.read())
@@ -130,4 +144,5 @@ async def restore(file: UploadFile = File(...), user: dict = ADMIN):
     finally:
         os.remove(tmp_zip)
         import shutil
+
         shutil.rmtree(tmp_dir, ignore_errors=True)

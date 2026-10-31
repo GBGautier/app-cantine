@@ -5,6 +5,7 @@ les lignes = catégories (Entrée, Plat, Accompagnement, Laitage, Dessert).
 On renvoie une liste de dict :
   { date, entree, plat, accompagnement, laitage, dessert }
 """
+
 import re
 import unicodedata
 from datetime import datetime
@@ -12,20 +13,39 @@ from datetime import datetime
 import pdfplumber
 
 MONTHS_FR = {
-    "janvier": 1, "février": 2, "fevrier": 2, "mars": 3, "avril": 4,
-    "mai": 5, "juin": 6, "juillet": 7, "août": 8, "aout": 8,
-    "septembre": 9, "octobre": 10, "novembre": 11, "décembre": 12, "decembre": 12,
+    "janvier": 1,
+    "février": 2,
+    "fevrier": 2,
+    "mars": 3,
+    "avril": 4,
+    "mai": 5,
+    "juin": 6,
+    "juillet": 7,
+    "août": 8,
+    "aout": 8,
+    "septembre": 9,
+    "octobre": 10,
+    "novembre": 11,
+    "décembre": 12,
+    "decembre": 12,
 }
 
 DAYS_FR = {
-    "lundi": 0, "mardi": 1, "mercredi": 2, "jeudi": 3, "vendredi": 4,
-    "samedi": 5, "dimanche": 6,
+    "lundi": 0,
+    "mardi": 1,
+    "mercredi": 2,
+    "jeudi": 3,
+    "vendredi": 4,
+    "samedi": 5,
+    "dimanche": 6,
 }
 
 CAT_MAP = {
-    "entree": "entree", "entrée": "entree",
+    "entree": "entree",
+    "entrée": "entree",
     "plat": "plat",
-    "accompagnement": "accompagnement", "acompagnement": "accompagnement",
+    "accompagnement": "accompagnement",
+    "acompagnement": "accompagnement",
     "laitage": "laitage",
     "dessert": "dessert",
 }
@@ -74,6 +94,7 @@ def classify_cat(cell):
     # fautes de frappe : similarité
     if len(n) >= 4:
         import difflib
+
         close = difflib.get_close_matches(n, CANON_CATS, n=1, cutoff=0.78)
         if close:
             return close[0]
@@ -224,7 +245,7 @@ def _parse_menu_tables_old(tables, doc_year=None):
 
             if dates:
                 header_row = row
-                cat_rows = table[row_idx + 1:]
+                cat_rows = table[row_idx + 1 :]
                 break
 
         if header_row is None:
@@ -248,9 +269,10 @@ def _parse_menu_tables_old(tables, doc_year=None):
             continue
 
         # Initialise les repas
-        meals = {date: {"date": date, "entree": None, "plat": None,
-                        "accompagnement": None, "laitage": None, "dessert": None}
-                 for date in col_dates.values()}
+        meals = {
+            date: {"date": date, "entree": None, "plat": None, "accompagnement": None, "laitage": None, "dessert": None}
+            for date in col_dates.values()
+        }
 
         # Remplit les catégories
         for row in cat_rows:
@@ -279,8 +301,7 @@ def _parse_menu_tables_old(tables, doc_year=None):
 
 
 def _empty_meal(date):
-    return {"date": date, "entree": None, "plat": None,
-            "accompagnement": None, "laitage": None, "dessert": None}
+    return {"date": date, "entree": None, "plat": None, "accompagnement": None, "laitage": None, "dessert": None}
 
 
 def _header_col_dates(row, doc_year):
@@ -339,7 +360,7 @@ def parse_menu_tables(tables, doc_year=None, ctx=None):
 
             # La cellule de catégorie est à gauche de la première colonne de date
             first_date_col = min(col_dates)
-            cat_cells = row[:max(1, first_date_col)]
+            cat_cells = row[: max(1, first_date_col)]
             cat = None
             for cell in cat_cells:
                 if cell:
@@ -433,7 +454,7 @@ def parse_menu_from_raw_text(text, doc_year=None):
     for header_idx, (line_idx, date_matches) in enumerate(header_lines):
         # Détermine la plage de lignes pour cette semaine
         end_idx = header_lines[header_idx + 1][0] if header_idx + 1 < len(header_lines) else len(lines)
-        week_lines = lines[line_idx + 1:end_idx]
+        week_lines = lines[line_idx + 1 : end_idx]
 
         # Construit les colonnes de dates
         ordered_dates = []
@@ -441,7 +462,9 @@ def parse_menu_from_raw_text(text, doc_year=None):
             day_num = int(m.group(2))
             month_str = unicodedata.normalize("NFKD", m.group(3)).encode("ascii", "ignore").decode().lower()
             month_num = MONTHS_FR.get(month_str)
-            year = resolve_year(m.group(1).lower(), day_num, month_num, int(m.group(4)) if m.group(4) else None, doc_year)
+            year = resolve_year(
+                m.group(1).lower(), day_num, month_num, int(m.group(4)) if m.group(4) else None, doc_year
+            )
             date_str = build_date(day_num, month_num, year)
             if date_str:
                 ordered_dates.append(date_str)
@@ -449,9 +472,10 @@ def parse_menu_from_raw_text(text, doc_year=None):
         if not ordered_dates:
             continue
 
-        meals = {d: {"date": d, "entree": None, "plat": None,
-                     "accompagnement": None, "laitage": None, "dessert": None}
-                 for d in ordered_dates}
+        meals = {
+            d: {"date": d, "entree": None, "plat": None, "accompagnement": None, "laitage": None, "dessert": None}
+            for d in ordered_dates
+        }
 
         # Cherche les lignes de catégories dans les lignes suivantes
         # Format typique: "EntreeValeur1Valeur2Valeur3Valeur4" ou "Entree Valeur1 Valeur2..."
@@ -463,7 +487,7 @@ def parse_menu_from_raw_text(text, doc_year=None):
                 c = classify_cat(first.group(1))
                 if c:
                     cat = c
-                    rest = wline[first.end():].strip()
+                    rest = wline[first.end() :].strip()
 
             if not cat:
                 continue

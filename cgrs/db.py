@@ -5,7 +5,7 @@ import threading
 
 from cgrs import paths
 
-DB_PATH = paths.DB_PATH   # %LOCALAPPDATA%/CGRS/cantine.db (exe) ou a cote du code (serveur/dev)
+DB_PATH = paths.DB_PATH  # %LOCALAPPDATA%/CGRS/cantine.db (exe) ou a cote du code (serveur/dev)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS suppliers (
@@ -183,23 +183,50 @@ CREATE INDEX IF NOT EXISTS ix_action_log_ts ON action_log(ts DESC);
 
 # colonnes ajoutées après la première version : ajoutées aux bases existantes
 NEW_COLUMNS = {
-    "suppliers": {"keywords": "TEXT", "delivery_days": "TEXT", "franco": "REAL", "order_method": "TEXT",
-                  "order_url": "TEXT", "categories": "TEXT"},
+    "suppliers": {
+        "keywords": "TEXT",
+        "delivery_days": "TEXT",
+        "franco": "REAL",
+        "order_method": "TEXT",
+        "order_url": "TEXT",
+        "categories": "TEXT",
+    },
     "products": {"ref": "TEXT", "datasheet": "TEXT", "avoid": "INTEGER DEFAULT 0", "favorite": "INTEGER DEFAULT 0"},
     "order_lines": {"ref": "TEXT"},
     "orders": {"delivery_date": "TEXT"},
     "commitments": {"level": "TEXT DEFAULT 'marche'", "metrics": "TEXT", "categories": "TEXT", "gammes": "TEXT"},
-    "meals": {"nb_maternelles": "INTEGER DEFAULT 0", "nb_elementaires": "INTEGER DEFAULT 0",
-              "nb_adultes": "INTEGER DEFAULT 0", "entree": "TEXT", "plat": "TEXT",
-              "accompagnement": "TEXT", "laitage": "TEXT", "dessert": "TEXT",
-              "commentaire_post": "TEXT", "statut": "TEXT DEFAULT x27prevux27",
-              "recipe_entree": "TEXT", "recipe_plat": "TEXT", "recipe_accompagnement": "TEXT", "recipe_laitage": "TEXT", "recipe_dessert": "TEXT",
-              "estimation": "TEXT",
-              "modif_prevu": "INTEGER DEFAULT 0"},
+    "meals": {
+        "nb_maternelles": "INTEGER DEFAULT 0",
+        "nb_elementaires": "INTEGER DEFAULT 0",
+        "nb_adultes": "INTEGER DEFAULT 0",
+        "entree": "TEXT",
+        "plat": "TEXT",
+        "accompagnement": "TEXT",
+        "laitage": "TEXT",
+        "dessert": "TEXT",
+        "commentaire_post": "TEXT",
+        "statut": "TEXT DEFAULT x27prevux27",
+        "recipe_entree": "TEXT",
+        "recipe_plat": "TEXT",
+        "recipe_accompagnement": "TEXT",
+        "recipe_laitage": "TEXT",
+        "recipe_dessert": "TEXT",
+        "estimation": "TEXT",
+        "modif_prevu": "INTEGER DEFAULT 0",
+    },
     "meal_items": {"prix_reel": "REAL"},
-    "recipes": {"nb_maternelles": "INTEGER DEFAULT 0", "nb_elementaires": "INTEGER DEFAULT 0",
-                "nb_adultes": "INTEGER DEFAULT 0"},
-    "recipe_items": {"qty_servi": "REAL", "qty_commander": "REAL", "principal": "INTEGER DEFAULT 0", "intitule_gemrcn": "TEXT", "unit": "TEXT"},
+    "recipes": {
+        "nb_maternelles": "INTEGER DEFAULT 0",
+        "nb_elementaires": "INTEGER DEFAULT 0",
+        "nb_adultes": "INTEGER DEFAULT 0",
+    },
+    "recipe_items": {
+        "qty_servi": "REAL",
+        "qty_commander": "REAL",
+        "principal": "INTEGER DEFAULT 0",
+        "intitule_gemrcn": "TEXT",
+        "unit": "TEXT",
+    },
 }
 
 
@@ -222,31 +249,49 @@ def init():
         c.execute("UPDATE orders SET kind='livraison' WHERE kind IS NULL OR kind NOT IN ('livraison','facture')")
         c.execute("UPDATE products SET category='Fruit: autres' WHERE category='fruits'")
         c.execute("UPDATE commitments SET category='Fruit: autres' WHERE category='fruits'")
-        c.execute("UPDATE suppliers SET categories=REPLACE(categories, '\"fruits\"', '\"Fruit: autres\"') "
-                  "WHERE categories LIKE '%\"fruits\"%'")
+        c.execute(
+            "UPDATE suppliers SET categories=REPLACE(categories, '\"fruits\"', '\"Fruit: autres\"') "
+            "WHERE categories LIKE '%\"fruits\"%'"
+        )
         # renommage des catégories (2026) : nouveaux libellés appliqués aux données existantes, sans effet si déjà faits
         renames = [
-            ("Fruit: pommes, poires, kiwis", "Fruits: pommes, poires, kiwis"), ("Fruit: autres", "Fruits: autres"),
-            ("légume", "Légumes"), ("viande porc", "Viande de porc"), ("viande volaille", "Viande de volaille"),
-            ("viande boeuf", "Viande boeuf"), ("pêche", "Produits de la pêche"), ("laitier", "Produits laitiers"),
-            ("ovoproduit", "Ovoproduits"), ("épicerie légumineuse", "Épicerie: légumineuses"),
-            ("épicerie céréale", "Épicerie: céréales"), ("épicerie autre", "Épicerie: autre"),
-            ("pain", "Pain"), ("autre", "Autre"),
+            ("Fruit: pommes, poires, kiwis", "Fruits: pommes, poires, kiwis"),
+            ("Fruit: autres", "Fruits: autres"),
+            ("légume", "Légumes"),
+            ("viande porc", "Viande de porc"),
+            ("viande volaille", "Viande de volaille"),
+            ("viande boeuf", "Viande boeuf"),
+            ("pêche", "Produits de la pêche"),
+            ("laitier", "Produits laitiers"),
+            ("ovoproduit", "Ovoproduits"),
+            ("épicerie légumineuse", "Épicerie: légumineuses"),
+            ("épicerie céréale", "Épicerie: céréales"),
+            ("épicerie autre", "Épicerie: autre"),
+            ("pain", "Pain"),
+            ("autre", "Autre"),
             # libellés intermédiaires (si la première version de la migration a été exécutée) → libellés définitifs
-            ("Viande porc", "Viande de porc"), ("Viande volaille", "Viande de volaille"), ("Ovoproduit", "Ovoproduits"),
-            ("Épicerie légumineuse", "Épicerie: légumineuses"), ("Épicerie céréale", "Épicerie: céréales"),
-            ("Épicerie autre", "Épicerie: autre"), ("Viande boeuf", "Viande de boeuf"),
+            ("Viande porc", "Viande de porc"),
+            ("Viande volaille", "Viande de volaille"),
+            ("Ovoproduit", "Ovoproduits"),
+            ("Épicerie légumineuse", "Épicerie: légumineuses"),
+            ("Épicerie céréale", "Épicerie: céréales"),
+            ("Épicerie autre", "Épicerie: autre"),
+            ("Viande boeuf", "Viande de boeuf"),
         ]
         for old, new in renames:
             c.execute("UPDATE products SET category=? WHERE category=?", (new, old))
             c.execute("UPDATE commitments SET category=? WHERE category=?", (new, old))
-            c.execute("UPDATE commitments SET categories=REPLACE(categories, ?, ?) WHERE categories LIKE ?",
-                      ('"' + old + '"', '"' + new + '"', '%"' + old + '"%'))
-            c.execute("UPDATE suppliers SET categories=REPLACE(categories, ?, ?) WHERE categories LIKE ?",
-                      ('"' + old + '"', '"' + new + '"', '%"' + old + '"%'))
+            c.execute(
+                "UPDATE commitments SET categories=REPLACE(categories, ?, ?) WHERE categories LIKE ?",
+                ('"' + old + '"', '"' + new + '"', '%"' + old + '"%'),
+            )
+            c.execute(
+                "UPDATE suppliers SET categories=REPLACE(categories, ?, ?) WHERE categories LIKE ?",
+                ('"' + old + '"', '"' + new + '"', '%"' + old + '"%'),
+            )
 
 
-_local = threading.local()   # connexion de la transaction en cours, propre à chaque thread
+_local = threading.local()  # connexion de la transaction en cours, propre à chaque thread
 
 
 def _current():
@@ -280,10 +325,12 @@ def transaction():
 
 def atomic(fn):
     """Décorateur : exécute toute la fonction dans une transaction (voir transaction())."""
+
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         with transaction():
             return fn(*args, **kwargs)
+
     return wrapper
 
 

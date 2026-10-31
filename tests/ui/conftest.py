@@ -3,6 +3,7 @@
 Prérequis : pip install playwright && playwright install chromium.  Sans cela, ces tests sont ignorés.
 Variable CGRS_UI_TARGET : dossier de code à tester (défaut : ce dépôt) ; permet de jouer les mêmes tests sur une autre version.
 """
+
 import os
 import shutil
 import socket
@@ -34,12 +35,33 @@ def serveur():
     """Application neuve (copie du code, base vide) sur un port libre. Rend l'URL de base."""
     dossier = Path(tempfile.mkdtemp(prefix="cgrs-ui-"))
     code = dossier / "code"
-    shutil.copytree(CIBLE, code, ignore=shutil.ignore_patterns(
-        ".git", "__pycache__", "*.db", "uploads", "sauvegardes-auto", "logs", "venv", ".venv", "tests", "build", "dist", ".*cache"))
+    shutil.copytree(
+        CIBLE,
+        code,
+        ignore=shutil.ignore_patterns(
+            ".git",
+            "__pycache__",
+            "*.db",
+            "uploads",
+            "sauvegardes-auto",
+            "logs",
+            "venv",
+            ".venv",
+            "tests",
+            "build",
+            "dist",
+            ".*cache",
+        ),
+    )
     port = port_libre()
     env = {**os.environ, "CGRS_BACKUP_INTERVAL_HOURS": "0"}
-    proc = subprocess.Popen([sys.executable, "-m", "uvicorn", "app:app", "--port", str(port), "--log-level", "warning"],
-                            cwd=code, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "uvicorn", "app:app", "--port", str(port), "--log-level", "warning"],
+        cwd=code,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
     base = f"http://127.0.0.1:{port}"
     for _ in range(100):
         try:
@@ -114,7 +136,9 @@ def admin(page, api):
 
 def champ(page, libelle):
     """Champ du formulaire ouvert, repéré par son libellé (l'interface n'a pas d'identifiants)."""
-    return page.locator(f'.modal >> xpath=.//label[normalize-space(.)="{libelle}"]/following-sibling::*[self::input or self::select or self::textarea][1]')
+    return page.locator(
+        f'.modal >> xpath=.//label[normalize-space(.)="{libelle}"]/following-sibling::*[self::input or self::select or self::textarea][1]'
+    )
 
 
 def aller(page, nom):

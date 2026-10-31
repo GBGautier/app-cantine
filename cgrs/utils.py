@@ -17,16 +17,32 @@ def log_action(user: dict, action: str, entity: str, entity_id, description: str
     try:
         db.execute(
             "INSERT INTO action_log (ts, username, action, entity, entity_id, description) VALUES (?,?,?,?,?,?)",
-            (now_iso(), user["username"], action, entity, entity_id, description))
+            (now_iso(), user["username"], action, entity, entity_id, description),
+        )
     except Exception:
         pass  # le journal ne doit jamais bloquer une opération
 
 
 UNITS = {
-    "kg": ("mass", 1), "g": ("mass", 0.001),
-    "l": ("vol", 1), "litre": ("vol", 1), "litres": ("vol", 1), "ml": ("vol", 0.001), "cl": ("vol", 0.01), "dl": ("vol", 0.1),
-    "unité": ("count", 1), "unités": ("count", 1), "pièce": ("count", 1), "pièces": ("count", 1), "u": ("count", 1), "pc": ("count", 1),
-    "colis": ("colis", 1), "botte": ("botte", 1), "barquette": ("barquette", 1), "bidon": ("bidon", 1), "boite": ("boite", 1),
+    "kg": ("mass", 1),
+    "g": ("mass", 0.001),
+    "l": ("vol", 1),
+    "litre": ("vol", 1),
+    "litres": ("vol", 1),
+    "ml": ("vol", 0.001),
+    "cl": ("vol", 0.01),
+    "dl": ("vol", 0.1),
+    "unité": ("count", 1),
+    "unités": ("count", 1),
+    "pièce": ("count", 1),
+    "pièces": ("count", 1),
+    "u": ("count", 1),
+    "pc": ("count", 1),
+    "colis": ("colis", 1),
+    "botte": ("botte", 1),
+    "barquette": ("barquette", 1),
+    "bidon": ("bidon", 1),
+    "boite": ("boite", 1),
 }
 
 

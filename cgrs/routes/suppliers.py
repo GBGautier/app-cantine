@@ -58,11 +58,15 @@ def supplier_out(r):
 
 @router.get("/api/suppliers")
 def suppliers(user: dict = READ):
-    out = [supplier_out(r) for r in db.rows(
-        "SELECT s.*, (SELECT COUNT(*) FROM products p WHERE p.supplier_id=s.id) AS nb_products, "
-        "(SELECT COUNT(*) FROM orders o WHERE o.supplier_id=s.id) AS nb_orders "
-        "FROM suppliers s ORDER BY s.name")]
-    if user["role"] != "admin":   # mots-clés de reconnaissance et regex de lecture : réservés à l'administrateur
+    out = [
+        supplier_out(r)
+        for r in db.rows(
+            "SELECT s.*, (SELECT COUNT(*) FROM products p WHERE p.supplier_id=s.id) AS nb_products, "
+            "(SELECT COUNT(*) FROM orders o WHERE o.supplier_id=s.id) AS nb_orders "
+            "FROM suppliers s ORDER BY s.name"
+        )
+    ]
+    if user["role"] != "admin":  # mots-clés de reconnaissance et regex de lecture : réservés à l'administrateur
         for r in out:
             r.pop("keywords", None)
             r.pop("parser_regex", None)
@@ -80,10 +84,12 @@ def create_supplier(s: Supplier, user: dict = WRITE):
 @db.atomic
 def edit_supplier(id: int, s: Supplier, user: dict = WRITE):
     old = db.one("SELECT direct_producteur, keywords, parser_regex FROM suppliers WHERE id=?", (id,))
-    if user["role"] != "admin" and old:   # ces deux champs ne sont pas modifiables hors administrateur
+    if user["role"] != "admin" and old:  # ces deux champs ne sont pas modifiables hors administrateur
         s.keywords, s.parser_regex = old["keywords"], old["parser_regex"]
     update("suppliers", id, s)
-    if s.direct_producteur and old and not old["direct_producteur"]:   # fournisseur désormais « direct producteur » : ses produits aussi
+    if (
+        s.direct_producteur and old and not old["direct_producteur"]
+    ):  # fournisseur désormais « direct producteur » : ses produits aussi
         db.execute("UPDATE products SET direct_producteur=1 WHERE supplier_id=?", (id,))
     return {"ok": True}
 

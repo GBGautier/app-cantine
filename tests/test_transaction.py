@@ -1,4 +1,5 @@
 """Transactions : tout est enregistré, ou rien."""
+
 import sqlite3
 import threading
 
@@ -26,8 +27,8 @@ def test_annulation_si_erreur(database):
 def test_les_ecritures_sont_visibles_dans_la_transaction_mais_pas_dehors_avant_validation(database):
     with database.transaction():
         database.execute("INSERT INTO suppliers (name) VALUES ('A')")
-        assert count(database) == 1                       # lecture dans la transaction : voit l'écriture
-        autre = database.conn()                           # autre connexion : ne voit rien tant que ce n'est pas validé
+        assert count(database) == 1  # lecture dans la transaction : voit l'écriture
+        autre = database.conn()  # autre connexion : ne voit rien tant que ce n'est pas validé
         try:
             assert autre.execute("SELECT COUNT(*) FROM suppliers").fetchone()[0] == 0
         finally:
@@ -49,7 +50,7 @@ def test_sans_transaction_chaque_ecriture_est_validee_aussitot(database):
     """Comportement historique, conservé pour le code qui n'utilise pas de transaction."""
     database.execute("INSERT INTO suppliers (name) VALUES ('A')")
     with pytest.raises(sqlite3.IntegrityError):
-        database.execute("INSERT INTO products (name, supplier_id) VALUES ('P', 99999)")   # clé étrangère invalide
+        database.execute("INSERT INTO products (name, supplier_id) VALUES ('P', 99999)")  # clé étrangère invalide
     assert count(database) == 1
 
 
@@ -57,12 +58,12 @@ def test_decorateur_atomic(database):
     @database.atomic
     def saisie():
         database.execute("INSERT INTO suppliers (name) VALUES ('A')")
-        database.execute("INSERT INTO products (name, supplier_id) VALUES ('P', 99999)")   # échoue
+        database.execute("INSERT INTO products (name, supplier_id) VALUES ('P', 99999)")  # échoue
 
     with pytest.raises(sqlite3.IntegrityError):
         saisie()
     assert count(database) == 0
-    assert saisie.__name__ == "saisie"   # functools.wraps : FastAPI s'appuie sur le nom et la signature
+    assert saisie.__name__ == "saisie"  # functools.wraps : FastAPI s'appuie sur le nom et la signature
 
 
 def test_une_transaction_est_propre_a_son_thread(database):

@@ -3,6 +3,7 @@
 À ne pas confondre avec le « journal d'actions » de l'interface (routes/action_log.py), qui est dans la base
 et décrit ce que font les utilisateurs.
 """
+
 import logging
 import logging.handlers
 from pathlib import Path
@@ -29,11 +30,12 @@ def setup(log_dir: Path | None, level: str = "INFO") -> logging.Logger:
     if log_dir is not None:
         try:
             log_dir.mkdir(parents=True, exist_ok=True)
-            fh = logging.handlers.RotatingFileHandler(log_dir / "cgrs.log", maxBytes=1_000_000, backupCount=5,
-                                                      encoding="utf-8")
+            fh = logging.handlers.RotatingFileHandler(
+                log_dir / "cgrs.log", maxBytes=1_000_000, backupCount=5, encoding="utf-8"
+            )
             fh.setFormatter(fmt)
             log.addHandler(fh)
-        except OSError as e:   # dossier non inscriptible : on continue avec la console seule
+        except OSError as e:  # dossier non inscriptible : on continue avec la console seule
             log.warning("Journal fichier indisponible (%s) : console seulement", e)
     return log
 

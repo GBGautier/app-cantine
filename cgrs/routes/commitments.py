@@ -17,14 +17,14 @@ router = APIRouter()
 # ---------- engagements du marché / PAR ----------
 class Commitment(BaseModel):
     label: str
-    metrics: list[str] = []         # liste d'indicateurs (nouveau)
-    metric: str = ""                # conservé pour compat. lecture (écrasé par metrics à l'enregistrement)
-    categories: list[str] = []      # liste de catégories (nouveau)
+    metrics: list[str] = []  # liste d'indicateurs (nouveau)
+    metric: str = ""  # conservé pour compat. lecture (écrasé par metrics à l'enregistrement)
+    categories: list[str] = []  # liste de catégories (nouveau)
     category: Optional[str] = None  # conservé pour compat. lecture
-    gammes: list[str] = []          # liste de gammes filtrées (optionnel)
+    gammes: list[str] = []  # liste de gammes filtrées (optionnel)
     target: float
     mode: str = "min"
-    level: str = "marche"           # marche | par
+    level: str = "marche"  # marche | par
     notes: Optional[str] = None
 
 
@@ -67,4 +67,6 @@ def delete_commitment(id: int, user: dict = ADMIN):
 def seed_commitments():
     if not db.one("SELECT 1 AS x FROM commitments LIMIT 1"):
         db.execute("INSERT INTO commitments (label, metric, target, mode) VALUES ('Produits bio', 'bio', 85, 'min')")
-        db.execute("INSERT INTO commitments (label, metric, target, mode) VALUES ('Produits EGalim', 'egalim', 90, 'min')")
+        db.execute(
+            "INSERT INTO commitments (label, metric, target, mode) VALUES ('Produits EGalim', 'egalim', 90, 'min')"
+        )

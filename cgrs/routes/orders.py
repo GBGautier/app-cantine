@@ -22,7 +22,7 @@ router = APIRouter()
 
 
 class Line(BaseModel):
-    create_product: bool = False   # créer le produit à partir du libellé s'il n'existe pas
+    create_product: bool = False  # créer le produit à partir du libellé s'il n'existe pas
     product_id: Optional[int] = None
     ref: Optional[str] = None
     label: Optional[str] = None
@@ -40,9 +40,9 @@ class Order(BaseModel):
     total_ht: Optional[float] = None
     source_file: Optional[str] = None
     notes: Optional[str] = None
-    new_supplier_name: Optional[str] = None   # créer le fournisseur s'il n'existe pas
-    new_supplier_direct: bool = False         # … et le marquer « direct producteur » (ses produits le seront aussi)
-    replaces: list[int] = []                  # bons de livraison remplacés par cette facture
+    new_supplier_name: Optional[str] = None  # créer le fournisseur s'il n'existe pas
+    new_supplier_direct: bool = False  # … et le marquer « direct producteur » (ses produits le seront aussi)
+    replaces: list[int] = []  # bons de livraison remplacés par cette facture
     lines: list[Line] = []
 
 
@@ -56,7 +56,8 @@ def orders(user: dict = READ):
     return db.rows(
         "SELECT o.*, s.name AS supplier_name, "
         "(SELECT COUNT(*) FROM order_lines l WHERE l.order_id=o.id) AS nb_lines "
-        "FROM orders o LEFT JOIN suppliers s ON s.id=o.supplier_id ORDER BY o.date DESC, o.id DESC")
+        "FROM orders o LEFT JOIN suppliers s ON s.id=o.supplier_id ORDER BY o.date DESC, o.id DESC"
+    )
 
 
 @router.get("/api/orders/{id}")
@@ -66,7 +67,9 @@ def get_order(id: int, user: dict = READ):
         raise HTTPException(404)
     o["lines"] = db.rows(
         "SELECT l.*, p.name AS product_name FROM order_lines l "
-        "LEFT JOIN products p ON p.id=l.product_id WHERE l.order_id=? ORDER BY l.id", (id,))
+        "LEFT JOIN products p ON p.id=l.product_id WHERE l.order_id=? ORDER BY l.id",
+        (id,),
+    )
     return o
 
 
@@ -77,13 +80,16 @@ def save_lines(order_id, lines):
             total = round(l.qty * l.unit_price, 2)
         db.execute(
             "INSERT INTO order_lines (order_id, product_id, ref, label, qty, unit, unit_price, total_ht) VALUES (?,?,?,?,?,?,?,?)",
-            (order_id, l.product_id, l.ref, l.label, l.qty, l.unit, l.unit_price, total))
+            (order_id, l.product_id, l.ref, l.label, l.qty, l.unit, l.unit_price, total),
+        )
 
 
 def order_total(o: Order):
     if o.total_ht is not None:
         return o.total_ht
-    return round(sum((l.total_ht if l.total_ht is not None else (l.qty or 0) * (l.unit_price or 0)) for l in o.lines), 2)
+    return round(
+        sum((l.total_ht if l.total_ht is not None else (l.qty or 0) * (l.unit_price or 0)) for l in o.lines), 2
+    )
 
 
 def resolve_creations(o: Order):
@@ -95,13 +101,16 @@ def resolve_creations(o: Order):
         if found:
             o.supplier_id = found["id"]
         else:
-            o.supplier_id = db.execute("INSERT INTO suppliers (name, direct_producteur) VALUES (?,?)", (name, 1 if o.new_supplier_direct else 0))
+            o.supplier_id = db.execute(
+                "INSERT INTO suppliers (name, direct_producteur) VALUES (?,?)",
+                (name, 1 if o.new_supplier_direct else 0),
+            )
             created["supplier"] = name
     sup = db.one("SELECT * FROM suppliers WHERE id=?", (o.supplier_id,)) if o.supplier_id else None
     for l in o.lines:
         if l.product_id is not None:
             continue
-        if l.ref:   # référence déjà connue : on rattache au produit existant
+        if l.ref:  # référence déjà connue : on rattache au produit existant
             q = "SELECT id FROM products WHERE LOWER(ref)=LOWER(?)" + (" AND supplier_id=?" if o.supplier_id else "")
             found = db.one(q, (l.ref, o.supplier_id) if o.supplier_id else (l.ref,))
             if found:
@@ -112,15 +121,25 @@ def resolve_creations(o: Order):
         name = (l.label or "").strip()
         if not name:
             continue
-        found = db.one("SELECT id FROM products WHERE LOWER(name)=LOWER(?) AND COALESCE(supplier_id,0)=COALESCE(?,0)",
-                       (name, o.supplier_id))
+        found = db.one(
+            "SELECT id FROM products WHERE LOWER(name)=LOWER(?) AND COALESCE(supplier_id,0)=COALESCE(?,0)",
+            (name, o.supplier_id),
+        )
         if found:
             l.product_id = found["id"]
             continue
         l.product_id = db.execute(
             "INSERT INTO products (ref, name, supplier_id, label_egalim, provenance, direct_producteur, unit) VALUES (?,?,?,?,?,?,?)",
-            (l.ref, name, o.supplier_id, "bio", sup["local_default"] if sup else None,
-             sup["direct_producteur"] if sup else 0, l.unit or "kg"))
+            (
+                l.ref,
+                name,
+                o.supplier_id,
+                "bio",
+                sup["local_default"] if sup else None,
+                sup["direct_producteur"] if sup else 0,
+                l.unit or "kg",
+            ),
+        )
         created["products"].append(name)
     return created
 
@@ -148,10 +167,12 @@ def update_prices(order_id, o: Order, day=None):
             continue
         price = l.unit_price
         if l.unit and p["unit"]:
-            factor = convert(1, l.unit, p["unit"])   # prix par unité de la ligne -> prix par unité du produit
+            factor = convert(1, l.unit, p["unit"])  # prix par unité de la ligne -> prix par unité du produit
             if factor:
                 price = round(price / factor, 4)
-        last = db.one("SELECT price, date FROM price_history WHERE product_id=? ORDER BY date DESC, id DESC LIMIT 1", (p["id"],))
+        last = db.one(
+            "SELECT price, date FROM price_history WHERE product_id=? ORDER BY date DESC, id DESC LIMIT 1", (p["id"],)
+        )
         if last is None or abs(last["price"] - price) > 1e-9:
             add_history(p["id"], day, price, p["unit"], order_id, "reception")
             if last is None or (last["date"] or "") <= day:
@@ -162,7 +183,9 @@ def update_prices(order_id, o: Order, day=None):
 
 
 def remove_order(order_id):
-    pids = [r["product_id"] for r in db.rows("SELECT DISTINCT product_id FROM price_history WHERE order_id=?", (order_id,))]
+    pids = [
+        r["product_id"] for r in db.rows("SELECT DISTINCT product_id FROM price_history WHERE order_id=?", (order_id,))
+    ]
     db.execute("DELETE FROM orders WHERE id=?", (order_id,))
     for pid in pids:
         refresh_product_price(pid)
@@ -204,10 +227,16 @@ def find_duplicate(ref, kind, supplier_id=None, exclude_id=None):
     key = pdf_parser.norm_ref(ref or "")
     if not key:
         return None
-    for r in db.rows("SELECT o.id, o.ref, o.kind, o.date, o.supplier_id, s.name AS supplier_name FROM orders o "
-                     "LEFT JOIN suppliers s ON s.id=o.supplier_id WHERE o.ref IS NOT NULL AND o.ref != ''"):
-        if (r["id"] != exclude_id and pdf_parser.norm_ref(r["ref"]) == key and r["kind"] == kind
-                and (not supplier_id or r["supplier_id"] in (supplier_id, None))):
+    for r in db.rows(
+        "SELECT o.id, o.ref, o.kind, o.date, o.supplier_id, s.name AS supplier_name FROM orders o "
+        "LEFT JOIN suppliers s ON s.id=o.supplier_id WHERE o.ref IS NOT NULL AND o.ref != ''"
+    ):
+        if (
+            r["id"] != exclude_id
+            and pdf_parser.norm_ref(r["ref"]) == key
+            and r["kind"] == kind
+            and (not supplier_id or r["supplier_id"] in (supplier_id, None))
+        ):
             return r
     return None
 
@@ -218,13 +247,18 @@ def create_order(o: Order, user: dict = WRITE):
     normalize_order(o)
     dup = find_duplicate(o.ref, o.kind, o.supplier_id)
     if dup:
-        raise HTTPException(409, f"{'La facture' if dup['kind'] == 'facture' else 'Le bon de livraison'} {dup['ref']} est déjà enregistré"
-                                 f"{' (' + dup['supplier_name'] + ')' if dup['supplier_name'] else ''} : import refusé.")
+        raise HTTPException(
+            409,
+            f"{'La facture' if dup['kind'] == 'facture' else 'Le bon de livraison'} {dup['ref']} est déjà enregistré"
+            f"{' (' + dup['supplier_name'] + ')' if dup['supplier_name'] else ''} : import refusé.",
+        )
     created = resolve_creations(o)
     o.total_ht = order_total(o)
     oid = insert("orders", o, exclude=("lines", "new_supplier_name", "new_supplier_direct", "replaces"))
     save_lines(oid, o.lines)
-    replaced, rdates = delete_replaced(o.replaces, oid, o.supplier_id)   # d'abord : l'historique de prix des bons remplacés disparaît avec eux
+    replaced, rdates = delete_replaced(
+        o.replaces, oid, o.supplier_id
+    )  # d'abord : l'historique de prix des bons remplacés disparaît avec eux
     price_updates = update_prices(oid, o, price_day(oid, o, rdates))
     if replaced:
         note = "Remplace : " + " ; ".join(replaced)
@@ -240,10 +274,14 @@ def edit_order(id: int, o: Order, user: dict = WRITE):
     normalize_order(o)
     dup = find_duplicate(o.ref, o.kind, o.supplier_id, exclude_id=id)
     if dup:
-        raise HTTPException(409, f"Un autre enregistrement porte déjà la référence {dup['ref']} : modification refusée.")
+        raise HTTPException(
+            409, f"Un autre enregistrement porte déjà la référence {dup['ref']} : modification refusée."
+        )
     created = resolve_creations(o)
     o.total_ht = order_total(o)
-    old_pids = [r["product_id"] for r in db.rows("SELECT DISTINCT product_id FROM price_history WHERE order_id=?", (id,))]
+    old_pids = [
+        r["product_id"] for r in db.rows("SELECT DISTINCT product_id FROM price_history WHERE order_id=?", (id,))
+    ]
     db.execute("DELETE FROM price_history WHERE order_id=?", (id,))
     update("orders", id, o, exclude=("lines", "new_supplier_name", "new_supplier_direct", "replaces"))
     db.execute("DELETE FROM order_lines WHERE order_id=?", (id,))
@@ -280,7 +318,9 @@ def replacement_candidates(q: CandidateQuery, user: dict = WRITE):
         return []
     cands = db.rows(
         "SELECT id, ref, date, total_ht FROM orders WHERE supplier_id=? AND kind='livraison' AND id != ? "
-        "ORDER BY date DESC, id DESC LIMIT 60", (q.supplier_id, q.exclude_id or -1))
+        "ORDER BY date DESC, id DESC LIMIT 60",
+        (q.supplier_id, q.exclude_id or -1),
+    )
     keys = {ref_key(r) for r in q.refs if ref_key(r)}
     for c in cands:
         reasons = []
@@ -302,18 +342,23 @@ async def parse_pdf(file: UploadFile = File(...), user: dict = WRITE):
     name = await save_upload(file, allowed={".pdf"})
     try:
         docs = pdf_parser.parse_pdf(
-            str(UPLOADS / name), db.rows("SELECT * FROM suppliers"), db.rows("SELECT * FROM products"),
-            client_names=get_client_names())
+            str(UPLOADS / name),
+            db.rows("SELECT * FROM suppliers"),
+            db.rows("SELECT * FROM products"),
+            client_names=get_client_names(),
+        )
     except Exception as e:  # PDF illisible
         (UPLOADS / name).unlink(missing_ok=True)
         raise HTTPException(422, f"Lecture du PDF impossible : {e}") from e
     for d in docs:
         d["source_file"] = name
         dup = find_duplicate(d.get("ref"), d.get("kind"), d.get("supplier_id"))
-        d["duplicate"] = ({"ref": dup["ref"], "date": dup["date"], "supplier_name": dup["supplier_name"]} if dup else None)
-        d.pop("text_preview", None)   # contient parfois des coordonnées bancaires : inutile côté navigateur
+        d["duplicate"] = (
+            {"ref": dup["ref"], "date": dup["date"], "supplier_name": dup["supplier_name"]} if dup else None
+        )
+        d.pop("text_preview", None)  # contient parfois des coordonnées bancaires : inutile côté navigateur
     if docs and all(d["duplicate"] for d in docs):
-        (UPLOADS / name).unlink(missing_ok=True)   # rien de nouveau : on ne garde pas le fichier en double
+        (UPLOADS / name).unlink(missing_ok=True)  # rien de nouveau : on ne garde pas le fichier en double
     return {"documents": docs, "source_file": name, "source_label": Path(file.filename).name}
 
 

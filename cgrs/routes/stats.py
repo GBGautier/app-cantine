@@ -23,12 +23,14 @@ def breakdown(rows_, key, labels=None):
         agg[k] = agg.get(k, 0) + r["spend"]
     out = []
     for k, v in sorted(agg.items(), key=lambda kv: -kv[1]):
-        out.append({
-            "key": k,
-            "label": (labels or {}).get(k, k),
-            "amount": round(v, 2),
-            "pct": round(100 * v / total, 1) if total else 0,
-        })
+        out.append(
+            {
+                "key": k,
+                "label": (labels or {}).get(k, k),
+                "amount": round(v, 2),
+                "pct": round(100 * v / total, 1) if total else 0,
+            }
+        )
     return out
 
 
@@ -91,16 +93,20 @@ def stats(date_from: Optional[str] = None, date_to: Optional[str] = None, user: 
     """
     where, args = ["1=1"], []
     if date_from:
-        where.append("o.date >= ?"); args.append(date_from)
+        where.append("o.date >= ?")
+        args.append(date_from)
     if date_to:
-        where.append("o.date <= ?"); args.append(date_to)
+        where.append("o.date <= ?")
+        args.append(date_to)
     w = " AND ".join(where)
     lines = db.rows(
         "SELECT l.order_id, o.total_ht AS order_total, l.qty, COALESCE(l.total_ht, l.qty*l.unit_price) AS spend, "
         "p.label_egalim, p.provenance, p.gamme, p.category, p.direct_producteur, s.name AS supplier "
         "FROM order_lines l JOIN orders o ON o.id=l.order_id "
         "LEFT JOIN products p ON p.id=l.product_id LEFT JOIN suppliers s ON s.id=o.supplier_id "
-        f"WHERE {w}", args)
+        f"WHERE {w}",
+        args,
+    )
     # Lignes sans montant (bon de livraison sans prix) : si le total HT de la réception est connu, l'écart avec les
     # lignes chiffrées est réparti sur ces lignes (au prorata des quantités) pour que les achats soient bien comptés.
     by_order = {}
@@ -127,9 +133,20 @@ def stats(date_from: Optional[str] = None, date_to: Optional[str] = None, user: 
     cost_total = round(sum(m["cost"] for m in priced), 2)
     guests_priced = sum(m["guests"] for m in priced)
     price_per_meal = round(cost_total / guests_priced, 2) if guests_priced else None
-    daily = sorted(({"date": m["date"], "guests": m["guests"], "cost": m["cost"], "per_guest": m["per_guest"],
-                     "pct_bio": m["pct_bio"], "pct_local": m["pct_local"]} for m in mm),
-                   key=lambda d: d["date"])
+    daily = sorted(
+        (
+            {
+                "date": m["date"],
+                "guests": m["guests"],
+                "cost": m["cost"],
+                "per_guest": m["per_guest"],
+                "pct_bio": m["pct_bio"],
+                "pct_local": m["pct_local"],
+            }
+            for m in mm
+        ),
+        key=lambda d: d["date"],
+    )
 
     labels = dict(metric_options())
     engagements = []
@@ -177,6 +194,8 @@ def stats(date_from: Optional[str] = None, date_to: Optional[str] = None, user: 
         for k in ("by_label", "by_provenance", "by_gamme", "by_category", "by_supplier"):
             for row in result[k]:
                 row.pop("amount", None)
-        result["commitments"] = [c for c in result["commitments"] if "price_per_meal" not in c.get("metrics", [c.get("metric", "")])]
+        result["commitments"] = [
+            c for c in result["commitments"] if "price_per_meal" not in c.get("metrics", [c.get("metric", "")])
+        ]
         result["prices_hidden"] = True
     return result

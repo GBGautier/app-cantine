@@ -74,6 +74,7 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt   # séparément : requirements.txt impose les empreintes, pas requirements-dev.txt
 pytest                      # tests de l'API et du code (rapides)
 ruff check .
+ruff format .                 # met le code en forme (lignes de 120 caractères maximum)
 ```
 
 Les tests d'interface (`tests/ui/`) pilotent un vrai navigateur sur une base vide et jetable : connexion, fournisseurs,

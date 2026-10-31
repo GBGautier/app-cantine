@@ -47,7 +47,9 @@ def current_user(request: Request):
         return None
     return db.one(
         "SELECT u.id, u.username, u.role FROM sessions s JOIN users u ON u.id=s.user_id "
-        "WHERE s.token_hash=? AND s.expires > ?", (sha(tok), now_iso()))
+        "WHERE s.token_hash=? AND s.expires > ?",
+        (sha(tok), now_iso()),
+    )
 
 
 def need(*roles):
@@ -61,14 +63,15 @@ def need(*roles):
         if u["role"] not in roles:
             raise HTTPException(403, "Droits insuffisants")
         return u
+
     return Depends(dep)
 
 
-READ = need("admin", "editor", "reader")   # lecture de toutes les données
-EDIT = need("admin", "editor")             # saisie et modification des données
+READ = need("admin", "editor", "reader")  # lecture de toutes les données
+EDIT = need("admin", "editor")  # saisie et modification des données
 WRITE = EDIT
-ADMIN = need("admin")                      # utilisateurs, paramètres, engagements, sauvegarde, mots-clés / regex des fournisseurs
-ANY = need("admin", "editor", "reader", "stats")   # page statistiques (prix masqués pour « stats »)
+ADMIN = need("admin")  # utilisateurs, paramètres, engagements, sauvegarde, mots-clés / regex des fournisseurs
+ANY = need("admin", "editor", "reader", "stats")  # page statistiques (prix masqués pour « stats »)
 
 FAILS: dict = {}
 
@@ -104,7 +107,16 @@ def check_password_rule(pw: str):
 def start_session(request: Request, response: Response, user_id: int):
     token = secrets.token_urlsafe(32)
     db.execute("DELETE FROM sessions WHERE expires <= ?", (now_iso(),))
-    expires = (datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=SESSION_DAYS)).isoformat(timespec="seconds")
+    expires = (datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=SESSION_DAYS)).isoformat(
+        timespec="seconds"
+    )
     db.execute("INSERT INTO sessions (token_hash, user_id, expires) VALUES (?,?,?)", (sha(token), user_id, expires))
-    response.set_cookie(COOKIE, token, max_age=SESSION_DAYS * 86400, httponly=True, samesite="lax",
-                        secure=SECURE_COOKIES or request.url.scheme == "https", path="/")
+    response.set_cookie(
+        COOKIE,
+        token,
+        max_age=SESSION_DAYS * 86400,
+        httponly=True,
+        samesite="lax",
+        secure=SECURE_COOKIES or request.url.scheme == "https",
+        path="/",
+    )

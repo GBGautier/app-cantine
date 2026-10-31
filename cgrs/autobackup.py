@@ -7,6 +7,7 @@ par la rotation : les copies « avant-restauration-… » faites par la restaura
 Les PDF et fiches techniques (uploads/) ne sont pas recopiés ici : ils ne changent jamais une fois enregistrés, et la
 sauvegarde complète de l'interface (« Sauvegarder toutes les données ») les inclut.
 """
+
 import re
 import sqlite3
 import threading
@@ -33,14 +34,14 @@ def make_backup(db_path: Path, dest: Path, now: datetime | None = None) -> Path:
     dest.mkdir(parents=True, exist_ok=True)
     stamp = (now or datetime.now()).strftime("%Y%m%d-%H%M%S")
     target = dest / f"auto-{stamp}.db"
-    partial = dest / f"{target.name}.partiel"      # nom provisoire : jamais pris pour une sauvegarde valide
+    partial = dest / f"{target.name}.partiel"  # nom provisoire : jamais pris pour une sauvegarde valide
     src, out = sqlite3.connect(db_path), sqlite3.connect(partial)
     try:
         src.backup(out)
         try:
             out.execute("DELETE FROM sessions")
             out.commit()
-        except sqlite3.OperationalError:           # base sans table sessions (ancienne version)
+        except sqlite3.OperationalError:  # base sans table sessions (ancienne version)
             pass
         if out.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
             raise sqlite3.DatabaseError("la copie ne passe pas le contrôle d'intégrité")

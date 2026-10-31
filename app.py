@@ -2,4 +2,5 @@
 
 L'application est assemblée dans le package cgrs/ (voir cgrs/application.py).
 """
+
 from cgrs.application import app  # noqa: F401

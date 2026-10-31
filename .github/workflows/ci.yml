@@ -32,6 +32,8 @@ jobs:
           python -m pip install -r requirements-dev.txt
       - name: Qualité du code (ruff)
         run: python -m ruff check .
+      - name: Mise en forme (ruff format)
+        run: python -m ruff format --check .
       - name: Tests de l'API et du code
         run: python -m pytest --ignore=tests/ui
 

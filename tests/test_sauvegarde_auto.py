@@ -1,4 +1,5 @@
 """Sauvegardes automatiques : copie cohérente, rotation prudente, jamais bloquante."""
+
 import os
 import sqlite3
 import time
@@ -26,7 +27,7 @@ def test_copie_coherente_sans_sessions(database, tmp_path):
     assert c.execute("SELECT COUNT(*) FROM suppliers").fetchone()[0] == 1
     assert c.execute("SELECT COUNT(*) FROM sessions").fetchone()[0] == 0
     c.close()
-    assert [p.name for p in (tmp_path / "auto").iterdir()] == [out.name]       # pas de fichier provisoire oublié
+    assert [p.name for p in (tmp_path / "auto").iterdir()] == [out.name]  # pas de fichier provisoire oublié
 
 
 def test_rotation_ne_touche_que_les_sauvegardes_automatiques(tmp_path):
@@ -35,7 +36,11 @@ def test_rotation_ne_touche_que_les_sauvegardes_automatiques(tmp_path):
     garde = fake_backup(tmp_path, "avant-restauration-20200101-000000.db")
     autre = fake_backup(tmp_path, "notes.txt")
     supprimees = autobackup.prune(tmp_path, keep=2)
-    assert [p.name for p in supprimees] == ["auto-20300101-120000.db", "auto-20300102-120000.db", "auto-20300103-120000.db"]
+    assert [p.name for p in supprimees] == [
+        "auto-20300101-120000.db",
+        "auto-20300102-120000.db",
+        "auto-20300103-120000.db",
+    ]
     assert [p.name for p in autobackup.list_backups(tmp_path)] == ["auto-20300104-120000.db", "auto-20300105-120000.db"]
     assert garde.exists() and autre.exists()
 
@@ -49,17 +54,17 @@ def test_pas_de_sauvegarde_si_la_derniere_est_recente(database, tmp_path):
 
 def test_sauvegarde_si_la_derniere_est_ancienne_ou_absente(database, tmp_path):
     dest = tmp_path / "auto"
-    assert autobackup.run_if_due(database.DB_PATH, dest, 24, 5) is not None          # aucune sauvegarde : on en fait une
+    assert autobackup.run_if_due(database.DB_PATH, dest, 24, 5) is not None  # aucune sauvegarde : on en fait une
     for f in dest.iterdir():
         t = time.time() - 30 * 3600
         os.utime(f, (t, t))
-    assert autobackup.run_if_due(database.DB_PATH, dest, 24, 5) is not None          # la dernière a 30 h
+    assert autobackup.run_if_due(database.DB_PATH, dest, 24, 5) is not None  # la dernière a 30 h
     assert len(autobackup.list_backups(dest)) in (1, 2)
 
 
 def test_une_sauvegarde_ratee_ne_leve_pas_et_ne_laisse_rien(tmp_path):
     dest = tmp_path / "auto"
-    assert autobackup.run_if_due(tmp_path / "absente" / "x.db", dest, 24, 5) is None   # base introuvable
+    assert autobackup.run_if_due(tmp_path / "absente" / "x.db", dest, 24, 5) is None  # base introuvable
     assert not list(dest.glob("*")) if dest.exists() else True
 
 

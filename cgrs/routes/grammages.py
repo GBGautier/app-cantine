@@ -69,17 +69,27 @@ def put_grammages_rows(g: GrammageRowsUpdate, user: dict = EDIT):
         db.execute(
             "INSERT INTO grammages (section_key, section_label, section_title, label, gemrcn, cgrs, coeff, unit) "
             "VALUES (?,?,?,?,?,?,?,?)",
-            (r.section_key, r.section_label, r.section_title, r.label,
-             json.dumps(r.gemrcn, ensure_ascii=False), json.dumps(r.cgrs, ensure_ascii=False),
-             r.coeff, r.unit))
+            (
+                r.section_key,
+                r.section_label,
+                r.section_title,
+                r.label,
+                json.dumps(r.gemrcn, ensure_ascii=False),
+                json.dumps(r.cgrs, ensure_ascii=False),
+                r.coeff,
+                r.unit,
+            ),
+        )
     log_action(user, "update", "grammages", None, f"{len(g.rows)} lignes de grammages enregistrées")
     return {"ok": True, "rows": len(g.rows)}
 
 
 @router.put("/api/grammages")
 def put_grammages(g: GrammageOverride, user: dict = EDIT):
-    db.execute("INSERT INTO settings (key, value) VALUES ('grammages_overrides', ?) "
-               "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-               (json.dumps(g.overrides, ensure_ascii=False),))
+    db.execute(
+        "INSERT INTO settings (key, value) VALUES ('grammages_overrides', ?) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (json.dumps(g.overrides, ensure_ascii=False),),
+    )
     log_action(user, "update", "settings", None, "Mise à jour des grammages CGRS")
     return {"ok": True}

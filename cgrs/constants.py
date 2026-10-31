@@ -1,6 +1,5 @@
 """Constantes métier : provenances, gammes, catégories, jours, profils."""
 
-
 PROVENANCES = {
     "cc_nozay": "CC Nozay",
     "loire_atlantique": "Loire-Atlantique",
@@ -19,8 +18,20 @@ GAMMES = {
     "6": "6 - déshydratés ou lyophilisés",
 }
 CATEGORIES = [
-    "Fruits: pommes, poires, kiwis", "Fruits: autres", "Légumes", "Viande de porc", "Viande de volaille", "Viande de boeuf",
-    "Produits de la pêche", "Produits laitiers", "Ovoproduits", "Épicerie: légumineuses", "Épicerie: céréales", "Épicerie: autre", "Pain", "Autre",
+    "Fruits: pommes, poires, kiwis",
+    "Fruits: autres",
+    "Légumes",
+    "Viande de porc",
+    "Viande de volaille",
+    "Viande de boeuf",
+    "Produits de la pêche",
+    "Produits laitiers",
+    "Ovoproduits",
+    "Épicerie: légumineuses",
+    "Épicerie: céréales",
+    "Épicerie: autre",
+    "Pain",
+    "Autre",
 ]
 DAYS = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"]
 ORDER_METHODS = {"internet": "Internet", "telephone": "Téléphone", "email": "E-mail", "autre": "Autre"}

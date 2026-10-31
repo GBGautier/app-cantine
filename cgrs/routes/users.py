@@ -43,8 +43,10 @@ def create_user(u: NewUser, user: dict = ADMIN):
     check_password_rule(u.password)
     if db.one("SELECT 1 AS x FROM users WHERE username=?", (username,)):
         raise HTTPException(400, "Cet identifiant existe déjà")
-    uid = db.execute("INSERT INTO users (username, password_hash, role, created) VALUES (?,?,?,?)",
-                     (username, hash_password(u.password), u.role, now_iso()))
+    uid = db.execute(
+        "INSERT INTO users (username, password_hash, role, created) VALUES (?,?,?,?)",
+        (username, hash_password(u.password), u.role, now_iso()),
+    )
     log_action(user, "create", "user", uid, f"Création utilisateur {username!r} ({u.role})")
     return {"id": uid}
 
@@ -68,9 +70,11 @@ def edit_user(id: int, u: UserEdit, user: dict = ADMIN):
         db.execute("UPDATE users SET password_hash=? WHERE id=?", (hash_password(u.password), id))
         changes.append("mot de passe modifié")
     if u.role is not None or u.password:
-        db.execute("DELETE FROM sessions WHERE user_id=?", (id,))   # force une nouvelle connexion
+        db.execute("DELETE FROM sessions WHERE user_id=?", (id,))  # force une nouvelle connexion
     if changes:
-        log_action(user, "update", "user", id, f"Modification utilisateur {target['username']!r} : {', '.join(changes)}")
+        log_action(
+            user, "update", "user", id, f"Modification utilisateur {target['username']!r} : {', '.join(changes)}"
+        )
     return {"ok": True}
 
 

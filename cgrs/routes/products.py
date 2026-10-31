@@ -28,8 +28,8 @@ class Product(BaseModel):
     label_detail: Optional[str] = None
     provenance: Optional[str] = None
     direct_producteur: int = 0
-    avoid: int = 0            # « à éviter » : produit signalé (affiché en orange dans la liste)
-    favorite: int = 0         # produit favori (étoile)
+    avoid: int = 0  # « à éviter » : produit signalé (affiché en orange dans la liste)
+    favorite: int = 0  # produit favori (étoile)
     unit: Optional[str] = "kg"
     unit_price: Optional[float] = None
     notes: Optional[str] = None
@@ -39,7 +39,8 @@ class Product(BaseModel):
 def products(user: dict = READ):
     return db.rows(
         "SELECT p.*, s.name AS supplier_name FROM products p "
-        "LEFT JOIN suppliers s ON s.id=p.supplier_id ORDER BY p.name")
+        "LEFT JOIN suppliers s ON s.id=p.supplier_id ORDER BY p.name"
+    )
 
 
 def fill_unpriced_lines(product_id):
@@ -49,15 +50,21 @@ def fill_unpriced_lines(product_id):
     if not p or not p["unit_price"]:
         return
     touched = set()
-    for l in db.rows("SELECT id, order_id, qty, unit FROM order_lines WHERE product_id=? AND (unit_price IS NULL OR unit_price=0) "
-                     "AND (total_ht IS NULL OR total_ht=0) AND qty > 0", (product_id,)):
+    for l in db.rows(
+        "SELECT id, order_id, qty, unit FROM order_lines WHERE product_id=? AND (unit_price IS NULL OR unit_price=0) "
+        "AND (total_ht IS NULL OR total_ht=0) AND qty > 0",
+        (product_id,),
+    ):
         q = convert(l["qty"], l["unit"] or p["unit"], p["unit"] or l["unit"])
         if q is None:
             continue
         price_line = round(p["unit_price"] * q / l["qty"], 4)
-        db.execute("UPDATE order_lines SET unit_price=?, total_ht=? WHERE id=?", (price_line, round(q * p["unit_price"], 2), l["id"]))
+        db.execute(
+            "UPDATE order_lines SET unit_price=?, total_ht=? WHERE id=?",
+            (price_line, round(q * p["unit_price"], 2), l["id"]),
+        )
         touched.add(l["order_id"])
-    for oid in touched:   # total de la réception : recalculé seulement s'il était vide ou égal à la somme des lignes
+    for oid in touched:  # total de la réception : recalculé seulement s'il était vide ou égal à la somme des lignes
         o = db.one("SELECT total_ht FROM orders WHERE id=?", (oid,))
         s_all = db.one("SELECT COALESCE(SUM(total_ht),0) AS s FROM order_lines WHERE order_id=?", (oid,))["s"]
         if not o["total_ht"]:
@@ -108,7 +115,9 @@ def product_prices(id: int, user: dict = READ):
     return db.rows(
         "SELECT h.id, h.date, h.price, h.unit, h.source, o.ref AS order_ref, o.kind AS order_kind "
         "FROM price_history h LEFT JOIN orders o ON o.id=h.order_id WHERE h.product_id=? "
-        "ORDER BY h.date DESC, h.id DESC", (id,))
+        "ORDER BY h.date DESC, h.id DESC",
+        (id,),
+    )
 
 
 @router.get("/api/products/prices-at")

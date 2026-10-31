@@ -6,6 +6,7 @@ Deux contextes :
   sauvegardes) vivent dans %LOCALAPPDATA%/CGRS/, car le dossier
   d'extraction (sys._MEIPASS) est en lecture seule et efface a la fermeture.
 """
+
 import sys
 import pathlib
 

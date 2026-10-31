@@ -17,7 +17,9 @@ def metric_options():
         ("direct", "% direct producteur"),
         ("price_per_meal", "Prix / repas HT (€) – coût matières ÷ convives"),
     ]
-    opts += [(f"label:{k}", f"% label : {v}") for k, v in (("bio", "bio"), ("autre", "autre label"), ("sans", "sans label"))]
+    opts += [
+        (f"label:{k}", f"% label : {v}") for k, v in (("bio", "bio"), ("autre", "autre label"), ("sans", "sans label"))
+    ]
     opts += [(f"provenance:{k}", f"% provenance : {v}") for k, v in PROVENANCES.items()]
     opts += [(f"gamme:{k}", f"% gamme : {v}") for k, v in GAMMES.items()]
     return opts
@@ -25,5 +27,13 @@ def metric_options():
 
 @router.get("/api/meta")
 def meta(user: dict = ANY):
-    return {"provenances": PROVENANCES, "gammes": GAMMES, "categories": CATEGORIES, "local": LOCAL,
-            "metrics": metric_options(), "days": DAYS, "order_methods": ORDER_METHODS, "roles": ROLES}
+    return {
+        "provenances": PROVENANCES,
+        "gammes": GAMMES,
+        "categories": CATEGORIES,
+        "local": LOCAL,
+        "metrics": metric_options(),
+        "days": DAYS,
+        "order_methods": ORDER_METHODS,
+        "roles": ROLES,
+    }
