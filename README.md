@@ -24,6 +24,3 @@ Les PDF scannés sont lus par OCR si `tesseract` est installé (avec le françai
 `sudo apt install tesseract-ocr tesseract-ocr-fra` (Debian/Ubuntu) ou `brew install tesseract tesseract-lang` (macOS).
 Les montants lus par OCR sont à vérifier ; l'app avertit si la somme des lignes ne correspond pas au total HT.
 Fournisseur au format particulier : renseigner une regex (groupes `code`, `label`, `qty`, `unit`, `unit_price`, `total`) sur sa fiche.
-
-
-wXetK8tTvaSRgnS
