@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 import db
 from cgrs import autobackup, errors, journal
-from cgrs.config import BACKUP_INTERVAL_HOURS, BACKUP_KEEP, BACKUPS, LOGS, STATIC
+from cgrs.config import API_DOCS, BACKUP_INTERVAL_HOURS, BACKUP_KEEP, BACKUPS, HSTS, LOGS, STATIC
 from cgrs.routes.commitments import seed_commitments
 from cgrs.routes import auth
 from cgrs.routes import users
@@ -49,7 +49,8 @@ async def lifespan(_app: FastAPI):
             scheduler.stop()
 
 
-app = FastAPI(title="CGRS – réceptions & stocks", lifespan=lifespan)
+_docs = {} if API_DOCS else {"docs_url": None, "redoc_url": None, "openapi_url": None}
+app = FastAPI(title="CGRS – réceptions & stocks", lifespan=lifespan, **_docs)
 
 
 @app.middleware("http")
@@ -62,6 +63,8 @@ async def security_headers(request: Request, call_next):
     else:
         resp.headers.setdefault("X-Frame-Options", "DENY")
     resp.headers.setdefault("Referrer-Policy", "same-origin")
+    if HSTS:
+        resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
     if request.url.path.startswith("/api/"):
         resp.headers["Cache-Control"] = "no-store"
     return resp

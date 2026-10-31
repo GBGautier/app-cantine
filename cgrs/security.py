@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, Request, Response
 
 import db
+from cgrs.config import SECURE_COOKIES
 from cgrs.utils import now_iso
 
 
@@ -106,4 +107,4 @@ def start_session(request: Request, response: Response, user_id: int):
     expires = (datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=SESSION_DAYS)).isoformat(timespec="seconds")
     db.execute("INSERT INTO sessions (token_hash, user_id, expires) VALUES (?,?,?)", (sha(token), user_id, expires))
     response.set_cookie(COOKIE, token, max_age=SESSION_DAYS * 86400, httponly=True, samesite="lax",
-                        secure=request.url.scheme == "https", path="/")
+                        secure=SECURE_COOKIES or request.url.scheme == "https", path="/")
