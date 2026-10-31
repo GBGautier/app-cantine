@@ -70,7 +70,8 @@ Un message « Erreur interne du serveur. Référence à communiquer : xxxxxxxx �
 ## Tests
 
 ```
-pip install -r requirements.txt -r requirements-dev.txt
+pip install -r requirements.txt
+pip install -r requirements-dev.txt   # séparément : requirements.txt impose les empreintes, pas requirements-dev.txt
 pytest                      # tests de l'API et du code (rapides)
 ruff check .
 ```
@@ -99,7 +100,8 @@ Mettre à jour (à faire de temps en temps, par exemple après une alerte de sé
 pip install uv pip-audit
 uv pip compile requirements.in --universal --python-version 3.12 --generate-hashes -o requirements.txt --upgrade
 uv pip compile requirements-build.in --universal --python-version 3.12 --generate-hashes -o requirements-build.txt --upgrade
-pip install -r requirements.txt -r requirements-dev.txt
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
 pytest && pytest tests/ui
 pip-audit -r requirements.txt --no-deps --disable-pip
 ```

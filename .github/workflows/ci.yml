@@ -1,0 +1,67 @@
+name: Contrôles
+
+# À chaque push et chaque pull request : qualité du code, tests de l'API, tests d'interface.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - name: Installer les dépendances
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
+      - name: Qualité du code (ruff)
+        run: python -m ruff check .
+      - name: Tests de l'API et du code
+        run: python -m pytest --ignore=tests/ui
+
+  interface:
+    name: Tests d'interface (navigateur)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - name: Installer les dépendances
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
+          python -m playwright install --with-deps chromium
+      - name: Tests d'interface
+        run: python -m pytest tests/ui
+
+  dependances:
+    name: Vulnérabilités connues des dépendances
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install pip-audit
+      - run: python -m pip_audit -r requirements.txt --no-deps --disable-pip
