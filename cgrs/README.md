@@ -26,3 +26,6 @@ se contente d'importer l'application assemblée ici.
 
 Ce qui reste à la racine, inchangé : `db.py`, `paths.py`, `pdf_parser.py`, `menu_parser.py`, `dolibarr.py`, `main.py`,
 `static/`, `lancer.bat`, `requirements.txt` (déplacer ces fichiers pourrait casser un exécutable déjà construit).
+
+Ajouts du durcissement : `errors.py` (erreurs de base de données → réponses claires, erreurs internes avec référence),
+`journal.py` (journal fichier), `autobackup.py` (sauvegardes automatiques). Voir `docs/DEPLOIEMENT.md`.
