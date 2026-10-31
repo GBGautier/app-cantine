@@ -9,11 +9,10 @@ from pydantic import BaseModel, field_validator
 from cgrs import db
 from cgrs.parsers import menu_parser
 from cgrs.config import UPLOADS
-from cgrs.constants import CATEGORIES, LOCAL
-from cgrs.pricing import load_history, price_at
+from cgrs.pricing import load_history
+from cgrs.services.meals import meal_metrics as compute_meal_metrics, shopping_list as build_shopping_list
 from cgrs.security import READ, WRITE
 from cgrs.uploads import save_upload
-from cgrs.utils import convert
 
 
 router = APIRouter()
@@ -77,56 +76,7 @@ def meals_metrics(date_from=None, date_to=None, product_id=None):
         f"JOIN products p ON p.id=i.product_id WHERE {w}",
         args,
     )
-    hist = load_history()
-    acc = {m["id"]: {"cost": 0.0, "bio": 0.0, "local": 0.0, "n": 0, "unpriced": 0} for m in meals}
-    for it in items:
-        a = acc[it["meal_id"]]
-        a["n"] += 1
-        # Prix réel saisi manuellement > historique calculé
-        if it["prix_reel"] is not None:
-            price = it["prix_reel"]
-        else:
-            price = price_at(hist, it["product_id"], it["mdate"], it["unit_price"])
-        qty = convert(it["qty"], it["unit"] or it["punit"], it["punit"] or it["unit"])
-        if price is None or qty is None:
-            a["unpriced"] += 1
-            continue
-        c = qty * price
-        a["cost"] += c
-        if it["label_egalim"] == "bio":
-            a["bio"] += c
-        if it["provenance"] in LOCAL:
-            a["local"] += c
-    out = []
-    for m in meals:
-        a = acc[m["id"]]
-        cost = round(a["cost"], 2)
-        out.append(
-            {
-                "id": m["id"],
-                "date": m["date"],
-                "nb_maternelles": m["nb_maternelles"] or 0,
-                "nb_elementaires": m["nb_elementaires"] or 0,
-                "nb_adultes": m["nb_adultes"] or 0,
-                "guests": m["guests"],
-                "notes": m["notes"],
-                "entree": m["entree"],
-                "plat": m["plat"],
-                "accompagnement": m["accompagnement"],
-                "laitage": m["laitage"],
-                "dessert": m["dessert"],
-                "commentaire_post": m["commentaire_post"],
-                "statut": m["statut"] or "prevu",
-                "modif_prevu": bool(m["modif_prevu"]),
-                "nb_items": a["n"],
-                "unpriced": a["unpriced"],
-                "cost": cost,
-                "per_guest": round(cost / m["guests"], 2) if cost and m["guests"] else None,
-                "pct_bio": round(100 * a["bio"] / a["cost"], 1) if a["cost"] else None,
-                "pct_local": round(100 * a["local"] / a["cost"], 1) if a["cost"] else None,
-            }
-        )
-    return out
+    return compute_meal_metrics(meals, items, load_history())
 
 
 @router.get("/api/meals")
@@ -143,35 +93,7 @@ def shopping_list(date_from: str, date_to: str, user: dict = READ):
         "WHERE m.date >= ? AND m.date <= ?",
         (date_from, date_to),
     )
-    acc = {}
-    for r in rows:
-        pu = r["punit"] or r["unit"] or "kg"
-        q = convert(r["qty"], r["unit"] or pu, pu)
-        u = pu
-        if q is None:  # unité incompatible avec celle du produit : gardée telle quelle
-            q, u = r["qty"], r["unit"] or pu
-        a = acc.setdefault(
-            (r["product_id"], u),
-            {
-                "product_id": r["product_id"],
-                "label": r["name"],
-                "category": r["category"] or "Autre",
-                "unit": u,
-                "qty": 0.0,
-            },
-        )
-        a["qty"] += q
-    out = sorted(
-        acc.values(),
-        key=lambda a: (
-            CATEGORIES.index(a["category"]) if a["category"] in CATEGORIES else len(CATEGORIES),
-            a["category"].lower(),
-            a["label"].lower(),
-        ),
-    )
-    for a in out:
-        a["qty"] = round(a["qty"], 3)
-    return out
+    return build_shopping_list(rows)
 
 
 @router.get("/api/meals/{id}")

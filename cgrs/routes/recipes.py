@@ -7,8 +7,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from cgrs import db
-from cgrs.pricing import load_history, price_at
+from cgrs.pricing import load_history
 from cgrs.security import READ, WRITE
+from cgrs.services.recipes import recipe_cost as compute_recipe_cost
 from cgrs.utils import log_action, now_iso
 
 
@@ -58,25 +59,9 @@ def recipe_cost(recipe_id, nb_mat, nb_elem, nb_adu, meal_date=None):
         "LEFT JOIN products p ON p.id=ri.product_id WHERE ri.recipe_id=?",
         (recipe_id,),
     )
-    if not items:
-        return None
-    hist = load_history()
-    total = 0.0
-    unpriced = 0
-    for it in items:
-        if not it["product_id"]:
-            continue
-        price = price_at(hist, it["product_id"], meal_date or date_cls.today().isoformat(), it["unit_price"])
-        if price is None:
-            unpriced += 1
-            continue
-        qty = (
-            (it["qty_maternelle"] or 0) * nb_mat / 1000
-            + (it["qty_elementaire"] or 0) * nb_elem / 1000
-            + (it["qty_adulte"] or 0) * nb_adu / 1000
-        )  # grammages en g → kg pour un prix en €/kg
-        total += qty * price
-    return {"cost": round(total, 2), "unpriced": unpriced}
+    return compute_recipe_cost(
+        items, nb_mat, nb_elem, nb_adu, load_history(), meal_date or date_cls.today().isoformat()
+    )
 
 
 @router.get("/api/recipes")
