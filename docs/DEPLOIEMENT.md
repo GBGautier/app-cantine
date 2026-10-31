@@ -9,13 +9,24 @@
 | Sauvegardes automatiques | `sauvegardes-auto/` (`auto-AAAAMMJJ-HHMMSS.db`) |
 | Journal technique | `logs/cgrs.log` (5 fichiers de 1 Mo maximum) |
 
-Sur Windows avec l'exécutable, ces dossiers sont dans `%LOCALAPPDATA%\CGRS\` ; sinon à côté du code.
+Avec l'exécutable Windows, ces dossiers sont dans `%LOCALAPPDATA%\CGRS\` ; sinon à côté du code.
 
 ## Application de bureau Windows
 
-`lancer.bat` (ou l'exécutable) : rien à configurer. Les sauvegardes automatiques tournent dès le lancement
-(une copie par jour, 14 conservées). **Copiez régulièrement `sauvegardes-auto/` et `uploads/` hors de l'ordinateur**
-(clé USB, disque réseau) : une sauvegarde sur le même disque ne protège pas d'une panne du disque.
+**Exécutable (recommandé)** : double-cliquez sur `construire_exe.bat` (Python 3.12 ou 3.13 requis, une seule fois, sur
+un poste de construction). Il produit `dist\CGRS.exe`, un fichier unique à copier sur n'importe quel poste Windows,
+sans installer Python. Au lancement, une fenêtre s'ouvre sur l'application. Le poste doit avoir Microsoft Edge WebView2
+(déjà présent sur Windows 10/11 à jour).
+
+Les données de l'exécutable sont dans `%LOCALAPPDATA%\CGRS\` (base, `uploads\`, `sauvegardes-auto\`, `logs\`) :
+mettre à jour l'exécutable ne touche pas aux données. Si l'exécutable ne démarre pas, lisez `logs\cgrs.log`.
+
+**Sans exécutable** : `lancer.bat` crée un environnement Python au premier lancement, puis ouvre l'application dans le
+navigateur (données à côté du code).
+
+Dans les deux cas, les sauvegardes automatiques tournent dès le lancement (une copie par jour, 14 conservées).
+**Copiez régulièrement `sauvegardes-auto\` et `uploads\` hors de l'ordinateur** (clé USB, disque réseau) : une
+sauvegarde sur le même disque ne protège pas d'une panne du disque.
 
 ## Serveur accessible depuis Internet
 
@@ -63,3 +74,5 @@ pip install -r requirements.txt -r requirements-dev.txt
 pytest
 ruff check .
 ```
+
+La configuration de `pytest` et de `ruff` est dans `pyproject.toml`.
