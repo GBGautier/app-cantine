@@ -2,7 +2,6 @@ import contextlib
 import functools
 import sqlite3
 import threading
-from pathlib import Path
 
 import paths
 

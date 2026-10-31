@@ -306,7 +306,7 @@ async def parse_pdf(file: UploadFile = File(...), user: dict = WRITE):
             client_names=get_client_names())
     except Exception as e:  # PDF illisible
         (UPLOADS / name).unlink(missing_ok=True)
-        raise HTTPException(422, f"Lecture du PDF impossible : {e}")
+        raise HTTPException(422, f"Lecture du PDF impossible : {e}") from e
     for d in docs:
         d["source_file"] = name
         dup = find_duplicate(d.get("ref"), d.get("kind"), d.get("supplier_id"))

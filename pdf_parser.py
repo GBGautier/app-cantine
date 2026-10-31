@@ -254,23 +254,23 @@ PROFILES = [
         rf"(?P<qty>{N})\s+(?P<total>-?\d+[.,]\d{{2}})\b")),
     # CapMarée : 12LN559 FLT L.NOIR 150/+ V/CUT 10kg ANE - 632022 3C 30,000K 10,950 328,50 1
     ("capmaree", re.compile(
-        rf"^(?P<code>[0-9A-Z]{{5,}})\s+(?P<label>.+?)\s+(?P<qty>\d+[.,]\d{{3}})(?P<unit>[KPC])\s+"
-        rf"(?P<unit_price>\d+[.,]\d{{2,3}})\s+(?P<total>-?\d+[.,]\d{{2}})\s+\d\s*$")),
+        r"^(?P<code>[0-9A-Z]{5,})\s+(?P<label>.+?)\s+(?P<qty>\d+[.,]\d{3})(?P<unit>[KPC])\s+"
+        r"(?P<unit_price>\d+[.,]\d{2,3})\s+(?P<total>-?\d+[.,]\d{2})\s+\d\s*$")),
     # Viande (TEBA, souvent scannée) : 510180 CHEVEUX D'ANGE DE BOEUF BIO 120026254001 44,0 21,862 16.50 €/Kg 360,72 5.5%
     # Le montant est recalculé (poids × prix) : l'OCR lit mal les chiffres.
     ("teba", re.compile(
-        rf"^(?P<code>\d{{4,}})\s+(?P<label>.+?)\s+(?P<lot>\d{{9,}})\s+(?P<pieces>\S+)\s+(?P<weight>\d+[.,]\d+)\s+"
-        rf"(?P<unit_price>\d+[.,]\d+)\s*€?\s*/?\s*(?P<unit>[Kk]g|[Ll])\b")),
+        r"^(?P<code>\d{4,})\s+(?P<label>.+?)\s+(?P<lot>\d{9,})\s+(?P<pieces>\S+)\s+(?P<weight>\d+[.,]\d+)\s+"
+        r"(?P<unit_price>\d+[.,]\d+)\s*€?\s*/?\s*(?P<unit>[Kk]g|[Ll])\b")),
     # Grossiste (Passionfroid / Pomona) : 40/ 267328 Emmental rapé BIO 1KGx10 6,000COL 66,000SAC 9,360 F 1 617,76
     ("pomona", re.compile(
-        rf"^\d+/\s*(?P<code>\d{{5,7}})\s+(?P<label>.+?)\s+\d+[.,]\d{{3}}\s*[A-Z]{{2,4}}\s+(?P<qty>-?\d+[.,]\d{{3}})\s*(?P<unit>[A-Z]{{1,4}})\s+"
-        rf"(?P<unit_price>\d+[.,]\d{{3}})\s+[A-Z]\s+\d\s+(?P<total>-?\d+[.,]\d{{2}})\s*$")),
+        r"^\d+/\s*(?P<code>\d{5,7})\s+(?P<label>.+?)\s+\d+[.,]\d{3}\s*[A-Z]{2,4}\s+(?P<qty>-?\d+[.,]\d{3})\s*(?P<unit>[A-Z]{1,4})\s+"
+        r"(?P<unit_price>\d+[.,]\d{3})\s+[A-Z]\s+\d\s+(?P<total>-?\d+[.,]\d{2})\s*$")),
     # Graines de Bio : 1 FL017PB TOMATE ANCIENNE 15,00 7,49 10% 101,09 106,65 5,5   (n°, réf., libellé, qté[unité], PU, remise, HT, TTC, TVA)
     # Le prix est celui avant remise : on le remplace par le prix net (total ÷ quantité).
     ("graines", re.compile(
-        rf"^\d{{1,3}}\s+(?P<code>[A-Z0-9]{{4,}})\s+(?P<label>.+?)\s+(?P<qty>\d+[.,]\d{{2}})\s*(?P<unit>kg|g|l)?\s+"
-        rf"(?P<unit_price>\d+[.,]\d{{2,3}})\s+(?:(?P<rem>\d+(?:[.,]\d+)?)\s*%\s+)?"
-        rf"(?P<total>-?\d+[.,]\d{{2}})\s+-?\d+[.,]\d{{2}}\s+\d+(?:[.,]\d+)?\s*$", re.I)),
+        r"^\d{1,3}\s+(?P<code>[A-Z0-9]{4,})\s+(?P<label>.+?)\s+(?P<qty>\d+[.,]\d{2})\s*(?P<unit>kg|g|l)?\s+"
+        r"(?P<unit_price>\d+[.,]\d{2,3})\s+(?:(?P<rem>\d+(?:[.,]\d+)?)\s*%\s+)?"
+        r"(?P<total>-?\d+[.,]\d{2})\s+-?\d+[.,]\d{2}\s+\d+(?:[.,]\d+)?\s*$", re.I)),
     # Producteur : 1 carottes kg 105,00 2,90 € 304,50 €
     ("unit_first", re.compile(
         rf"^\d{{1,3}}\s+(?P<label>.+?)\s+(?P<unit>kg|g|l|litres?|pi[eè]ces?|botte|barquette|unit[eé]s?)\s+"

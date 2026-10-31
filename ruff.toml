@@ -1,0 +1,10 @@
+# Contrôle qualité : erreurs réelles (imports inutiles, noms indéfinis, comparaisons fautives, pièges courants).
+# Pas de contrainte de longueur de ligne ni de reformatage automatique : le code d'origine reste lisible tel quel.
+target-version = "py311"
+extend-exclude = ["static"]
+
+[lint]
+select = ["F", "E4", "E7", "E9", "B", "W6"]
+# Ignorés exprès : B008 (Depends(...) en valeur par défaut = usage normal de FastAPI) ; E741, E702, E731, B905 (style :
+# renommer `l` ou réécrire les lignes d'origine ne rend pas le code plus sûr et gonflerait inutilement les modifications).
+ignore = ["B008", "E741", "E702", "E731", "B905"]

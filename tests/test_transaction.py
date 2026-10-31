@@ -1,4 +1,5 @@
 """Transactions : tout est enregistré, ou rien."""
+import sqlite3
 import threading
 
 import pytest
@@ -47,7 +48,7 @@ def test_transaction_imbriquee_rejoint_la_transaction_en_cours(database):
 def test_sans_transaction_chaque_ecriture_est_validee_aussitot(database):
     """Comportement historique, conservé pour le code qui n'utilise pas de transaction."""
     database.execute("INSERT INTO suppliers (name) VALUES ('A')")
-    with pytest.raises(Exception):
+    with pytest.raises(sqlite3.IntegrityError):
         database.execute("INSERT INTO products (name, supplier_id) VALUES ('P', 99999)")   # clé étrangère invalide
     assert count(database) == 1
 
@@ -58,7 +59,7 @@ def test_decorateur_atomic(database):
         database.execute("INSERT INTO suppliers (name) VALUES ('A')")
         database.execute("INSERT INTO products (name, supplier_id) VALUES ('P', 99999)")   # échoue
 
-    with pytest.raises(Exception):
+    with pytest.raises(sqlite3.IntegrityError):
         saisie()
     assert count(database) == 0
     assert saisie.__name__ == "saisie"   # functools.wraps : FastAPI s'appuie sur le nom et la signature

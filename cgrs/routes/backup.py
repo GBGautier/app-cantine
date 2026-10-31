@@ -80,7 +80,7 @@ async def restore(file: UploadFile = File(...), user: dict = ADMIN):
         try:
             z = zipfile.ZipFile(tmp_zip)
         except zipfile.BadZipFile:
-            raise HTTPException(400, "Ce fichier n'est pas une archive .zip valide")
+            raise HTTPException(400, "Ce fichier n'est pas une archive .zip valide") from None
         with z:
             if "cantine.db" not in z.namelist():
                 raise HTTPException(400, "Archive invalide : cantine.db est absent (ce n'est pas une sauvegarde CGRS)")
@@ -95,7 +95,7 @@ async def restore(file: UploadFile = File(...), user: dict = ADMIN):
                 admins = c.execute("SELECT COUNT(*) FROM users WHERE role='admin'").fetchone()[0] if "users" in tables else 0
                 c.close()
             except sqlite3.DatabaseError:
-                raise HTTPException(400, "La base de données de l'archive est illisible")
+                raise HTTPException(400, "La base de données de l'archive est illisible") from None
             if not ok or not RESTORE_TABLES <= tables:
                 raise HTTPException(400, "La base de l'archive est incomplète ou abîmée : restauration annulée")
             if not admins:

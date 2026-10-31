@@ -185,7 +185,7 @@ async def parse_menu_pdf(file: UploadFile = File(...), user: dict = WRITE):
         repas = menu_parser.parse_menu_pdf(path)
     except Exception as e:
         (UPLOADS / name).unlink(missing_ok=True)
-        raise HTTPException(422, f"Lecture du PDF impossible : {e}")
+        raise HTTPException(422, f"Lecture du PDF impossible : {e}") from e
     # Marquer les dates déjà enregistrées
     existing_dates = {r["date"] for r in db.rows("SELECT date FROM meals")}
     for r in repas:

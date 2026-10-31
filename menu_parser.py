@@ -7,8 +7,7 @@ On renvoie une liste de dict :
 """
 import re
 import unicodedata
-from datetime import datetime, timedelta
-from pathlib import Path
+from datetime import datetime
 
 import pdfplumber
 
@@ -199,12 +198,6 @@ def parse_menu_text(text):
     if not dates_found:
         return results
 
-    # Cherche les catégories et les plats associés
-    cat_pattern = re.compile(
-        r"(entree|entrée|plat|accompagnement|acompagnement|laitage|dessert)\s*(.+?)(?=entree|entrée|plat|accompagnement|acompagnement|laitage|dessert|$)",
-        re.IGNORECASE | re.DOTALL,
-    )
-
     return dates_found
 
 
@@ -231,7 +224,6 @@ def _parse_menu_tables_old(tables, doc_year=None):
 
             if dates:
                 header_row = row
-                header_row_idx = row_idx
                 cat_rows = table[row_idx + 1:]
                 break
 
