@@ -1,0 +1,2 @@
+# Les scripts Windows doivent avoir des fins de ligne CRLF après récupération du dépôt
+*.bat text eol=crlf

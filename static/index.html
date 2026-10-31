@@ -1,0 +1,3047 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CGRS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--ink:#1f2a24;--mute:#6b766f;--line:#e3e1d8;--acc:#2f6b4f;--acc2:#e9f2ec;--warn:#b4532a;--warnbg:#fbeae1;--bar:#6fa585}
+@media (prefers-color-scheme:dark){:root{--bg:#161a18;--card:#1f2522;--ink:#e8ece9;--mute:#9aa7a0;--line:#313a35;--acc:#6fb08f;--acc2:#24332b;--warn:#e08a5f;--warnbg:#3a2a22;--bar:#4f8d6d}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+a{color:var(--acc)}
+header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.wrap{max-width:1240px;margin:0 auto;padding:0 16px}
+header .wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap;min-height:54px}
+.brand{font-size:18px;letter-spacing:.04em}
+nav{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+nav a{padding:8px 12px;border-radius:8px;color:var(--mute);text-decoration:none;font-weight:500}
+nav a.on{background:var(--acc2);color:var(--acc)}
+#me{display:flex;gap:8px;align-items:center;color:var(--mute);font-size:13px}
+main{padding:20px 0 60px}
+h2{margin:0 0 14px;font-size:20px}
+h3{margin:0 0 10px;font-size:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.kpi small{color:var(--mute);display:block}
+.kpi strong{font-size:26px}
+.cols{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.bar{display:grid;grid-template-columns:150px 1fr 60px;gap:8px;align-items:center;margin:6px 0;font-size:13px}
+.bar .t{background:var(--acc2);border-radius:4px;height:14px;overflow:hidden}
+.bar .t i{display:block;height:100%;background:var(--bar)}
+.bar span:last-child{text-align:right;color:var(--mute)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{color:var(--mute);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+th,th.n{text-align:left}
+th.sort{cursor:pointer;user-select:none}
+th.sort:hover{color:var(--ink)}
+td.n,th.n{text-align:right}
+.tablewrap{overflow:auto;max-height:calc(100vh - 210px)}
+.modal .tablewrap{max-height:50vh}
+.card.tablewrap{padding-top:0;padding-bottom:0}
+/* Formulaire Recette : la colonne « Qté à servir » est masquée (calculs conservés) */
+.rec-items-tbl th:nth-child(4),.rec-items-tbl td:nth-child(4){display:none}
+th{position:sticky;top:0;z-index:2;background:var(--card);box-shadow:0 1px 0 var(--line)}
+button,.btn{font:inherit;height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+button:disabled{opacity:.5;cursor:not-allowed}
+button.p,.btn.p{background:var(--acc);border-color:var(--acc);color:#fff}
+label.btn{margin:0;font-size:15px}
+button.d{color:var(--warn)}
+button.s{height:auto;padding:4px 9px;font-size:13px}
+.icon-btn{height:auto;padding:4px 7px;font-size:15px;min-width:0;border:none;background:transparent;color:var(--mute);cursor:pointer;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;line-height:1}
+.icon-btn:hover{background:var(--acc2);color:var(--acc)}
+.icon-btn.d:hover{background:var(--warnbg);color:var(--warn)}
+tr.clickable{cursor:pointer}
+tr.clickable:hover td{background:var(--acc2)}
+input,select,textarea{font:inherit;padding:0 9px;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%}
+textarea{height:auto;padding:7px 9px}
+input[type=checkbox]{width:auto;height:auto}
+input:disabled,select:disabled,textarea:disabled{opacity:.75;cursor:default}
+label{display:block;font-size:12px;color:var(--mute);margin-bottom:3px}
+.f{display:grid;gap:12px;align-items:end;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.f>div{display:flex;flex-direction:column;justify-content:flex-end}
+.f>.full{display:block}
+.filebox{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.filebox .fname{color:var(--mute);font-size:13px}
+.filebox button.s{height:32px;padding:0 12px;align-self:center}
+.f .full{grid-column:1/-1}
+.row{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-bottom:14px}
+.row>div{min-width:140px}
+.tools{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.tools h2{margin:0}
+.ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ctl input:not([type=checkbox]),.ctl select{width:auto;min-width:150px}
+.pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;background:var(--acc2);color:var(--acc);white-space:nowrap}
+.pill.w{background:var(--warnbg);color:var(--warn)}
+.chips{display:flex;gap:4px;flex-wrap:wrap}
+.chk{display:inline-flex;align-items:center;gap:8px;margin:0 10px 6px 0;font-size:14px;line-height:16px;color:var(--ink);cursor:pointer}
+input[type=checkbox]{height:16px;width:16px;margin:0;flex:none;accent-color:var(--acc);vertical-align:-3px}   /* alignés avec le texte, partout */
+.checks{display:flex;flex-wrap:wrap}
+.modal{position:fixed;inset:0;background:#0008;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:30px 12px;z-index:20}
+.modal>div{background:var(--card);border-radius:14px;padding:20px;width:100%;max-width:1040px}
+.modal h2{margin-bottom:16px}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.mute{color:var(--mute)}
+.empty{padding:30px;text-align:center;color:var(--mute)}
+td input,td select{height:32px;min-width:70px}
+small.hint{display:block;color:var(--warn);font-size:12px;margin-top:2px}
+.err{background:var(--warnbg);color:var(--warn);padding:8px 12px;border-radius:8px;margin-top:12px}
+.note{background:var(--acc2);color:var(--ink);padding:8px 12px;border-radius:8px;margin-bottom:12px;font-size:14px}
+.note.w{background:var(--warnbg)}
+.authbox{max-width:380px;margin:12vh auto;padding:0 16px}
+.authbox .card{padding:24px}
+.authbox label{margin-top:12px}
+.chart svg{width:100%;height:auto;display:block}
+.neg{color:var(--warn);font-weight:600}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:50;max-width:92%}
+#toast div{background:var(--acc);color:#fff;padding:12px 18px;border-radius:10px;box-shadow:0 4px 16px #0004}
+</style>
+</head>
+<body>
+<div id="auth" hidden></div>
+<div id="shell" hidden>
+  <header><div class="wrap">
+    <b class="brand">CGRS</b>
+    <nav id="nav"></nav>
+    <div id="me"></div>
+  </div></header>
+  <main><div class="wrap" id="app"></div></main>
+</div>
+<div id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const h = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k === 'class') e.className = v;
+    else if (k === 'value') e.value = v ?? '';
+    else if (v === true) e.setAttribute(k, '');
+    else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false) e.append(c.nodeType ? c : document.createTextNode(c));
+  return e;
+};
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+const eur = v => v == null ? '—' : Number(v).toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'});
+const num = v => v == null ? '—' : Number(v).toLocaleString('fr-FR', {maximumFractionDigits: 3});
+const pctf = v => v == null ? '—' : Number(v).toLocaleString('fr-FR', {maximumFractionDigits: 1}) + ' %';
+const dfr = d => d ? d.split('-').reverse().join('/') : '—';
+const today = () => new Date().toISOString().slice(0, 10);
+const numOrNull = v => v === '' || v == null ? null : Number(v);
+const cmp = (a, b) => (a ?? '').toString().localeCompare((b ?? '').toString(), 'fr', {numeric: true, sensitivity: 'base'});
+const prettyFile = n => (n || '').replace(/^(?:fiche_)?[0-9a-f]{12}_/, '');
+const fileUrl = n => '/api/files/' + encodeURIComponent(n);
+const fileLink = (n, text) => n ? h('a', {href: fileUrl(n),title: 'Ouvrir le fichier',onclick: e => { e.stopPropagation(); e.preventDefault(); openPdf(fileUrl(n), prettyFile(n)); }}, text || prettyFile(n)) : null;
+const safeUrl = u => /^https?:\/\//i.test(u || '') ? u : null;
+const DAY_LABELS = {lun: 'Lun', mar: 'Mar', mer: 'Mer', jeu: 'Jeu', ven: 'Ven', sam: 'Sam', dim: 'Dim'};
+const UGRP = {kg: 'kg', g: 'g', l: 'l', litre: 'l', litres: 'l', ml: 'ml', 'unité': 'u', 'unités': 'u', 'pièce': 'u', 'pièces': 'u', u: 'u', pc: 'u'};
+const ukey = u => { u = (u || '').trim().toLowerCase(); return UGRP[u] ?? u; };
+const sameUnit = (a, b) => !a || !b || ukey(a) === ukey(b);
+
+const state = {user: null, meta: null};
+const canWrite = () => state.user && ['admin', 'editor'].includes(state.user.role);
+const isAdmin = () => state.user && state.user.role === 'admin';
+const isStatsOnly = () => state.user && state.user.role === 'stats';
+
+function toast(msg, ms = 7000) {
+  const t = h('div', {}, msg);
+  $('#toast').append(t);
+  setTimeout(() => t.remove(), ms);
+}
+function busy(on) { document.body.style.cursor = on ? 'progress' : ''; }
+
+async function api(path, opts = {}) {
+  const init = {method: opts.method || 'GET', headers: {'X-Requested-With': 'cgrs'}, credentials: 'same-origin'};
+  if (opts.body instanceof FormData) init.body = opts.body;
+  else if (opts.body !== undefined) { init.headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(opts.body); }
+  const r = await fetch('/api' + path, init);
+  if (!r.ok) {
+    let m = r.statusText;
+    try { const j = await r.json(); m = Array.isArray(j.detail) ? j.detail.map(d => d.msg).join(' ; ') : (j.detail || m); } catch {}
+    if (r.status === 401 && !opts.noRedirect) { state.user = null; showAuth(false); }
+    const e = new Error(m); e.status = r.status; throw e;
+  }
+  return r.json();
+}
+
+/* ---------- composants ---------- */
+function field(label, input, cls = '') {
+  if (input && input.type === 'checkbox')   // case à cocher : libellé à gauche, centré verticalement avec la case
+    return h('div', {class: cls}, h('label', {class: 'chk', style: 'margin:0'}, label, input));
+  return h('div', {class: cls}, h('label', {}, label), input);
+}
+function select(options, value, attrs = {}) {
+  const s = h('select', attrs);
+  for (const [v, l] of options) s.append(h('option', {value: v, selected: String(v) === String(value ?? '')}, l));
+  return s;
+}
+function checkGroup(options, selected) {
+  const sel = new Set(selected || []);
+  const boxes = options.map(([v, l]) => h('input', {type: 'checkbox', value: v, checked: sel.has(v)}));
+  const wrap = h('div', {class: 'checks'}, options.map(([v, l], i) => h('label', {class: 'chk'}, l, boxes[i])));
+  wrap.values = () => boxes.filter(b => b.checked).map(b => b.value);
+  return wrap;
+}
+function modal(title, body, onSave, opts = {}) {
+  const m = h('div', {class: 'modal'});
+  const close = () => { m.remove(); document.removeEventListener('keydown', onKey); if (opts.onClose) opts.onClose(); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  const err = h('div', {class: 'err', style: 'display:none'});
+  if (!onSave) body.querySelectorAll('input,select,textarea,button:not([data-nolock])').forEach(e => { e.disabled = true; });
+  const doSave = onSave || opts.saveHandler;   // sauvegarde possible même en consultation : « Modifier » déverrouille sans recharger
+  const mkSave = () => h('button', {class: 'p', onclick: async ev => {
+    ev.target.disabled = true;
+    try { await doSave(); m.remove(); document.removeEventListener('keydown', onKey); render(); if (opts.onClose) opts.onClose(); }
+    catch (e) { err.textContent = e.message; err.style.display = 'block'; ev.target.disabled = false; }
+  }}, opts.saveLabel || 'Enregistrer');
+  const save = onSave ? mkSave() : null;
+  const titleH = h('h2', {}, title);
+  const actions = h('div', {class: 'actions'}, h('button', {onclick: close}, onSave ? 'Annuler' : 'Fermer'));
+  const editBtn = (!onSave && doSave) ? h('button', {class: 'p', onclick: () => {
+    // bascule en édition SANS recharger : la fiche affichée est simplement déverrouillée
+    body.querySelectorAll('input,select,textarea,button:not([data-nolock])').forEach(e => { e.disabled = false; });
+    body.querySelectorAll('[data-viewhidden]').forEach(e => { e.style.display = e.getAttribute('data-viewhidden') || ''; });
+    if (opts.editTitle) titleH.textContent = opts.editTitle;
+    opts.viewOnly = false;                    // le formulaire voit le changement (même objet d'options)
+    if (opts.onSwitch) opts.onSwitch();
+    editBtn.style.display = 'none';
+    actions.append(mkSave());
+  }}, '✏️ Modifier') : null;
+  if (editBtn) actions.append(editBtn);
+  if (save) actions.append(save);
+  m.append(h('div', {}, titleH, body, err, actions));
+  document.body.append(m);
+  return m;
+}
+function bars(items) {
+  if (!items.length) return h('div', {class: 'empty'}, 'Pas de données');
+  const max = Math.max(...items.map(i => i.pct), 1);
+  return items.map(i => h('div', {class: 'bar', title: i.amount != null ? eur(i.amount) : null},
+    h('span', {}, i.label),
+    h('div', {class: 't'}, h('i', {style: `width:${100 * i.pct / max}%`})),
+    h('span', {}, i.pct + ' %')));
+}
+function kpi(label, value, sub) { return h('div', {class: 'kpi'}, h('small', {}, label), h('strong', {}, value), sub ? h('small', {}, sub) : null); }
+function chart(points, fmt, bars = false, refLine = null) {
+  const box = h('div', {class: 'chart'});
+  if (!points.length) { box.append(h('div', {class: 'empty'}, 'Pas encore de données')); return box; }
+  const W = 640, H = 170, pl = 56, pr = 14, pt = 12, pb = 26;
+  let lo = Math.min(...points.map(p => p.y)), hi = Math.max(...points.map(p => p.y));
+  if (bars) lo = Math.min(0, lo);
+  if (lo === hi) { lo -= 1; hi += 1; }
+  const pad = (hi - lo) * 0.12; if (!bars || lo < 0) lo -= pad; hi += pad;
+  const n = points.length;
+  const X = bars ? (i => pl + (i + 0.5) * (W - pl - pr) / n) : (i => pl + (n === 1 ? (W - pl - pr) / 2 : i * (W - pl - pr) / (n - 1)));
+  const Y = v => pt + (hi - v) * (H - pt - pb) / (hi - lo);
+  const grid = [lo, (lo + hi) / 2, hi].map(v => `<line x1="${pl}" x2="${W - pr}" y1="${Y(v)}" y2="${Y(v)}" style="stroke:var(--line)"/>` +
+    `<text x="${pl - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="11" style="fill:var(--mute)">${esc(fmt(v))}</text>`).join('');
+  const line = !bars && n > 1 ? `<polyline fill="none" stroke-width="2" style="stroke:var(--acc)" points="${points.map((p, i) => X(i) + ',' + Y(p.y)).join(' ')}"/>` : '';
+  const bw = Math.max(2, Math.min(34, (W - pl - pr) / Math.max(n, 1) * 0.7));
+  const barsSvg = points.map((p, i) => `<rect x="${X(i) - bw / 2}" y="${Math.min(Y(p.y), Y(0))}" width="${bw}" height="${Math.abs(Y(0) - Y(p.y))}" rx="2" style="fill:var(--acc)"><title>${esc(p.tip)}</title></rect>`).join('');
+  const dots = points.map((p, i) => `<circle cx="${X(i)}" cy="${Y(p.y)}" r="4" style="fill:var(--acc)"><title>${esc(p.tip)}</title></circle>`).join('');
+  const xl = `<text x="${X(0)}" y="${H - 6}" text-anchor="${n === 1 ? 'middle' : 'start'}" font-size="11" style="fill:var(--mute)">${esc(dfr(points[0].x))}</text>` +
+    (n > 1 ? `<text x="${X(n - 1)}" y="${H - 6}" text-anchor="end" font-size="11" style="fill:var(--mute)">${esc(dfr(points[n - 1].x))}</text>` : '');
+  // ligne de référence horizontale (rouge, pointillée) avec son étiquette
+  const rl = refLine != null && refLine > lo && refLine < hi
+    ? `<line x1="${pl}" x2="${W - pr}" y1="${Y(refLine)}" y2="${Y(refLine)}" stroke-width="2" stroke-dasharray="6 4" style="stroke:#d33"/>` +
+      `<text x="${W - pr}" y="${Y(refLine) - 5}" text-anchor="end" font-size="11" style="fill:#d33">${esc(fmt(refLine))}</text>` : '';
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img">${grid}${rl}${bars ? barsSvg : line + dots}${xl}</svg>`;
+  return box;
+}
+function confirmDel(msg, fn) { return async () => { if (confirm(msg)) { try { await fn(); render(); } catch (e) { alert(e.message); } } }; }
+
+/* ---------- identification ---------- */
+function showAuth(setup) {
+  $('#shell').hidden = true;
+  const box = $('#auth');
+  box.hidden = false;
+  box.replaceChildren();
+  const u = h('input', {type: 'text', autocomplete: 'username', autofocus: true});
+  const p = h('input', {type: 'password', autocomplete: setup ? 'new-password' : 'current-password'});
+  const p2 = h('input', {type: 'password', autocomplete: 'new-password'});
+  const err = h('div', {class: 'err', style: 'display:none'});
+  const go = async () => {
+    err.style.display = 'none';
+    try {
+      if (setup && p.value !== p2.value) throw new Error('Les deux mots de passe ne correspondent pas');
+      const r = await api(setup ? '/auth/setup' : '/auth/login', {method: 'POST', body: {username: u.value, password: p.value}, noRedirect: true});
+      state.user = r.user;
+      location.hash = '';
+      await enter();
+    } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
+  };
+  box.append(h('div', {class: 'authbox'}, h('div', {class: 'card'},
+    h('h2', {style: 'text-align:center'}, 'CGRS'),
+    setup ? h('p', {class: 'mute'}, 'Première utilisation : créez le compte administrateur. Vous pourrez ensuite ajouter d\'autres utilisateurs dans Paramètres.') : null,
+    h('label', {}, 'Identifiant'), u,
+    h('label', {}, 'Mot de passe' + (setup ? ' (8 caractères minimum)' : '')), p,
+    setup ? [h('label', {}, 'Confirmer le mot de passe'), p2] : null,
+    err,
+    h('div', {class: 'actions'}, h('button', {class: 'p', onclick: go}, setup ? 'Créer le compte' : 'Se connecter')))));
+  for (const i of [u, p, p2]) i.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  u.focus();
+}
+
+function passwordForm() {
+  const i = {cur: h('input', {type: 'password', autocomplete: 'current-password'}), n: h('input', {type: 'password', autocomplete: 'new-password'}), n2: h('input', {type: 'password', autocomplete: 'new-password'})};
+  modal('Changer mon mot de passe', h('div', {class: 'f'},
+    field('Mot de passe actuel', i.cur, 'full'), field('Nouveau mot de passe (8 caractères minimum)', i.n), field('Confirmer', i.n2)), async () => {
+    if (i.n.value !== i.n2.value) throw new Error('Les deux mots de passe ne correspondent pas');
+    await api('/auth/password', {method: 'POST', body: {current: i.cur.value, new: i.n.value}});
+    toast('Mot de passe modifié');
+  });
+}
+
+/* ---------- Export PDF Statistiques ---------- */
+function exportStatsPdf(s, f) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation: 'portrait', unit: 'mm', format: 'a4'});
+  const hid = s.prices_hidden;
+
+  // Fonctions de formatage compatibles PDF (Helvetica ne supporte pas l'espace fine
+  // insécable U+202F ni le non-breaking space U+00A0 utilisés par toLocaleString fr-FR)
+  const pdfNum = v => {
+    if (v == null) return '—';
+    const n = Number(v);
+    const parts = Math.abs(n).toFixed(3).replace(/\.?0+$/, '').split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return (n < 0 ? '-' : '') + parts.join(',');
+  };
+  const pdfEur = v => {
+    if (v == null) return '—';
+    const n = Number(v);
+    const parts = Math.abs(n).toFixed(2).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return (n < 0 ? '-' : '') + parts.join(',') + ' EUR';
+  };
+  const pdfPct = v => v == null ? '—' : pdfNum(v) + ' %';
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 14;
+  let y = margin;
+
+  // Couleurs
+  const GREEN = [47, 107, 79];
+  const MUTE = [107, 118, 111];
+  const INK = [31, 42, 36];
+
+  // Titre
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(...GREEN);
+  doc.text('CGRS — Statistiques des achats', margin, y);
+  y += 7;
+
+  // Période
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...MUTE);
+  const periodeLabel = (f.from || f.to)
+    ? 'Période : ' + (f.from ? 'du ' + dfr(f.from) : '') + (f.from && f.to ? ' ' : '') + (f.to ? 'au ' + dfr(f.to) : '')
+    : 'Toutes les données';
+  doc.text(periodeLabel, margin, y);
+  const dateGen = 'Généré le ' + new Date().toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+  doc.text(dateGen, pageW - margin, y, {align: 'right'});
+  y += 8;
+
+  // Ligne séparatrice
+  doc.setDrawColor(...GREEN);
+  doc.setLineWidth(0.5);
+  doc.line(margin, y, pageW - margin, y);
+  y += 6;
+
+  // KPIs
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(...INK);
+  doc.text('Indicateurs clés', margin, y);
+  y += 5;
+
+  const kpis = [];
+  if (!hid) kpis.push(['Achats HT', pdfEur(s.total_ht)]);
+  if (!hid) kpis.push(['Prix / repas (HT)', s.price_per_meal == null ? '—' : pdfEur(s.price_per_meal)]);
+  kpis.push(['Repas', String(s.meals)]);
+  kpis.push(['Convives', String(s.guests)]);
+  kpis.push(['% bio', pdfPct(s.pct_bio)]);
+  kpis.push(['% EGalim', pdfPct(s.pct_egalim)]);
+  kpis.push(['% local', pdfPct(s.pct_local)]);
+  kpis.push(['% direct producteur', pdfPct(s.pct_direct)]);
+
+  // KPIs en grille (2 colonnes)
+  const colW = (pageW - 2 * margin) / 2;
+  kpis.forEach(([label, value], i) => {
+    const cx = margin + (i % 2) * colW;
+    const cy = y + Math.floor(i / 2) * 10;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...MUTE);
+    doc.text(label, cx, cy);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(...INK);
+    doc.text(value, cx, cy + 5);
+  });
+  y += Math.ceil(kpis.length / 2) * 10 + 4;
+
+  // Engagements
+  const allCommitments = s.commitments || [];
+  const engGroups = [
+    {title: 'Engagements du marché', items: allCommitments.filter(c => c.level !== 'par')},
+  ];
+  for (const {title, items} of engGroups) {
+    if (!items.length) continue;
+    if (y > 240) { doc.addPage(); y = margin; }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(...INK);
+    doc.text(title, margin, y);
+    y += 3;
+    doc.autoTable({
+      startY: y,
+      margin: {left: margin, right: margin},
+      styles: {fontSize: 9, cellPadding: 2, textColor: INK},
+      headStyles: {fillColor: GREEN, textColor: [255,255,255], fontStyle: 'bold', fontSize: 8},
+      alternateRowStyles: {fillColor: [240, 245, 242]},
+      head: [['Engagement', 'Indicateur', 'Cible', 'Réalisé', 'Écart', 'Statut']],
+      body: items.map(c => {
+        const metrics = c.metrics && c.metrics.length ? c.metrics : (c.metric ? [c.metric] : []);
+        const unit = metrics.includes('price_per_meal') ? ' €' : ' %';
+        const gap = c.actual == null ? null : Math.round((c.actual - c.target) * 100) / 100;
+        return [
+          c.label,
+          c.metric_label || metrics.join(' + '),
+          (c.mode === 'max' ? '<= ' : '>= ') + pdfNum(c.target) + unit,
+          c.actual == null ? '—' : pdfNum(c.actual) + unit,
+          gap == null ? '—' : (gap > 0 ? '+' : '') + pdfNum(gap),
+          c.status === 'ok' ? 'Respecté' : c.status === 'ko' ? 'Non atteint' : '—'
+        ];
+      }),
+      didParseCell(data) {
+        if (data.section === 'body' && data.column.index === 5) {
+          const v = data.cell.raw;
+          if (v === 'Respecté') data.cell.styles.textColor = [47, 107, 79];
+          else if (v === 'Non atteint') data.cell.styles.textColor = [180, 83, 42];
+        }
+      }
+    });
+    y = doc.lastAutoTable.finalY + 6;
+  }
+
+  // Répartitions (barres)
+  const barSections = [
+    {title: 'Label EGalim', data: s.by_label},
+    {title: 'Provenance', data: s.by_provenance},
+    {title: 'Gamme des produits', data: s.by_gamme},
+    {title: 'Catégorie', data: s.by_category},
+    {title: 'Fournisseur', data: s.by_supplier},
+  ];
+
+  // On regroupe les barSections en 2 colonnes sur la page
+  const secW = (pageW - 2 * margin - 8) / 2;
+  let colIdx = 0;
+  let rowY = y;
+  let maxYInRow = y;
+
+  for (const sec of barSections) {
+    if (!sec.data || !sec.data.length) continue;
+    const cx = margin + colIdx * (secW + 8);
+    let sy = rowY;
+
+    if (sy > 250) { doc.addPage(); sy = margin; rowY = margin; maxYInRow = margin; colIdx = 0; }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...INK);
+    doc.text(sec.title, cx, sy);
+    sy += 4;
+
+    const barH = 4;
+    const barMaxW = secW - 32;
+    const maxPct = Math.max(...sec.data.map(i => i.pct), 1);
+    for (const item of sec.data.slice(0, 10)) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...INK);
+      const lbl = String(item.label || '').substring(0, 22);
+      doc.text(lbl, cx, sy + barH - 0.5);
+      const bx = cx + 30;
+      const bw = barMaxW * item.pct / maxPct;
+      doc.setFillColor(233, 242, 236);
+      doc.rect(bx, sy, barMaxW, barH, 'F');
+      doc.setFillColor(111, 165, 133);
+      if (bw > 0) doc.rect(bx, sy, bw, barH, 'F');
+      doc.setTextColor(...MUTE);
+      doc.text(item.pct + ' %', bx + barMaxW + 2, sy + barH - 0.5);
+      sy += barH + 3;
+    }
+    maxYInRow = Math.max(maxYInRow, sy + 4);
+
+    colIdx++;
+    if (colIdx >= 2) {
+      colIdx = 0;
+      rowY = maxYInRow + 2;
+      maxYInRow = rowY;
+    }
+  }
+  y = Math.max(maxYInRow, rowY) + 4;
+
+  // Tableau coût matières / repas (seulement si non masqué)
+  if (!hid && s.daily && s.daily.length) {
+    if (y > 220) { doc.addPage(); y = margin; }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(...INK);
+    doc.text('Coût matières par repas', margin, y);
+    y += 3;
+    const dailyData = [...s.daily].reverse().filter(d => d.guests || d.cost || d.per_guest);
+    doc.autoTable({
+      startY: y,
+      margin: {left: margin, right: margin},
+      styles: {fontSize: 8, cellPadding: 2, textColor: INK},
+      headStyles: {fillColor: GREEN, textColor: [255,255,255], fontStyle: 'bold', fontSize: 8},
+      alternateRowStyles: {fillColor: [240, 245, 242]},
+      columnStyles: {1: {halign: 'right'}, 2: {halign: 'right'}, 3: {halign: 'right'}},
+      head: [['Date', 'Convives', 'Coût matières', '€ / convive']],
+      body: dailyData.map(d => [dfr(d.date), d.guests ?? '—', pdfEur(d.cost), pdfEur(d.per_guest)]),
+    });
+    y = doc.lastAutoTable.finalY + 6;
+  }
+
+  // Note bas de page sur chaque page
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...MUTE);
+    doc.text(`Page ${p} / ${totalPages}`, pageW - margin, doc.internal.pageSize.getHeight() - 8, {align: 'right'});
+    doc.text('CGRS', margin, doc.internal.pageSize.getHeight() - 8);
+  }
+
+  // Nom de fichier
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const fromStr = f.from ? f.from : '';
+  const toStr = f.to ? f.to : '';
+  const periodStr = fromStr || toStr ? `_${fromStr}_${toStr}` : '';
+  doc.save(`stats_cgrs${periodStr}_${dateStr}.pdf`);
+}
+
+/* ---------- Statistiques ---------- */
+async function pageStats() {
+  const f = {from: store.get('cgrs.sf') || '', to: store.get('cgrs.st') || ''};
+  const q = new URLSearchParams();
+  if (f.from) q.set('date_from', f.from);
+  if (f.to) q.set('date_to', f.to);
+  const s = await api('/stats?' + q);
+  const hid = s.prices_hidden;
+  const apply = () => { store.set('cgrs.sf', $('#sf').value); store.set('cgrs.st', $('#st').value); render(); };
+  const daily = (s.daily || []).filter(d => d.per_guest != null);
+  return h('div', {},
+    h('div', {class: 'tools'},
+      h('h2', {}, 'Statistiques des achats'),
+      h('button', {onclick: () => exportStatsPdf(s, f)}, '⬇ Exporter en PDF')),
+    h('div', {class: 'card row'},
+      field('Du', h('input', {id: 'sf', type: 'date', value: f.from})),
+      field('Au', h('input', {id: 'st', type: 'date', value: f.to})),
+      h('button', {class: 'p', onclick: apply}, 'Appliquer')),
+    h('div', {class: 'grid', style: 'margin-bottom:16px'},
+      hid ? null : kpi('Achats HT', eur(s.total_ht)),
+      hid ? null : kpi('Prix / repas (HT)', s.price_per_meal == null ? '—' : eur(s.price_per_meal), `coûts matières ÷ convives · ${s.meals_priced} repas valorisés sur ${s.meals}`),
+      kpi('Repas', String(s.meals), `${s.guests} convives`),
+      kpi('% bio', pctf(s.pct_bio)),
+      kpi('% EGalim', pctf(s.pct_egalim)),
+      kpi('% local', pctf(s.pct_local), 'CC Nozay, 44, Pays de la Loire'),
+      kpi('% direct producteur', pctf(s.pct_direct))),
+    engagementsCard('Engagements du marché', s.commitments.filter(c => c.level !== 'par')),
+    h('div', {class: 'cols'},
+      h('div', {class: 'card'}, h('h3', {}, 'Label EGalim'), bars(s.by_label)),
+      h('div', {class: 'card'}, h('h3', {}, 'Provenance'), bars(s.by_provenance)),
+      h('div', {class: 'card'}, h('h3', {}, 'Gamme des produits'), bars(s.by_gamme)),
+      h('div', {class: 'card'}, h('h3', {}, 'Catégorie'), bars(s.by_category)),
+      h('div', {class: 'card'}, h('h3', {}, 'Fournisseur'), bars(s.by_supplier))),
+    hid ? null : h('div', {class: 'card'}, h('h3', {}, 'Coût matières par repas'),
+      chart(daily.map(d => ({x: d.date, y: d.per_guest, tip: `${dfr(d.date)} : ${eur(d.per_guest)} / convive`})).filter(p => p.y != null), v => eur(v), true, 2.04),
+      s.daily.length ? h('div', {class: 'tablewrap'}, h('table', {},
+        h('tr', {}, ['Date', 'Convives', 'Coût matières', '€ / convive', '% bio', '% local'].map((x, k) => h('th', {class: k ? 'n' : ''}, x))),
+        [...s.daily].reverse().map(d => h('tr', {}, h('td', {}, dfr(d.date)), h('td', {class: 'n'}, d.guests), h('td', {class: 'n'}, eur(d.cost)), h('td', {class: 'n'}, eur(d.per_guest)), h('td', {class: 'n'}, pctf(d.pct_bio)), h('td', {class: 'n'}, pctf(d.pct_local))))))
+        : h('div', {class: 'empty'}, 'Aucun repas saisi sur la période'),
+      h('p', {class: 'mute'}, 'Les quantités sorties sont valorisées au prix du produit à la date du repas (historique des prix des réceptions).')));
+}
+
+/* ---------- Fournisseurs ---------- */
+async function pageSuppliers() {
+  const list = await api('/suppliers');
+  const methodLabel = m => (state.meta.order_methods[m] || '');
+  return h('div', {},
+    h('div', {class: 'tools'}, h('h2', {}, 'Fournisseurs'), canWrite() ? h('button', {class: 'p', onclick: () => supplierForm()}, '+ Fournisseur') : null),
+    h('div', {class: 'card tablewrap'}, list.length ? h('table', {},
+      h('tr', {}, ['Nom', 'Contact', 'Jours de livraison', 'Franco', 'Prise de commande', 'Catégories', 'Produits', 'Réceptions', ''].map(x => h('th', {}, x))),
+      list.map(s => {
+        const tr = h('tr', {class: 'clickable'},
+          h('td', {}, h('b', {}, s.name)),
+          h('td', {}, [s.contact, s.phone].filter(Boolean).join(' · ')),
+          h('td', {}, h('div', {class: 'chips'}, s.delivery_days.map(d => h('span', {class: 'pill'}, DAY_LABELS[d] || d)))),
+          h('td', {}, s.franco != null ? eur(s.franco) : '—'),
+          h('td', {}, safeUrl(s.order_url) ? h('a', {href: s.order_url, target: '_blank', rel: 'noopener', onclick: e => e.stopPropagation()}, (methodLabel(s.order_method) || 'Site') + ' ↗') : methodLabel(s.order_method)),
+          h('td', {}, h('div', {class: 'chips'}, s.categories.map(c => h('span', {class: 'pill'}, c)))),
+          h('td', {class: 'n'}, s.nb_products), h('td', {class: 'n'}, s.nb_orders),
+          h('td', {class: 'n'},
+            canWrite() ? h('button', {class: 'icon-btn', title: 'Modifier', onclick: e => { e.stopPropagation(); supplierForm(s); }}, '✏️') : null,
+            canWrite() ? h('button', {class: 'icon-btn d', title: 'Supprimer', onclick: e => { e.stopPropagation(); confirmDel(`Supprimer ${s.name} ?`, () => api('/suppliers/' + s.id, {method: 'DELETE'}))(); }}, '🗑️') : null));
+        tr.addEventListener('click', () => supplierForm(s, {viewOnly: true, onEdit: () => supplierForm(s)}));
+        return tr;
+      }))
+      : h('div', {class: 'empty'}, 'Aucun fournisseur.' + (canWrite() ? ' Ajoutez-en un pour commencer.' : ''))));
+}
+function supplierForm(s = {}, mopts = {}) {
+  const i = {};
+  const inp = (k, label, type = 'text', cls = '', extra = {}) => field(label, i[k] = h('input', {type, value: s[k], ...extra}), cls);
+  const days = checkGroup(state.meta.days.map(d => [d, DAY_LABELS[d]]), s.delivery_days);
+  const cats = checkGroup(state.meta.categories.map(c => [c, c]), s.categories);
+  const urlField = field('Lien du site de commande', i.order_url = h('input', {type: 'url', value: s.order_url, placeholder: 'https://…'}));
+  const method = i.order_method = select([['', '—'], ...Object.entries(state.meta.order_methods)], s.order_method);
+  const toggleUrl = () => { urlField.style.display = method.value === 'internet' ? '' : 'none'; };
+  method.addEventListener('change', toggleUrl);
+  const body = h('div', {class: 'f'},
+    inp('name', 'Nom *'), inp('contact', 'Contact'), inp('phone', 'Téléphone'), inp('email', 'E-mail', 'email'),
+    inp('siret', 'SIRET'), inp('address', 'Adresse'),
+    field('Jours de livraison', days, 'full'),
+    inp('franco', 'Franco : montant minimum pour une livraison (€ HT)', 'number', '', {step: 'any', min: 0}),
+    field('Méthode de prise de commande', method), urlField,
+    field('Catégories de produits vendues', cats, 'full'),
+    field('Provenance par défaut de ses produits', i.local_default = select([['', '—'], ...Object.entries(state.meta.provenances)], s.local_default)),
+    field('Direct producteur', i.direct_producteur = select([[0, 'Non'], [1, 'Oui']], s.direct_producteur)),
+    ...(isAdmin() ? [field('Mots-clés de reconnaissance dans les PDF (séparés par « ; »)', i.keywords = h('input', {value: s.keywords, placeholder: 'ex. capmaree; cap maree'}), 'full'),
+    field('Regex de lecture des PDF (optionnel : groupes code, label, qty, unit, unit_price, total)', i.parser_regex = h('input', {value: s.parser_regex}), 'full')] : []),
+    field('Notes', i.notes = h('textarea', {rows: 2, value: s.notes}), 'full'));
+  toggleUrl();
+  const doSave = canWrite() ? async () => {
+    const d = {};
+    for (const k of ['name', 'contact', 'phone', 'email', 'siret', 'address', 'order_method', 'order_url', 'local_default', ...(isAdmin() ? ['keywords', 'parser_regex'] : []), 'notes'])
+      d[k] = i[k].value.trim() === '' ? null : i[k].value.trim();
+    if (!d.name) throw new Error('Le nom est obligatoire');
+    d.franco = numOrNull(i.franco.value);
+    d.direct_producteur = Number(i.direct_producteur.value || 0);
+    d.delivery_days = days.values();
+    d.categories = cats.values();
+    if (d.order_method !== 'internet') d.order_url = d.order_url && d.order_method ? d.order_url : null;
+    await api(s.id ? '/suppliers/' + s.id : '/suppliers', {method: s.id ? 'PUT' : 'POST', body: d});
+  } : null;
+  mopts.saveHandler = doSave;
+  mopts.editTitle = s.id ? 'Modifier le fournisseur' : 'Nouveau fournisseur';
+  modal(s.id ? (mopts.viewOnly ? s.name : 'Modifier le fournisseur') : 'Nouveau fournisseur', body, (canWrite() && !mopts.viewOnly) ? doSave : null, mopts);
+}
+
+/* ---------- Produits ---------- */
+const prodView = (() => {
+  const def = {q: '', cat: '', sup: '', key: 'name', dir: 1, fav: 0};
+  try { return {...def, ...(JSON.parse(localStorage.getItem('cgrs_prodView') || '{}'))}; } catch (e) { return def; }
+})();
+async function pageProducts() {
+  const [list, sups] = await Promise.all([api('/products'), api('/suppliers')]);
+  const cats = [...new Set([...state.meta.categories, ...list.map(p => p.category).filter(Boolean)])];
+  const q = h('input', {placeholder: 'Rechercher un produit…', value: prodView.q, style: 'min-width:220px'});
+  const fc = select([['', 'Toutes les catégories'], ...cats.map(c => [c, c])], prodView.cat);
+  fc.append(h('option', {value: '__none__', style: 'color:#d33;font-weight:bold'}, 'À compléter'));
+  // restauration explicite après construction complète du sélecteur (l'option ajoutée au-dessus doit exister avant)
+  if (prodView.cat) fc.value = prodView.cat;
+  const fs = select([['', 'Tous les fournisseurs'], ...sups.map(s => [s.id, s.name])], prodView.sup);
+  if (prodView.sup) fs.value = prodView.sup;
+  const favCb = h('input', {type: 'checkbox', checked: !!prodView.fav, title: 'Afficher uniquement les produits favoris (★)', onchange: () => draw()});
+  const favLbl = h('label', {class: 'chk', title: 'Afficher uniquement les produits favoris (★)'}, '★ Favoris', favCb);
+  const tb = h('tbody');
+  const count = h('span', {class: 'mute'});
+  const cols = [['ref', 'Réf.'], ['name', 'Produit'], ['supplier_name', 'Fournisseur'], ['category', 'Catégorie'], ['gamme', 'Gamme'], ['label_egalim', 'Label'], ['provenance', 'Provenance'], ['direct_producteur', 'Direct'], ['unit_price', 'Prix']];
+  const heads = h('tr', {});
+  const draw = () => {
+    prodView.q = q.value; prodView.cat = fc.value; prodView.sup = fs.value; prodView.fav = favCb.checked ? 1 : 0;
+    try { localStorage.setItem('cgrs_prodView', JSON.stringify(prodView)); } catch (e) {}   // filtres conservés même après rechargement
+    const t = prodView.q.toLowerCase();
+    let rows = list.filter(p => (!t || (p.name + ' ' + (p.ref || '') + ' ' + (p.supplier_name || '')).toLowerCase().includes(t))
+      && (!prodView.fav || p.favorite)
+      && (!prodView.cat || (prodView.cat === '__none__' ? !p.category : p.category === prodView.cat)) && (!prodView.sup || String(p.supplier_id) === String(prodView.sup)));
+    rows.sort((a, b) => prodView.dir * (prodView.key === 'unit_price' || prodView.key === 'direct_producteur'
+      ? (a[prodView.key] ?? -1) - (b[prodView.key] ?? -1) : cmp(a[prodView.key], b[prodView.key])));
+    count.textContent = `${rows.length} produit${rows.length > 1 ? 's' : ''}`;
+    heads.replaceChildren(h('th', {style: 'text-align:center', title: 'Favori'}, '★'),
+      ...cols.map(([k, l]) => h('th', {class: 'sort' + (k === 'unit_price' ? ' n' : ''), onclick: () => { prodView.dir = prodView.key === k ? -prodView.dir : 1; prodView.key = k; draw(); }},
+      l + (prodView.key === k ? (prodView.dir > 0 ? ' ▲' : ' ▼') : ''))), h('th', {}, 'Fiche'), h('th', {}, ''));
+    tb.replaceChildren(...rows.map(p => {
+      const star = h('span', {
+        style: 'cursor:pointer;font-size:16px;color:' + (p.favorite ? 'var(--warn)' : 'var(--line)'), title: p.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris',
+        onclick: e => { e.stopPropagation(); api('/products/' + p.id + '/favorite', {method: 'POST'})
+          .then(r => { p.favorite = r.favorite; draw(); }).catch(err => alert(err.message)); }
+      }, p.favorite ? '★' : '☆');
+      const tr = h('tr', {class: 'clickable', ...(p.avoid ? {style: 'background:#fde9c8'} : {})},
+        h('td', {style: 'text-align:center'}, star),
+        h('td', {class: 'mute'}, p.ref || ''),
+        h('td', {}, h('b', {}, p.name)), h('td', {}, p.supplier_name || ''), h('td', {}, p.category || ''),
+        h('td', {}, p.gamme ? state.meta.gammes[p.gamme] : ''),
+        h('td', {}, p.label_egalim === 'bio' ? h('span', {class: 'pill'}, 'Bio') : p.label_egalim === 'autre' ? h('span', {class: 'pill'}, p.label_detail || 'Autre label') : ''),
+        h('td', {}, state.meta.provenances[p.provenance] || ''), h('td', {}, p.direct_producteur ? '✓' : ''),
+        h('td', {class: 'n'}, p.unit_price != null ? `${eur(p.unit_price)} / ${p.unit || ''}` : ''),
+        h('td', {}, p.datasheet ? fileLink(p.datasheet, '📄') : ''),
+        h('td', {class: 'n'},
+          canWrite() ? h('button', {class: 'icon-btn', title: 'Modifier', onclick: e => { e.stopPropagation(); productForm(sups, p); }}, '✏️') : null,
+          canWrite() ? h('button', {class: 'icon-btn d', title: 'Supprimer', onclick: e => { e.stopPropagation(); confirmDel(`Supprimer ${p.name} ?`, () => api('/products/' + p.id, {method: 'DELETE'}))(); }}, '🗑️') : null));
+      tr.addEventListener('click', () => productForm(sups, p, {viewOnly: true, onEdit: () => productForm(sups, p)}));
+      return tr;
+    }));
+  };
+  for (const c of [q, fc, fs]) { c.addEventListener('input', draw); c.addEventListener('change', draw); }
+  draw();
+  return h('div', {},
+    h('div', {class: 'tools'}, h('h2', {}, 'Produits'),
+      h('div', {class: 'ctl'}, q, fc, fs, favLbl, canWrite() ? h('button', {class: 'p', onclick: () => productForm(sups)}, '+ Produit') : null)),
+    h('div', {class: 'mute', style: 'margin:-4px 0 8px'}, count),
+    h('div', {class: 'card tablewrap'}, list.length ? h('table', {}, h('thead', {}, heads), tb) : h('div', {class: 'empty'}, 'Aucun produit.')));
+}
+function productForm(sups, p = {}, mopts = {}) {
+  const i = {};
+  const inp = (k, label, type = 'text', cls = '') => field(label, i[k] = h('input', {type, value: p[k], step: 'any'}), cls);
+  const cats = [...new Set([...state.meta.categories, p.category].filter(Boolean))];
+  const file = h('input', {type: 'file', style: 'display:none', accept: '.pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.odt,.ods,.txt'});
+  const fname = h('span', {class: 'fname'}, 'Aucun fichier choisi');
+  file.onchange = () => { fname.textContent = file.files[0] ? file.files[0].name : 'Aucun fichier choisi'; };
+  const pick = h('label', {class: 'btn', style: 'margin:0;height:32px;padding:0 12px;font-size:14px;color:var(--ink)'}, '📎 ' + 'Choisir un fichier', file);
+  const dsBox = h('div', {class: 'full'});
+  let editable = canWrite() && !mopts.viewOnly;   // repasse à true via « ✏️ Modifier » (sans recharger la fiche)
+  const drawDs = () => {
+    dsBox.replaceChildren(...[h('label', {}, 'Fiche technique'),
+      p.datasheet ? h('div', {class: 'filebox', style: 'margin-bottom:8px'}, fileLink(p.datasheet, '📄 ' + prettyFile(p.datasheet)),
+        editable ? h('button', {class: 's d', onclick: async () => { try { await api(`/products/${p.id}/datasheet`, {method: 'DELETE'}); p.datasheet = null; drawDs(); } catch (e) { alert(e.message); } }}, 'Retirer') : null) : null,
+      ...(editable ? [h('div', {class: 'filebox'}, pick, fname), h('div', {class: 'mute', style: 'font-size:12px;margin-top:3px'}, p.datasheet ? 'Choisir un fichier pour remplacer la fiche actuelle.' : 'PDF, image ou document (25 Mo maximum).')] : (p.datasheet ? [] : [h('span', {class: 'mute'}, 'Aucune fiche')]))].filter(Boolean));
+  };
+  drawDs();
+  const hist = h('div', {class: 'full'});
+  const body = h('div', {class: 'f'},
+    inp('ref', 'Référence'), inp('name', 'Nom *'),
+    field('Fournisseur', i.supplier_id = select([['', '—'], ...sups.map(s => [s.id, s.name])], p.supplier_id)),
+    field('Catégorie', i.category = select([['', '—'], ...cats.map(c => [c, c])], p.category)),
+    field('Gamme', i.gamme = select([['', '—'], ...Object.entries(state.meta.gammes)], p.gamme)),
+    field('Label EGalim', i.label_egalim = select([['sans', 'Sans label'], ['bio', 'Bio'], ['autre', 'Autre label']], p.label_egalim || 'bio')),
+    inp('label_detail', 'Détail du label (AOP, Label Rouge, MSC…)'),
+    field('Provenance', i.provenance = select([['', '—'], ...Object.entries(state.meta.provenances)], p.provenance)),
+    field('Direct producteur', i.direct_producteur = select([[0, 'Non'], [1, 'Oui']], p.direct_producteur)),
+    field('Commerce équitable', i.commerce_equitable = select([[0, 'Non'], [1, 'Oui']], p.commerce_equitable)),
+    field('À éviter', i.avoid = h('input', {type: 'checkbox', checked: !!p.avoid, title: 'Produit à éviter : signalé en orange dans la liste'})),
+    field('Favori ★', i.favorite = h('input', {type: 'checkbox', checked: !!p.favorite, title: 'Produit favori : étoile dans la liste et filtre « Favoris »'})),
+    field('Unité de prix', i.unit = select(['kg', 'g', 'l', 'unité', 'pièce', 'botte', 'barquette', 'colis', 'bidon', 'boite'].map(u => [u, u]), p.unit || 'kg')),
+    inp('unit_price', 'Prix unitaire HT (€)', 'number'),
+    dsBox,
+    field('Notes', i.notes = h('textarea', {rows: 2, value: p.notes}), 'full'),
+    p.id ? hist : null);
+  if (p.id) {
+    api(`/products/${p.id}/prices`).then(rows => {
+      const asc = [...rows].reverse();
+      hist.replaceChildren(h('label', {}, 'Évolution du prix'),
+        chart(asc.map(r => ({x: r.date, y: r.price, tip: `${dfr(r.date)} : ${eur(r.price)} / ${r.unit || ''}`})), v => eur(v)),
+        rows.length ? h('div', {class: 'tablewrap'}, h('table', {},
+          h('tr', {}, ['Date', 'Prix HT', 'Origine'].map((x, k) => h('th', {class: k === 1 ? 'n' : ''}, x))),
+          rows.map(r => h('tr', {}, h('td', {}, dfr(r.date)), h('td', {class: 'n'}, `${eur(r.price)} / ${r.unit || ''}`),
+            h('td', {class: 'mute'}, r.source === 'reception' ? `Réception ${r.order_ref || ''} (${r.order_kind === 'facture' ? 'facture' : 'bon de livraison'})` : 'Saisie manuelle')))))
+          : h('div', {class: 'mute'}, 'Aucun relevé de prix pour le moment : le prix est mis à jour à chaque réception.'));
+    }).catch(() => {});
+  }
+  if (!p.id) {   // nouveau produit : « direct producteur » suit celui du fournisseur choisi
+    const follow = () => { const s = sups.find(x => String(x.id) === i.supplier_id.value); if (s) i.direct_producteur.value = s.direct_producteur ? 1 : 0; };
+    i.supplier_id.addEventListener('change', follow);
+    follow();
+  }
+  const doSave = canWrite() ? async () => {
+    const d = {};
+    for (const k of ['ref', 'name', 'label_detail', 'notes', 'category', 'gamme', 'provenance']) d[k] = i[k].value.trim() === '' ? null : i[k].value.trim();
+    if (!d.name) throw new Error('Le nom est obligatoire');
+    d.supplier_id = numOrNull(i.supplier_id.value);
+    d.unit_price = numOrNull(i.unit_price.value);
+    d.unit = i.unit.value;
+    d.direct_producteur = Number(i.direct_producteur.value || 0);
+    d.commerce_equitable = Number(i.commerce_equitable.value || 0);
+    d.avoid = i.avoid.checked ? 1 : 0;
+    d.favorite = i.favorite.checked ? 1 : 0;
+    d.label_egalim = i.label_egalim.value || 'bio';
+    const r = await api(p.id ? '/products/' + p.id : '/products', {method: p.id ? 'PUT' : 'POST', body: d});
+    if (file.files[0]) {
+      const fd = new FormData(); fd.append('file', file.files[0]);
+      await api(`/products/${p.id || r.id}/datasheet`, {method: 'POST', body: fd});
+    }
+  } : null;
+  mopts.saveHandler = doSave;
+  mopts.editTitle = p.id ? 'Modifier le produit' : 'Nouveau produit';
+  mopts.onSwitch = () => { editable = true; drawDs(); };   // « ✏️ Modifier » : rend la fiche technique éditable
+  modal(p.id ? (mopts.viewOnly ? p.name : 'Modifier le produit') : 'Nouveau produit', body, (canWrite() && !mopts.viewOnly) ? doSave : null, mopts);
+}
+
+/* ---------- Réceptions : bons de livraison et factures ---------- */
+const KINDS = [['livraison', 'Bon de livraison (provisoire)'], ['facture', 'Facture (définitive)']];
+const kindPill = k => k === 'facture' ? h('span', {class: 'pill'}, 'Facture') : h('span', {class: 'pill w', title: 'Provisoire : sera remplacé par la facture'}, 'Bon de livraison');
+const ordView = {q: '', kind: '', sup: ''};
+let importQueue = [];
+async function pageOrders() {
+  const [list, sups] = await Promise.all([api('/orders'), api('/suppliers')]);
+  const q = h('input', {placeholder: 'Rechercher (réf., fournisseur)…', value: ordView.q, style: 'min-width:200px'});
+  const fk = select([['', 'Tous les types'], ['livraison', 'Bons de livraison'], ['facture', 'Factures']], ordView.kind);
+  const fs = select([['', 'Tous les fournisseurs'], ...sups.map(s => [s.id, s.name])], ordView.sup);
+  const tb = h('tbody');
+  const totBox = h('strong', {});
+  const draw = () => {
+    ordView.q = q.value; ordView.kind = fk.value; ordView.sup = fs.value;
+    const t = q.value.toLowerCase();
+    const vis = list.filter(o => (!t || ((o.ref || '') + ' ' + (o.supplier_name || '')).toLowerCase().includes(t))
+      && (!fk.value || o.kind === fk.value) && (!fs.value || String(o.supplier_id) === fs.value));
+    totBox.textContent = eur(vis.reduce((a, o) => a + (Number(o.total_ht) || 0), 0));
+    tb.replaceChildren(...vis.map(o => {
+      const tr = h('tr', {class: 'clickable'},
+        h('td', {}, dfr(o.date)), h('td', {}, kindPill(o.kind)), h('td', {}, o.ref || ''), h('td', {}, o.supplier_name || '—'),
+        h('td', {class: 'n'}, o.nb_lines), h('td', {class: 'n'}, eur(o.total_ht)),
+        h('td', {}, o.source_file ? fileLink(o.source_file, '📄 PDF') : ''),
+        h('td', {class: 'n'},
+          h('button', {class: 'icon-btn', title: 'Ouvrir', onclick: e => { e.stopPropagation(); api('/orders/' + o.id).then(orderForm); }}, '✏️'),
+          canWrite() ? h('button', {class: 'icon-btn d', title: 'Supprimer', onclick: e => { e.stopPropagation(); confirmDel('Supprimer cette réception ?', () => api('/orders/' + o.id, {method: 'DELETE'}))(); }}, '🗑️') : null));
+      tr.addEventListener('click', () => api('/orders/' + o.id).then(d => orderForm(d, undefined, [], {viewOnly: true, onEdit: () => api('/orders/' + o.id).then(orderForm)})));
+      return tr;
+    }));
+  };
+  for (const c of [q, fk, fs]) c.addEventListener('input', draw);
+  draw();
+  return h('div', {},
+    h('div', {class: 'tools'}, h('h2', {}, 'Bons de livraison & factures'),
+      canWrite() ? h('div', {class: 'ctl'},
+        h('label', {class: 'btn p'}, '⬆ Importer des PDF', h('input', {type: 'file', accept: '.pdf', multiple: true, style: 'display:none', onchange: importFiles})),
+        h('button', {onclick: () => orderForm({lines: [{}], kind: 'livraison'})}, '+ Saisie manuelle')) : null),
+    h('div', {class: 'card row'}, field('Recherche', q), field('Type', fk), field('Fournisseur', fs)),
+    h('div', {class: 'card tablewrap'}, list.length ? h('table', {},
+      h('thead', {}, h('tr', {}, ['Date', 'Type', 'Réf.', 'Fournisseur', 'Lignes', 'Total HT', 'Fichier source', ''].map((x, k) => h('th', {class: k === 4 || k === 5 ? 'n' : ''}, x)))), tb)
+      : h('div', {class: 'empty'}, 'Aucune réception.' + (canWrite() ? ' Importez un PDF ou saisissez un bon de livraison.' : ''))),
+    h('div', {class: 'card', style: 'padding:10px 16px;text-align:right'}, h('span', {class: 'mute'}, 'Total des lignes : '), totBox));
+}
+function importFiles(ev) {
+  importQueue = [...ev.target.files]; docQueue = [];
+  ev.target.value = '';
+  nextImport();
+}
+let docQueue = [];
+async function nextImport() {
+  if (docQueue.length) return showNextDoc();
+  const file = importQueue.shift();
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('file', file);
+  busy(true);
+  let r;
+  try { r = await api('/orders/parse-pdf', {method: 'POST', body: fd}); }
+  catch (e) { busy(false); alert(`${file.name} : ${e.message}`); return nextImport(); }
+  busy(false);
+  docQueue = r.documents.map((d, i) => ({d, i, n: r.documents.length, name: file.name}));
+  showNextDoc();
+}
+function showNextDoc() {
+  const {d: r, i, n, name} = docQueue.shift();
+  if (r.duplicate) {
+    alert(`« ${name} »${n > 1 ? ` (bon ${i + 1}/${n})` : ''} : ${r.kind === 'facture' ? 'la facture' : 'le bon'} ${r.duplicate.ref} est déjà enregistré${r.duplicate.date ? ' (' + dfr(r.duplicate.date) + ')' : ''}. Import ignoré.`);
+    return nextImport();
+  }
+  const where = n > 1 ? `« ${name} » contient ${n} bons : bon ${i + 1}/${n}` : `« ${name} »`;
+  const more = docQueue.length + importQueue.length;
+  const notice = [r.lines.length ? `${r.lines.length} ligne(s) lue(s) dans ${where}. Vérifiez avant d'enregistrer.` : `Aucune ligne reconnue dans ${where}.`,
+    r.ignored ? `${r.ignored} ligne(s) ignorée(s) (cotisation interfel ou quantité nulle).` : '',
+    more ? `Encore ${more} élément(s) à traiter ensuite.` : ''].filter(Boolean).join(' ');
+  orderForm({supplier_id: r.supplier_id, supplier_guess: r.supplier_guess, imported: true, ref: r.ref, kind: r.kind, date: r.date, total_ht: r.total_ht,
+    source_file: r.source_file, bl_refs: r.bl_refs, lines: r.lines.length ? r.lines : [{}]}, notice, r.warnings || [], {onClose: nextImport});
+}
+async function orderForm(o, notice, warnings = [], mopts = {}) {
+  const [sups, prods] = await Promise.all([api('/suppliers'), api('/products')]);
+  const hdr = {};
+  const prodOpts = [['', '— non rattaché —'], ['__new__', '➕ Créer le produit'], ...prods.map(p => [p.id, (p.ref ? p.ref + ' · ' : '') + p.name])];
+  const tb = h('tbody');
+  const rows = [];
+  const hintFor = r => {
+    const p = prods.find(x => String(x.id) === r.product.value);
+    const pu = numOrNull(r.pu.value);
+    r.hint.textContent = (p && p.unit_price != null && pu != null && sameUnit(r.unit.value, p.unit) && Math.abs(p.unit_price - pu) > 1e-9)
+      ? `Prix actuel : ${eur(p.unit_price)} → mis à jour à l'enregistrement` : '';
+  };
+  const addLine = (l = {}) => {
+    const r = {
+      ref: h('input', {value: l.ref, style: 'min-width:80px;width:100px'}),
+      product: select(prodOpts, l.product_id ?? (o.imported && l.label ? '__new__' : '')),
+      label: h('input', {value: l.label, style: 'min-width:200px'}),
+      qty: h('input', {type: 'number', step: 'any', value: l.qty, style: 'width:90px'}),
+      unit: h('input', {value: l.unit, style: 'min-width:60px;width:80px'}),
+      pu: h('input', {type: 'number', step: 'any', value: l.unit_price, style: 'width:90px'}),
+      total: h('input', {type: 'number', step: 'any', value: l.total_ht, style: 'width:100px'}),
+      hint: h('small', {class: 'hint'}),
+    };
+    const recalc = () => { if (r.qty.value && r.pu.value) r.total.value = (r.qty.value * r.pu.value).toFixed(2); sum(); hintFor(r); };
+    r.qty.oninput = r.pu.oninput = recalc;
+    r.total.oninput = sum;
+    r.unit.oninput = () => hintFor(r);
+    r.product.onchange = () => {
+      const p = prods.find(x => String(x.id) === r.product.value);
+      if (p) {
+        if (!r.label.value) r.label.value = p.name;
+        if (!r.ref.value && p.ref) r.ref.value = p.ref;
+        if (!r.unit.value) r.unit.value = p.unit || '';
+        if (!r.pu.value && p.unit_price != null) { r.pu.value = p.unit_price; recalc(); }
+      }
+      hintFor(r);
+    };
+    const tr = h('tr', {}, h('td', {}, r.ref), h('td', {}, r.product), h('td', {}, r.label), h('td', {}, r.qty), h('td', {}, r.unit),
+      h('td', {}, r.pu, r.hint), h('td', {}, r.total),
+      h('td', {}, h('button', {class: 's d', onclick: () => { tr.remove(); rows.splice(rows.indexOf(r), 1); sum(); }}, '✕')));
+    r.tr = tr;
+    rows.push(r);
+    tb.append(tr);
+    hintFor(r);
+  };
+  const sum = () => { hdr.total.value = rows.reduce((a, r) => a + (Number(r.total.value) || 0), 0).toFixed(2); loadCandidates(); };
+
+  // facture : bons de livraison à remplacer
+  const repl = h('div', {class: 'card', style: 'display:none'});
+  const picked = new Map((o.replaces || []).map(id => [id, true]));
+  let candSeq = 0;
+  async function loadCandidates() {
+    const seq = ++candSeq;
+    const supId = hdr.supplier_id.value && hdr.supplier_id.value !== '__new__' ? Number(hdr.supplier_id.value) : null;
+    if (!canWrite() || hdr.kind.value !== 'facture' || !supId) { repl.style.display = 'none'; return; }
+    let list;
+    try { list = await api('/orders/candidates', {method: 'POST', body: {supplier_id: supId, kind: 'facture', total_ht: numOrNull(hdr.total.value), refs: o.bl_refs || [], exclude_id: o.id || null}}); }
+    catch { return; }
+    if (seq !== candSeq) return;
+    for (const c of list) if (!picked.has(c.id)) picked.set(c.id, c.match);
+    repl.style.display = '';
+    repl.replaceChildren(...[h('h3', {}, 'Bon(s) de livraison remplacé(s) par cette facture'),
+      h('p', {class: 'mute', style: 'margin-top:0'}, 'La facture remplace le bon de livraison correspondant : il sera supprimé à l\'enregistrement, ses quantités ne sont comptées qu\'une fois.'),
+      list.length ? list.map(c => h('label', {class: 'chk'},
+        `${c.ref || 'Bon de livraison'} du ${dfr(c.date)} — ${eur(c.total_ht)}`, c.match ? h('span', {class: 'pill'}, c.reason) : null,
+        h('input', {type: 'checkbox', checked: picked.get(c.id), onchange: e => picked.set(c.id, e.target.checked)})))
+        : h('div', {class: 'mute'}, 'Aucun bon de livraison en attente pour ce fournisseur.')].flat().filter(Boolean));
+  }
+
+  const supSel = hdr.supplier_id = select([['', '—'], ['__new__', '➕ Créer un nouveau fournisseur…'], ...sups.map(s => [s.id, s.name])],
+    o.supplier_id ?? (o.imported && o.supplier_guess ? '__new__' : ''));
+  hdr.new_supplier = h('input', {value: o.supplier_guess || '', placeholder: 'Nom du nouveau fournisseur', style: 'margin-top:6px'});
+  hdr.new_direct = h('input', {type: 'checkbox'});
+  hdr.new_direct_box = h('label', {class: 'chk', style: 'margin:6px 0 0'}, 'Direct producteur', hdr.new_direct);
+  const toggleNew = () => { const n = supSel.value === '__new__'; hdr.new_supplier.style.display = n ? '' : 'none'; hdr.new_direct_box.style.display = n ? '' : 'none'; };
+  supSel.addEventListener('change', () => { toggleNew(); loadCandidates(); });
+  // --- Zone PDF (BL / facture) ---
+  let currentPdf = o.source_file || null;
+  const pdfInput = h('input', {type: 'file', accept: '.pdf', style: 'display:none'});
+  const pdfStatus = h('span', {class: 'mute'});
+  const pdfDelBtn = h('button', {class: 's d', style: 'margin-left:6px', title: 'Supprimer le PDF', onclick: async e => {
+    e.preventDefault();
+    if (o.id && currentPdf) {
+      await api('/orders/' + o.id + '/upload-pdf', {method: 'DELETE'});
+    }
+    currentPdf = null;
+    pdfInput.value = '';
+    renderPdfStatus();
+  }});
+  const renderPdfStatus = () => {
+    if (pdfInput.files && pdfInput.files[0]) {
+      pdfStatus.replaceChildren('📄 ', h('em', {}, pdfInput.files[0].name), ' (sera joint à l\'enregistrement)');
+      pdfDelBtn.style.display = '';
+    } else if (currentPdf) {
+      pdfStatus.replaceChildren('📄 ', fileLink(currentPdf));
+      pdfDelBtn.style.display = '';
+    } else {
+      pdfStatus.replaceChildren(h('span', {class: 'mute'}, 'Aucun fichier joint'));
+      pdfDelBtn.style.display = 'none';
+    }
+  };
+  pdfInput.onchange = renderPdfStatus;
+  const pdfBox = canWrite()
+    ? (mopts.viewOnly
+        ? h('p', {class: 'mute', style: 'margin:10px 0 0'}, 'Fichier source : ',
+            currentPdf ? fileLink(currentPdf) : h('span', {}, 'aucun'))   // en consultation : le PDF lié reste visible
+        : h('div', {style: 'margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap'},
+            h('label', {class: 'btn s', style: 'cursor:pointer', title: 'Joindre un PDF (BL ou facture)'}, '📎 PDF', pdfInput),
+            pdfStatus, pdfDelBtn))
+    : (currentPdf ? h('p', {class: 'mute'}, 'Fichier source : ', fileLink(currentPdf)) : null);
+
+  const body = h('div', {},
+    notice ? h('div', {class: 'note'}, notice) : null,
+    warnings.map(w => h('div', {class: 'note w'}, '⚠ ' + w)),
+    h('div', {class: 'f', style: 'margin-bottom:14px'},
+      h('div', {}, h('label', {}, 'Fournisseur'), supSel, hdr.new_supplier, hdr.new_direct_box),
+      field('Type', hdr.kind = select(KINDS, o.kind || 'livraison', {onchange: loadCandidates})),
+      field('Référence', hdr.ref = h('input', {value: o.ref})),
+      field('Date', hdr.date = h('input', {type: 'date', value: o.date || today()})),
+      field('Total HT (€)', hdr.total = h('input', {type: 'number', step: 'any', value: o.total_ht, onchange: loadCandidates}))),
+    h('div', {class: 'tablewrap'}, h('table', {},
+      h('thead', {}, h('tr', {}, ['Référence', 'Produit rattaché', 'Nom', 'Qté', 'Unité', 'PU HT', 'Total HT', ''].map(x => h('th', {}, x)))), tb)),
+    h('button', {style: 'margin:10px 0', onclick: () => addLine()}, '+ Ligne'),
+    repl,
+    pdfBox,
+    o.notes ? h('p', {class: 'mute', style: 'white-space:pre-line'}, o.notes) : null);
+  renderPdfStatus();
+  (o.lines && o.lines.length ? o.lines : [{}]).forEach(addLine);
+  toggleNew();
+  loadCandidates();
+  const doSave = canWrite() ? async () => {
+    const newSup = supSel.value === '__new__';
+    if (newSup && !hdr.new_supplier.value.trim()) throw new Error('Indiquez le nom du nouveau fournisseur');
+    const lines = rows.map(r => ({
+      create_product: r.product.value === '__new__',
+      product_id: r.product.value === '__new__' ? null : numOrNull(r.product.value),
+      ref: r.ref.value.trim() || null, label: r.label.value.trim() || null, qty: numOrNull(r.qty.value),
+      unit: r.unit.value.trim() || null, unit_price: numOrNull(r.pu.value), total_ht: numOrNull(r.total.value)}))
+      .filter(l => l.label || l.product_id || l.qty);
+    const kind = hdr.kind.value;
+    const data = {supplier_id: newSup ? null : numOrNull(supSel.value), new_supplier_name: newSup ? hdr.new_supplier.value.trim() : null, new_supplier_direct: newSup && hdr.new_direct.checked,
+      kind, ref: hdr.ref.value.trim() || null, date: hdr.date.value || null, total_ht: numOrNull(hdr.total.value),
+      source_file: currentPdf, notes: o.notes || null,
+      replaces: kind === 'facture' ? [...picked].filter(([, on]) => on).map(([id]) => id) : [], lines};
+    const res = await api(o.id ? '/orders/' + o.id : '/orders', {method: o.id ? 'PUT' : 'POST', body: data});
+    // Upload du PDF si un fichier a été sélectionné
+    if (pdfInput.files && pdfInput.files[0]) {
+      const fd = new FormData();
+      fd.append('file', pdfInput.files[0]);
+      await fetch('/api/orders/' + res.id + '/upload-pdf', {method: 'POST', headers: {'x-requested-with': 'cgrs'}, body: fd});
+    }
+    const c = res.created || {};
+    const msgs = [];
+    if (c.supplier) msgs.push(`Fournisseur créé : ${c.supplier}`);
+    if (c.products && c.products.length) msgs.push(`${c.products.length} produit(s) créé(s) à compléter dans Produits (catégorie, gamme, label, provenance)`);
+    if (res.replaced && res.replaced.length) msgs.push(`Remplacé : ${res.replaced.join(', ')}`);
+    for (const u of (res.price_updates || [])) msgs.push(`Prix mis à jour — ${u.name} : ${u.old == null ? 'nouveau' : eur(u.old)} → ${eur(u.new)} / ${u.unit || ''}`);
+    if (msgs.length) toast(msgs.join(' — '), 12000);
+  } : null;
+  mopts.saveHandler = doSave;
+  const m = modal(o.id ? 'Réception' : 'Nouvelle réception', body, (canWrite() && !mopts.viewOnly) ? doSave : null, mopts);
+  return m;
+}
+
+/* ---------- Repas ---------- */
+const MEAL_CATS = ['entree', 'plat', 'accompagnement', 'laitage', 'dessert'];
+const MEAL_CATS_LABELS = {entree: 'Entrée', plat: 'Plat', accompagnement: 'Accompagnement', laitage: 'Laitage', dessert: 'Dessert'};
+const STATUT_LABELS = {prevu: 'Prévu', en_cours: 'En cours', passe: 'Passé'};
+const STATUT_COLORS = {prevu: 'var(--mute)', en_cours: 'var(--acc)', passe: '#27ae60'};
+
+/* ---------- Liste de courses (PDF) ---------- */
+function isoLocal(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function shoppingListModal() {
+  const today = new Date();
+  const fromInp = h('input', {type: 'date', value: isoLocal(new Date(today.getFullYear(), today.getMonth(), 1))});
+  const toInp = h('input', {type: 'date', value: isoLocal(new Date(today.getFullYear(), today.getMonth() + 1, 0))});
+  const body = h('div', {class: 'f'}, field('Du', fromInp), field('Au', toInp));
+  modal('Liste de courses (PDF)', body, async () => {
+    if (!fromInp.value || !toInp.value) throw new Error('Indiquez les deux dates');
+    if (fromInp.value > toInp.value) throw new Error('La date de début est après la date de fin');
+    const rows = await api('/meals/shopping-list?date_from=' + fromInp.value + '&date_to=' + toInp.value);
+    if (!rows.length) { toast('Aucun produit sorti pour les repas de cette période', 5000); return; }
+    exportShoppingPdf(rows, fromInp.value, toInp.value);
+  });
+}
+
+function exportShoppingPdf(rows, from, to) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation: 'portrait', unit: 'mm', format: 'a4'});
+  const dfr2 = s => s.split('-').reverse().join('/');
+  doc.setFontSize(14);
+  doc.text('Liste de courses du ' + dfr2(from) + ' au ' + dfr2(to), 14, 16);
+  const body = [];
+  let cur = null;
+  rows.forEach(r => {
+    if (r.category !== cur) {
+      cur = r.category;
+      body.push([{content: String(cur).toUpperCase(), colSpan: 3, styles: {fillColor: [230, 240, 230], fontStyle: 'bold'}}]);
+    }
+    body.push([r.label, String(r.qty).replace('.', ','), r.unit || '']);
+  });
+  doc.autoTable({
+    head: [['Produit', 'Quantité', 'Unité']], body, startY: 22,
+    styles: {fontSize: 10}, columnStyles: {1: {halign: 'right'}},
+  });
+  doc.save('liste_courses_' + from + '_' + to + '.pdf');
+}
+
+async function pageMeals() {
+  let list = await api('/meals');
+  const prods = await api('/products').catch(() => []);
+  const wrap = h('div', {});
+
+  const importBtn = canWrite() ? h('button', {onclick: () => importMenuPdf(wrap)}, '📥 Importer PDF menu') : null;
+  const newBtn = canWrite() ? h('button', {class: 'p', onclick: () => mealForm({items: []}, {}, wrap)}, '+ Repas') : null;
+
+  const statFilter = select([['', 'Tous les statuts'], ...Object.entries(STATUT_LABELS).map(([k,v]) => [k,v])], '');
+  const prodFilter = select([['', 'Tous les produits'], ...prods.map(p => [p.id, p.name])], '');
+  prodFilter.style.maxWidth = '220px';   // la liste des produits ne s'étire pas sur toute la largeur
+  let visibleList = list;
+  const tb = h('tbody');
+
+  prodFilter.addEventListener('change', async () => {
+    // filtre par produit contenu dans les bilans : requête côté serveur (meal_items)
+    list = prodFilter.value ? await api('/meals?product_id=' + prodFilter.value) : await api('/meals');
+    draw();
+  });
+
+  const draw = () => {
+    const sf = statFilter.value;
+    visibleList = sf ? list.filter(m => m.statut === sf) : list;
+    tb.replaceChildren(...visibleList.map(m => {
+      const statutDot = h('span', {style: `display:inline-block;width:8px;height:8px;border-radius:50%;background:${STATUT_COLORS[m.statut]||'var(--mute)'};margin-right:6px`});
+      const menuTxt = [m.plat, m.entree].filter(Boolean).join(' · ') || '';
+      const tr = h('tr', {class: 'clickable', style: m.modif_prevu ? 'background:rgba(255,165,0,0.5)' : ''},
+        h('td', {}, dfr(m.date)),
+        h('td', {}, statutDot, STATUT_LABELS[m.statut] || m.statut || ''),
+        h('td', {style: 'max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'}, menuTxt),
+        h('td', {class: 'n'}, m.nb_maternelles), h('td', {class: 'n'}, m.nb_elementaires), h('td', {class: 'n'}, m.nb_adultes),
+        h('td', {class: 'n'}, h('b', {}, m.guests)), h('td', {class: 'n'}, m.nb_items),
+        h('td', {class: 'n', title: m.unpriced ? `${m.unpriced} ligne(s) sans prix connu` : null}, m.cost ? eur(m.cost) : '—', m.unpriced ? ' ⚠' : ''),
+        h('td', {class: 'n'}, m.per_guest != null ? eur(m.per_guest) : '—'),
+        h('td', {class: 'n'}, pctf(m.pct_local)), h('td', {class: 'n'}, pctf(m.pct_bio)),
+        h('td', {class: 'n'},
+          h('button', {class: 'icon-btn', title: 'Ouvrir', onclick: e => { e.stopPropagation(); api('/meals/' + m.id).then(d => mealForm(d, {}, wrap)); }}, '✏️'),
+          canWrite() ? h('button', {class: 'icon-btn d', title: 'Supprimer', onclick: e => { e.stopPropagation(); confirmDel('Supprimer ce repas ?', () => api('/meals/' + m.id, {method: 'DELETE'}))(); }}, '🗑️') : null));
+      tr.addEventListener('click', () => api('/meals/' + m.id).then(d => mealForm(d, {viewOnly: true, onEdit: () => api('/meals/' + m.id).then(d2 => mealForm(d2, {}, wrap))}, wrap)));
+      return tr;
+    }));
+  };
+  statFilter.addEventListener('change', draw);
+  draw();
+
+  wrap.replaceChildren(
+    h('div', {class: 'tools'}, h('h2', {}, 'Repas'), h('div', {class: 'ctl', style: 'flex:1;flex-wrap:nowrap'}, statFilter, prodFilter,
+      h('span', {style: 'flex:1'}),
+      h('div', {style: 'display:flex;gap:8px;align-items:center;margin-left:16px'}, h('button', {onclick: () => shoppingListModal()}, '🧾 Liste de courses PDF'), importBtn, newBtn))),
+    h('div', {class: 'card tablewrap'}, list.length ? h('table', {},
+      h('thead', {}, h('tr', {}, ['Date', 'Statut', 'Menu', 'Mat.', 'Élém.', 'Adultes', 'Convives', 'Produits', 'Coût matières', '€/convive', '% local', '% bio', ''].map((x, k) => h('th', {class: k >= 3 ? 'n' : ''}, x)))),
+      tb)
+      : h('div', {class: 'empty'}, 'Aucun repas saisi.')));
+  return wrap;
+}
+
+async function importMenuPdf(pageWrap) {
+  const fileInput = h('input', {type: 'file', accept: '.pdf', style: 'display:none'});
+  document.body.appendChild(fileInput);
+  fileInput.click();
+  fileInput.onchange = async () => {
+    const file = fileInput.files[0];
+    if (!file) { fileInput.remove(); return; }
+    const fd = new FormData();
+    fd.append('file', file);
+    let result;
+    try {
+      result = await fetch('/api/meals/parse-menu-pdf', {method: 'POST', headers: {'x-requested-with': 'cgrs'}, body: fd}).then(async r => {
+        if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail || 'Erreur import'); }
+        return r.json();
+      });
+    } catch(e) { toast('Erreur : ' + e.message, 6000); fileInput.remove(); return; }
+    fileInput.remove();
+    showMenuImportPreview(result, pageWrap);
+  };
+}
+
+function showMenuImportPreview(result, pageWrap) {
+  const repas = result.repas || [];
+  if (!repas.length) { toast('Aucun repas détecté dans le PDF.', 5000); return; }
+
+  const checks = repas.map(r => {
+    const cb = h('input', {type: 'checkbox', checked: !r.already_exists});
+    return {r, cb};
+  });
+
+  const rows = checks.map(({r, cb}) =>
+    h('tr', {style: r.already_exists ? 'opacity:.55' : ''},
+      h('td', {}, cb),
+      h('td', {}, dfr(r.date), r.already_exists ? h('span', {class: 'pill', style: 'margin-left:6px;font-size:11px;background:var(--acc2);color:var(--acc)'}, 'existe') : null),
+      h('td', {}, r.entree || ''),
+      h('td', {}, r.plat || ''),
+      h('td', {}, r.accompagnement || ''),
+      h('td', {}, r.laitage || ''),
+      h('td', {}, r.dessert || '')));
+
+  const selAll = h('input', {type: 'checkbox', checked: true, title: 'Tout sélectionner'});
+  selAll.onchange = () => checks.forEach(({cb}) => cb.checked = selAll.checked);
+
+  const body = h('div', {},
+    h('p', {class: 'mute'}, `${repas.length} repas détecté(s) dans ${result.source_file || 'le PDF'}. Les repas existants sont grisés.`),
+    h('div', {class: 'tablewrap'}, h('table', {},
+      h('thead', {}, h('tr', {}, [h('th', {}, selAll), ...['Date', 'Entrée', 'Plat', 'Accompagnement', 'Laitage', 'Dessert'].map(x => h('th', {}, x))])),
+      h('tbody', {}, ...rows))));
+
+  modal('Importer des repas depuis le PDF', body, async () => {
+    const selected = checks.filter(({cb}) => cb.checked).map(({r}) => r);
+    if (!selected.length) throw new Error('Sélectionnez au moins un repas');
+    let created = 0;
+    for (const r of selected) {
+      await api('/meals', {method: 'POST', body: {date: r.date, nb_maternelles: CONVIVES_DEF.mat, nb_elementaires: CONVIVES_DEF.elem, nb_adultes: CONVIVES_DEF.adu,
+        entree: r.entree || null, plat: r.plat || null, accompagnement: r.accompagnement || null,
+        laitage: r.laitage || null, dessert: r.dessert || null, statut: 'prevu', items: []}});
+      created++;
+    }
+    toast(`${created} repas importé(s) avec succès`);
+    // Refresh page
+    if (pageWrap) { const fresh = await pageMeals(); pageWrap.replaceChildren(...fresh.childNodes); }
+  });
+}
+
+async function mealForm(m, mopts = {}, pageWrap = null) {
+  await loadGramRows();   // grammages (et coefficients cru/cuit) depuis la base
+  const [prodsRaw, stockData, recipesRaw] = await Promise.all([api('/products'), api('/stock'), api('/recipes').catch(() => [])]);
+  const prods = prodsRaw.sort((a, b) => cmp(a.name, b.name));
+  const recipes = Array.isArray(recipesRaw) ? recipesRaw : (recipesRaw.items || []);
+  const stockMap = {};
+  for (const r of (stockData.rows || [])) {
+    const pid = String(r.product_id);
+    if (!stockMap[pid]) stockMap[pid] = { stock: r.stock, unit: r.unit };
+    else stockMap[pid].stock = (stockMap[pid].stock || 0) + r.stock;
+  }
+  const hdr = {};
+  const opts = [['', '— choisir un produit —'], ...prods.map(p => [p.id, (p.ref ? p.ref + ' · ' : '') + p.name])];
+  let historicalPrices = {};
+  const FACT = {kg: ['m', 1], g: ['m', 0.001], l: ['v', 1], cl: ['v', 0.01], ml: ['v', 0.001]};
+
+  async function refreshPrices() {
+    const d = hdr.date && hdr.date.value;
+    if (d) { try { historicalPrices = await api('/products/prices-at?date=' + d); } catch(e) { historicalPrices = {}; } }
+    else { historicalPrices = {}; }
+    rebuildEstimation();
+  }
+
+  // ── Header: date, statut, convives ───────────────────────────────
+  const total = h('strong', {});
+  // Convives de référence pour le bouton « ↻ Recalculer les quantités » (valeur à l'ouverture, puis à chaque validation)
+  let estRefConvives = null;
+  let recalcBtn = null; // bouton « ↻ Recalculer les quantités » (visible seulement si les convives ont changé)
+  const upd = () => {
+    total.textContent = String((Number(hdr.mat.value)||0) + (Number(hdr.elem.value)||0) + (Number(hdr.adu.value)||0));
+    // NB : changer les convives ne recalcule RIEN automatiquement ;
+    // les quantités se recalculent via le bouton « ↻ Recalculer les quantités » de l'onglet Estimation.
+    // Ce bouton n'apparaît que si le nombre de convives diffère de la référence.
+    if (recalcBtn) {
+      const cur = {mat: Number(hdr.mat.value) || 0, elem: Number(hdr.elem.value) || 0, adu: Number(hdr.adu.value) || 0};
+      const ref = estRefConvives || cur;
+      recalcBtn.style.display = (cur.mat !== ref.mat || cur.elem !== ref.elem || cur.adu !== ref.adu) ? '' : 'none';
+    }
+  };
+  const cnt = (k, v) => h('input', {type: 'number', min: 0, step: 1, value: v ?? 0, oninput: upd});
+  const headerSection = h('div', {class: 'f', style: 'margin-bottom:16px'},
+    field('Jour *', hdr.date = h('input', {type: 'date', value: m.date || today(), onchange: () => refreshPrices()})),
+    field('Maternelles', hdr.mat = cnt('mat', m.nb_maternelles ?? (m.id ? 0 : CONVIVES_DEF.mat))),
+    field('Élémentaires', hdr.elem = cnt('elem', m.nb_elementaires ?? (m.id ? 0 : CONVIVES_DEF.elem))),
+    field('Adultes', hdr.adu = cnt('adu', m.nb_adultes ?? (m.id ? 0 : CONVIVES_DEF.adu))),
+    h('div', {}, h('label', {}, 'Convives (total)'), h('div', {style: 'height:36px;display:flex;align-items:center;font-size:20px'}, total)));
+  estRefConvives = {mat: Number(hdr.mat.value) || 0, elem: Number(hdr.elem.value) || 0, adu: Number(hdr.adu.value) || 0};
+
+  // ── Shared: searchable product picker ────────────────────────────
+  const makeProductPicker = (initId) => {
+    const wrap = h('div', {style: 'position:relative;min-width:200px'});
+    let selId = initId != null ? String(initId) : '';
+    const initProd = prods.find(x => String(x.id) === selId);
+    const txt = h('input', {placeholder: 'Rechercher un produit…', value: initProd ? (initProd.ref ? initProd.ref + ' · ' : '') + initProd.name : '', style: 'width:100%'});
+    const drop = h('div', {style: 'display:none;position:fixed;z-index:300;background:var(--card);border:1px solid var(--line);border-radius:8px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px #0003'});
+    wrap.append(txt, drop);
+    const listeners = [];
+    const notify = () => listeners.forEach(fn => fn());
+    Object.defineProperty(wrap, 'value', {get: () => selId, set: v => { selId = v == null ? '' : String(v); }});
+    wrap.setValue = v => { selId = v == null ? '' : String(v); const p = prods.find(x => String(x.id) === selId); txt.value = p ? (p.ref ? p.ref + ' · ' : '') + p.name : ''; notify(); };
+    wrap.addChangeListener = fn => listeners.push(fn);
+    const showDrop = (filter) => {
+      const t = (filter || '').toLowerCase();
+      const matches = t ? opts.filter(([v, l]) => v !== '' && l.toLowerCase().includes(t)) : opts;
+      drop.replaceChildren(...matches.slice(0, 80).map(([v, l]) => {
+        const s = stockMap[String(v)];
+        const sb = s != null ? h('span', {style: 'margin-left:8px;font-size:12px;color:' + (s.stock < -1e-9 ? 'var(--warn)' : s.stock < 1e-9 ? 'var(--mute)' : 'var(--acc)') + ';white-space:nowrap'}, 'stock\u00a0: ' + num(s.stock) + '\u00a0' + (s.unit || '')) : null;
+        const item = h('div', {style: 'padding:6px 10px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:8px;' + (v === selId ? 'background:var(--acc2);color:var(--acc)' : '')}, h('span', {}, l), sb);
+        item.addEventListener('mousedown', e => { e.preventDefault(); selId = String(v); txt.value = v === '' ? '' : l; drop.style.display = 'none'; notify(); });
+        item.addEventListener('mouseover', () => item.style.background = 'var(--acc2)');
+        item.addEventListener('mouseout', () => item.style.background = v === selId ? 'var(--acc2)' : '');
+        return item;
+      }));
+      // ancre la liste au champ, attachée au body : aucun conteneur (tableau, modal) ne peut la couper
+      if (drop.parentNode !== document.body) document.body.append(drop);
+      const r = txt.getBoundingClientRect();
+      const hEst = Math.min(220, Math.max(matches.length, 1) * 34 + 2);
+      drop.style.minWidth = Math.max(220, r.width) + 'px';
+      drop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 280)) + 'px';
+      drop.style.top = (r.bottom + hEst > window.innerHeight ? Math.max(8, r.top - hEst - 2) : r.bottom + 2) + 'px';
+      drop.style.display = matches.length ? '' : 'none';
+    };
+    txt.addEventListener('focus', () => showDrop(txt.value));
+    txt.addEventListener('input', () => { selId = ''; showDrop(txt.value); notify(); });
+    txt.addEventListener('blur', () => {
+      setTimeout(() => {
+        drop.style.display = 'none';
+        const p = prods.find(x => String(x.id) === selId);
+        if (p) txt.value = (p.ref ? p.ref + ' · ' : '') + p.name;
+        else { selId = ''; txt.value = ''; }
+        notify();
+      }, 150);
+    });
+    return wrap;
+  };
+
+  // ── Recipe cache ─────────────────────────────────────────────────
+  let cachedRecipeDetails = {};
+  async function getRecipeDetail(rid) {
+    if (!rid) return null;
+    if (!cachedRecipeDetails[rid]) {
+      try { cachedRecipeDetails[rid] = await api('/recipes/' + rid); } catch(e) { return null; }
+    }
+    // Recalcul à chaque lecture : le cache ne contient que la recette brute, donc il reste valide quand les grammages changent
+    return recomputeRecipeItems(JSON.parse(JSON.stringify(cachedRecipeDetails[rid])));
+  }
+
+  // ── SUB-TAB 1: Menu ──────────────────────────────────────────────
+  const menuSels = {};
+  const recipeByCat = cat => recipes.filter(r => !r.categorie || r.categorie === cat);
+  const recipeOpts = cat => [['', '— aucune recette liée —'], ...recipeByCat(cat).map(r => [r.id, r.name])];
+
+  const menuRows = MEAL_CATS.map(cat => {
+    const dishInp = h('input', {value: m[cat] || '', placeholder: 'Libellé du plat…', style: 'width:100%'});
+    const recipeSel = select(recipeOpts(cat), m['recipe_' + cat] || '');
+    const createRecipeBtn = h('button', {class: 's', style: 'white-space:nowrap', onclick: () => {
+      recipeForm({name: dishInp.value || '', categorie: cat, items: []}, async (savedId) => {
+        const nr = await api('/recipes').catch(() => []);
+        const nl = Array.isArray(nr) ? nr : (nr.items || []);
+        const o2 = [['', '— aucune recette liée —'], ...nl.filter(r => !r.categorie || r.categorie === cat).map(r => [r.id, r.name])];
+        recipeSel.replaceChildren(...o2.map(([v, l]) => { const o = document.createElement('option'); o.value = v; o.textContent = l; return o; }));
+        if (savedId) { recipeSel.value = String(savedId); recipeSel.dispatchEvent(new Event('change')); }
+        cachedRecipeDetails = {};
+        rebuildEstimation();
+      });
+    }}, '+ Recette');
+    recipeSel.addEventListener('change', () => { cachedRecipeDetails = {}; rebuildEstimation(); });
+    menuSels[cat] = {dishInp, recipeSel};
+    return h('tr', {},
+      h('td', {style: 'font-weight:600;color:var(--acc);white-space:nowrap;padding-right:12px'}, MEAL_CATS_LABELS[cat]),
+      h('td', {style: 'width:40%'}, dishInp),
+      h('td', {style: 'min-width:200px'}, recipeSel),
+      h('td', {}, createRecipeBtn));
+  });
+  const tab1Content = h('div', {},
+    h('div', {class: 'tablewrap'}, h('table', {},
+      h('thead', {}, h('tr', {}, ['Catégorie', 'Libellé du plat', 'Recette liée', ''].map(x => h('th', {}, x)))),
+      h('tbody', {}, ...menuRows))));
+
+  // ── SUB-TAB 2: Estimation des coûts ─────────────────────────────
+  const estTbody = h('tbody');
+  const estTotalBox = h('strong', {});
+  const estUnpricedBox = h('span', {class: 'mute', style: 'font-size:13px'});
+  // estRows: array of {productEl, qtyEl, prixHTEl, costTd, catTd, labelTd}
+  let estRows = [];
+  // Estimation enregistrée lors de la dernière sauvegarde du repas (restaurée au premier affichage)
+  let savedEst = null;
+  try { savedEst = Array.isArray(m.estimation) ? m.estimation : (typeof m.estimation === 'string' ? JSON.parse(m.estimation) : null); } catch (e) { savedEst = null; }
+  let savedEstRestored = false;
+  const savedEstPrev = e => e == null ? null : ({productEl: {value: e.product_id != null ? String(e.product_id) : ''},
+    qtyEl: {value: e.qty != null ? String(e.qty) : ''}, prixHTEl: {value: e.price != null ? String(e.price) : ''}, unit: e.unit != null ? e.unit : null});
+  const tab2Content = h('div', {},
+    h('p', {class: 'mute', style: 'margin-top:0;font-size:13px'}, 'Quantités calculées depuis les grammages des recettes. Liez le produit au libellé, éditez le prix HT et la quantité si besoin. Si vous avez changé le nombre de convives, cliquez sur « Recalculer les quantités ».'),
+    h('div', {style: 'display:flex;gap:8px;margin:10px 0'},
+      recalcBtn = h('button', {class: 'p', style: 'display:none', onclick: () => recalcEstQtys()}, '↻ Recalculer les quantités'),
+      h('button', {onclick: () => { const row = addEstRow({cat: '', label: '', qkg: null, price: null, unit: 'kg'}, null, true); estTbody.append(row.tr); calcEstTotal(); }}, '+ Produit')),
+    h('div', {style: 'overflow:visible'}, h('table', {},
+      h('thead', {}, h('tr', {}, ['Catégorie', 'Libellé', 'Produit', 'Qté', 'Prix HT'].map(x => h('th', {}, x)).concat(['Prix total', ''].map(x => h('th', {style: 'text-align:right'}, x))))),
+      estTbody)),
+    h('div', {style: 'margin-top:10px;text-align:right'}, h('span', {class: 'mute'}, 'Total estimé : '), estTotalBox, ' ', estUnpricedBox));
+
+  // ── SUB-TAB 3: Bilan ─────────────────────────────────────────────
+  const bilanTbody = h('tbody');
+  const bilanTotalBox = h('strong', {});
+  const commentairePost = h('textarea', {rows: 3, placeholder: 'Observations post-repas : gaspillage alimentaire, satisfaction, incidents…', style: 'width:100%;resize:vertical'}, m.commentaire_post || '');
+  let bilanRows = [];
+  // Clés des lignes supprimées manuellement : on ne les rajoute pas automatiquement
+  const bilanDismissed = new Set();
+  const bilanKey = (pid, label) => pid != null ? 'p:' + pid : 'l:' + (label || '');
+  const estLblKey = (cat, lbl) => cat + ' :: ' + lbl;
+
+  function calcBilanTotal() {
+    let tot = 0, missing = 0;
+    for (const row of bilanRows) {
+      const p = prods.find(x => String(x.id) === row.productEl.value);
+      const q = Number(row.qtyEl.value);
+      const price = (row.prixReelEl && Number(row.prixReelEl.value)) || (historicalPrices[String(p && p.id)] ?? (p && p.unit_price));
+      let c = null;
+      if (p && price != null && q) {
+        const u = (row.unitEl ? row.unitEl.value : p.unit || '').trim().toLowerCase();
+        const pu = (p.unit || '').trim().toLowerCase();
+        if (!u || u === pu) c = q * price;
+        else { const a = FACT[u], b = FACT[pu]; c = a && b && a[0] === b[0] ? q * a[1] / b[1] * price : null; }
+      }
+      if (row.costTd) row.costTd.textContent = c != null ? eur(c) : '—';
+      if (c != null) tot += c; else if (q && row.productEl.value) missing++;
+    }
+    bilanTotalBox.textContent = eur(tot) + (missing ? ` (${missing} sans prix)` : '');
+  }
+
+  function addBilanRow(it = {}, prepend = false) {
+    const productEl = makeProductPicker(it.product_id);
+    const qtyEl = h('input', {type: 'number', step: 'any', min: 0, value: it.qty ?? '', style: 'width:100px'});
+    const unitEl = h('input', {value: it.unit || '', style: 'width:70px'});
+    const prixReelEl = h('input', {type: 'number', step: 'any', min: 0, value: it.prix_reel != null ? it.prix_reel : '', placeholder: '—', style: 'width:90px'});
+    const costTd = h('td', {class: 'n'});
+    const key = bilanKey(it.product_id, it.label);
+    const row = {productEl, qtyEl, unitEl, prixReelEl, costTd, key, touched: false, _label: it.label || ''};
+    bilanRows.push(row);
+    const productCell = h('td', {}, productEl,
+      (it.product_id == null && it.label) ? h('div', {class: 'mute', style: 'font-size:12px'}, it.label) : null);
+    const tr = h('tr', {},
+      productCell,
+      h('td', {}, qtyEl),
+      h('td', {}, unitEl),
+      costTd,
+      h('td', {}, h('button', {class: 's d', onclick: () => { tr.remove(); bilanRows = bilanRows.filter(r => r !== row); bilanDismissed.add(row.key); calcBilanTotal(); }}, '✕')));
+    tr._row = row;
+    productEl.addChangeListener(() => { const p = prods.find(x => String(x.id) === productEl.value); if (p && !unitEl.value) unitEl.value = p.unit || ''; row.key = bilanKey(numOrNull(productEl.value), row._label); if (!row._syncing) row.touched = true; calcBilanTotal(); });
+    qtyEl.addEventListener('input', () => { row.touched = true; calcBilanTotal(); });
+    prixReelEl.addEventListener('input', calcBilanTotal);
+    unitEl.addEventListener('input', calcBilanTotal);
+    if (prepend && bilanTbody.firstChild) bilanTbody.insertBefore(tr, bilanTbody.firstChild);
+    else bilanTbody.append(tr);
+    calcBilanTotal();
+    return row;
+  }
+
+  if (m.items && m.items.length) {
+    for (const it of m.items) { const r = addBilanRow(it); r.touched = true; }   // quantités réellement sorties et enregistrées : jamais recalées automatiquement
+  }
+
+  const finaliseCb = h('input', {type: 'checkbox', checked: m.statut === 'passe'});
+  const modifCb = h('input', {type: 'checkbox', checked: !!m.modif_prevu});
+
+  const tab3Content = h('div', {},
+    h('p', {class: 'mute', style: 'margin-top:0;font-size:13px'}, 'Saisissez les quantités réellement sorties. Vous pouvez ajouter ou supprimer des lignes.'),
+    h('div', {class: 'tablewrap'}, h('table', {},
+      h('thead', {}, h('tr', {}, ['Produit', 'Qté réelle', 'Unité'].map(x => h('th', {}, x)).concat(['Coût', ''].map(x => h('th', {style: 'text-align:right'}, x))))),
+      bilanTbody)),
+    h('div', {style: 'margin-top:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px'},
+      h('button', {onclick: () => { const r = addBilanRow({}, true); r.touched = true; }}, '+ Produit'),
+      h('div', {style: 'display:flex;align-items:center;gap:16px'},
+        h('label', {class: 'chk', style: 'margin:0'}, 'Modification du repas', modifCb),
+        h('label', {class: 'chk', style: 'margin:0'}, 'Finalisé', finaliseCb),
+        h('div', {}, h('span', {class: 'mute'}, 'Total réel : '), bilanTotalBox))),
+    h('div', {style: 'margin-top:16px'}, field('Commentaire / observations post-repas', commentairePost)));
+
+  // Recalcul des quantités après changement de convives (bouton « ↻ Recalculer les quantités ») :
+  // - produit lié au grammage GEMRCN : quantité recalculée depuis les grammages par personne × convives actuels ;
+  //   le pourcentage d'évolution obtenu est appliqué aux autres produits de la même recette ;
+  // - recette sans produit lié au grammage : évolution proportionnelle au nombre total de convives.
+  const recalcEstQtys = () => {
+    const cur = {mat: Number(hdr.mat.value) || 0, elem: Number(hdr.elem.value) || 0, adu: Number(hdr.adu.value) || 0};
+    const ref = estRefConvives || cur;
+    const curGuests = cur.mat + cur.elem + cur.adu, refGuests = ref.mat + ref.elem + ref.adu;
+    const groups = {};
+    for (const r of estRows) if (!r._manual && r._cat != null) (groups[r._cat] = groups[r._cat] || []).push(r);
+    for (const rows of Object.values(groups)) {
+      const principal = rows.find(r => r._gem);
+      let ratio = null;
+      if (principal && principal._gem) {
+        const g = principal._gem;
+        const tot = ((g.mat || 0) * cur.mat + (g.elem || 0) * cur.elem + (g.adu || 0) * cur.adu) * (g.coeff || 1);   // quantité à commander
+        const unit = principal.qtyUnitLbl.value || 'kg';
+        const shown = unit === 'unité' ? Math.round(tot) : unit === 'l' ? Number(tot.toFixed(3)) : Number((tot / 1000).toFixed(3));
+        const oldQ = numOrNull(principal.qtyEl.value);
+        if (oldQ > 0) ratio = shown / oldQ;
+        principal.qtyEl.value = String(shown);
+      }
+      if (ratio == null) ratio = refGuests > 0 ? curGuests / refGuests : 1;
+      for (const r of rows) {
+        if (r === principal) continue;
+        const q = numOrNull(r.qtyEl.value);
+        if (q != null && q > 0) r.qtyEl.value = String(Number((q * ratio).toFixed(3)));
+      }
+    }
+    estRefConvives = cur;
+    upd();   // les convives redeviennent la référence → le bouton disparaît
+    calcEstTotal();
+    rebuildEstimation();   // rafraîchit l'affichage et recale le Bilan sur les nouvelles quantités
+  };
+
+  // Crée une ligne du tableau d'estimation. `prev` : ligne précédente (préserve les saisies) ; `manual` : ligne ajoutée à la main.
+  function addEstRow(it, prev = null, manual = false) {
+    const initProdId = prev ? prev.productEl.value : (it.product_id != null ? String(it.product_id) : '');
+    const initQty = prev ? prev.qtyEl.value : (it.qkg > 0 ? it.qkg.toFixed(3) : '');
+    const initPrice = prev ? prev.prixHTEl.value : (it.price != null ? String(it.price) : '');
+    const initUnit = (prev && prev.unit != null) ? String(prev.unit) : (it.unit || 'kg');   // unité sauvegardée prioritaire sur l'unité recalculée
+    const productEl = makeProductPicker(initProdId !== '' ? Number(initProdId) : null);
+    const qtyEl = h('input', {type: 'number', step: 'any', min: 0, value: initQty, style: 'width:90px', title: 'Quantité calculée (modifiable)'});
+    const prixHTEl = h('input', {type: 'number', step: 'any', min: 0, value: initPrice, placeholder: '—', style: 'width:80px', title: 'Prix HT (modifiable)'});
+    const costTd = h('td', {class: 'n'});
+    const qtyUnitLbl = h('input', {style: 'width:64px;font-size:12px;margin-left:3px;color:var(--mute);border:1px dashed var(--line);border-radius:4px;padding:2px 4px', value: initUnit, title: 'Unité (modifiable)'});
+    const priceUnitLbl = h('span', {class: 'mute', style: 'font-size:12px;margin-left:3px'}, '€/' + (initUnit || 'kg'));
+    const row = {productEl, qtyEl, prixHTEl, costTd, _cat: it.cat, _label: it.label, _gem: it.gem || null, qtyUnitLbl, priceUnitLbl, _manual: manual, _autoPrice: true, _autoUnit: true};
+    estRows.push(row);
+    // Lignes manuelles : catégorie et libellé éditables
+    let catSel = null, labelInp = null;
+    if (manual) {
+      catSel = h('select', {style: 'max-width:130px', title: 'Catégorie'},
+        [h('option', {value: ''}, '—')].concat(Object.keys(MEAL_CATS_LABELS).map(k => h('option', {value: k}, MEAL_CATS_LABELS[k]))));
+      catSel.value = it.cat || '';
+      labelInp = h('input', {placeholder: 'Libellé…', style: 'width:100%', title: 'Libellé', value: it.label || ''});
+      catSel.addEventListener('change', () => { row._cat = catSel.value || ''; });
+      labelInp.addEventListener('input', () => { row._label = labelInp.value; });
+    }
+    // Quand le produit change : prix auto et unités mises à jour
+    productEl.addChangeListener(() => {
+      const p = prods.find(x => String(x.id) === productEl.value);
+      if (p) {
+        // en changeant de produit : on reprend son prix (à la date du repas) et son unité,
+        // sauf si l'utilisateur a saisi lui-même un prix ou une unité pour cette ligne
+        if (row._autoPrice) prixHTEl.value = historicalPrices[String(p.id)] ?? p.unit_price ?? '';
+        if (p.unit && row._autoUnit) { qtyUnitLbl.value = p.unit; priceUnitLbl.textContent = '€/' + p.unit; }
+      }
+      calcEstTotal();
+    });
+    qtyEl.addEventListener('input', calcEstTotal);
+    prixHTEl.addEventListener('input', () => { row._autoPrice = false; calcEstTotal(); });
+    qtyUnitLbl.addEventListener('input', () => { row._autoUnit = false; priceUnitLbl.textContent = '€/' + (qtyUnitLbl.value || '—'); });
+    row.tr = h('tr', {},
+      h('td', {class: 'mute'}, manual ? catSel : (MEAL_CATS_LABELS[it.cat] || '')),
+      h('td', {}, manual ? labelInp : (it.label || '')),
+      h('td', {}, productEl),
+      h('td', {class: 'n'}, h('div', {style: 'display:flex;align-items:center;justify-content:flex-start;gap:3px'}, qtyEl, qtyUnitLbl)),
+      h('td', {class: 'n'}, h('div', {style: 'display:flex;align-items:center;justify-content:flex-start;gap:3px'}, prixHTEl, priceUnitLbl)),
+      costTd,
+      manual ? h('td', {class: 'n'}, h('button', {class: 's d', onclick: () => { row.tr.remove(); estRows.splice(estRows.indexOf(row), 1); calcEstTotal(); }}, '✕')) : h('td', {}));
+    return row;
+  }
+
+  // ── rebuildEstimation ────────────────────────────────────────────
+  let rebuildRunning = false;
+  let rebuildPending = false;
+  function calcEstTotal() {
+    let tot = 0, missing = 0;
+    for (const row of estRows) {
+      const pid = row.productEl.value;
+      const p = prods.find(x => String(x.id) === pid);
+      const qkg = Number(row.qtyEl.value) || 0;
+      const price = Number(row.prixHTEl.value) || (p ? (historicalPrices[String(p.id)] ?? p.unit_price) : null);
+      if (price != null && qkg > 0) {
+        const c = qkg * price;
+        tot += c;
+        row.costTd.textContent = eur(c);
+      } else {
+        row.costTd.textContent = '—';
+        if (qkg > 0) missing++;
+      }
+    }
+    estTotalBox.textContent = eur(tot);
+    estUnpricedBox.textContent = missing ? `(${missing} ingrédient(s) sans prix)` : '';
+  }
+
+  async function rebuildEstimation() {
+    if (rebuildRunning) { rebuildPending = true; return; }   // un appel pendant un rechargement est rejoué, pas perdu
+    const lockIfView = () => { if (mopts.viewOnly) subTabContent.querySelectorAll('input,select,textarea,button').forEach(e => { e.disabled = true; }); };
+    rebuildRunning = true;
+    try {
+      const nb_mat = Number(hdr.mat && hdr.mat.value) || 0;
+      const nb_elem = Number(hdr.elem && hdr.elem.value) || 0;
+      const nb_adu = Number(hdr.adu && hdr.adu.value) || 0;
+      const allItems = [];
+      for (const cat of MEAL_CATS) {
+        const sel = menuSels[cat];
+        if (!sel || !sel.recipeSel.value) continue;
+        const detail = await getRecipeDetail(sel.recipeSel.value);
+        if (!detail || !detail.items) continue;
+        for (const it of detail.items) {
+          const qg = (it.qty_maternelle || 0) * nb_mat + (it.qty_elementaire || 0) * nb_elem + (it.qty_adulte || 0) * nb_adu;
+          // Determine unit type from grammage row to avoid always dividing by 1000
+          const allGramRows = getGrammageRows();
+          const gRow = allGramRows.find(g => g.label === (it.intitule_gemrcn || it.label));
+          // Quantité À COMMANDER = quantité à servir × coefficient cru/cuit du grammage
+          // (pièces à l'unité : pas de coefficient, la quantité à commander = quantité à servir)
+          const coeff = gRow ? (Number(gRow.coeff) || 1) : 1;
+          let qkg;
+          let unit;
+          if (gRow && gRow.unit) {
+            // 'unité' type — qg is a count, not grams
+            qkg = qg;
+            unit = 'unité';
+          } else if (gRow && (String(gRow.cgrs[0]).match(/l$/i) || String(gRow.cgrs[1]).match(/l$/i) || String(gRow.cgrs[2]).match(/l$/i))) {
+            // Volume type (litres) — parseCgrsValGlobal already returns litres
+            qkg = qg * coeff;
+            unit = 'l';
+          } else {
+            // Default: grams → kg
+            qkg = qg * coeff / 1000;
+            unit = 'kg';
+          }
+          // Auto-match product: look up by product_id first, else try label fuzzy match
+          let matchProd = it.product_id ? prods.find(x => String(x.id) === String(it.product_id)) : null;
+          if (!matchProd && it.label) {
+            const lbl = (it.label || '').toLowerCase();
+            matchProd = prods.find(p => p.name.toLowerCase().includes(lbl) || lbl.includes(p.name.toLowerCase()));
+          }
+          if (!qkg && (Number(it.qty_commander) > 0 || Number(it.qty_servi) > 0)) {
+            // pas de grammage par personne sur cet ingrédient : on repart de sa « Qté à commander »
+            // (à défaut de sa « Qté à servir » × coefficient cru/cuit), au prorata des convives du repas
+            const refGuests = (Number(detail.nb_maternelles) || 0) + (Number(detail.nb_elementaires) || 0) + (Number(detail.nb_adultes) || 0);
+            const mealGuests = nb_mat + nb_elem + nb_adu;
+            const ratio = refGuests > 0 && mealGuests > 0 ? mealGuests / refGuests : 1;
+            const base = Number(it.qty_commander) > 0 ? Number(it.qty_commander) : Number(it.qty_servi) * coeff;
+            const u = (it.unit || 'kg').trim().toLowerCase();
+            if (u === 'g') { qkg = base / 1000 * ratio; unit = 'kg'; }
+            else { qkg = base * ratio; unit = it.unit || 'kg'; }
+          }
+          // Produit lié au grammage GEMRCN : on garde ses grammages par personne
+          // (servent au bouton « ↻ Recalculer les quantités »)
+          if (gRow && it.intitule_gemrcn) {
+            const gm = parseCgrsValGlobal(gRow.cgrs[0]), ge = parseCgrsValGlobal(gRow.cgrs[1]), ga = parseCgrsValGlobal(gRow.cgrs[2]);
+            if (gm != null || ge != null || ga != null) it.gem = {mat: gm, elem: ge, adu: ga, coeff: Number(gRow.coeff) || 1};
+          }
+          const price = matchProd ? (historicalPrices[String(matchProd.id)] ?? matchProd.unit_price) : null;
+          allItems.push({cat, label: it.label || (matchProd && matchProd.name) || it.product_name || '', product_id: matchProd ? matchProd.id : null, qkg, price, unit, gem: it.gem || null});
+        }
+      }
+
+      let manualRows = estRows.filter(r => r._manual);
+      if (!manualRows.length && savedEst && !savedEstRestored) {
+        // premier affichage : restauration des lignes ajoutées à la main et enregistrées (une seule fois)
+        for (const e of savedEst.filter(x => x.manual)) {
+          const r = addEstRow({cat: e.cat, label: e.label, qkg: e.qty, price: e.price, unit: e.unit}, null, true);
+          if (e.product_id != null) r.productEl.setValue(String(e.product_id));
+          manualRows.push(r);
+        }
+      }
+      savedEstRestored = true;
+      if (!allItems.length) {
+        // aucune recette liée : les lignes ajoutées à la main sont conservées sous le message
+        estRows = [];
+        for (const r of manualRows) estRows.push(r);   // …et restent référencées dans estRows (sinon perdues au prochain rebuild)
+        const trs = manualRows.map(r => r.tr);   // lignes manuelles seules, sans message d'aide
+        estTbody.replaceChildren(...trs);
+        calcEstTotal();
+      } else {
+        // Rebuild estRows preserving existing user overrides (produit/prix/qté).
+        // Correspondance par catégorie + libellé (insensible à l'ordre : lier une nouvelle recette
+        // dans une autre catégorie ne décale rien) ; repli par position uniquement pour les libellés vides.
+        // Au premier affichage, les lignes sans saisie sont restaurées depuis l'estimation enregistrée.
+        const prevByKey = {};
+        const prevByIndex = [];
+        estRows.filter(r => !r._manual).forEach((r, i) => {
+          prevByIndex[i] = r;
+          if (r._label) prevByKey[estLblKey(r._cat, r._label)] = r;
+        });
+        const savedByKey = {};
+        const savedByIndex = [];
+        (savedEst || []).filter(x => !x.manual).forEach((e, i) => {
+          savedByIndex[i] = e;
+          if (e.label) savedByKey[estLblKey(e.cat, e.label)] = e;
+        });
+
+        estRows = [];
+        const trs = allItems.map((it, i) => {
+          let prev = it.label ? prevByKey[estLblKey(it.cat, it.label)] : null;
+          if (!prev && !it.label && prevByIndex[i] && prevByIndex[i]._label === '') prev = prevByIndex[i];
+          if (!prev) {
+            const se = it.label ? savedByKey[estLblKey(it.cat, it.label)]
+              : (savedByIndex[i] && savedByIndex[i].label === '' ? savedByIndex[i] : null);
+            prev = savedEstPrev(se);
+          }
+          return addEstRow(it, prev).tr;
+        });
+        for (const r of manualRows) { estRows.push(r); trs.push(r.tr); }   // lignes ajoutées à la main : conservées telles quelles
+        estTbody.replaceChildren(...trs);
+        calcEstTotal();
+      }
+
+      // Produit rattaché dans l'Estimation (choix manuel prioritaire sur celui de la recette)
+      const estPick = {};
+      for (const r of estRows) { if (r.productEl.value) estPick[estLblKey(r._cat, r._label)] = r.productEl.value; }
+      // Recale le Bilan sur l'estimation : met à jour produit/quantités des lignes non modifiées à la main,
+      // ajoute les nouvelles, et ne touche jamais aux lignes que l'utilisateur a saisies lui-même.
+      const aggregated = new Map();
+      for (const it of allItems) {
+        const key = bilanKey(it.product_id, it.label);
+        const cur = aggregated.get(key);
+        if (cur) cur.qkg += it.qkg;
+        else aggregated.set(key, {...it, key});
+      }
+      const byKey = new Map(bilanRows.map(r => [r.key, r]));
+      // Quantités affichées dans l'Estimation : le Bilan suit ces valeurs validées,
+      // pas les quantités recalculées en arrière-plan à partir des convives.
+      const estQty = {};
+      for (const r of estRows) { const q = numOrNull(r.qtyEl.value); if (!r._manual && q != null && q > 0) estQty[estLblKey(r._cat, r._label)] = q; }
+      // Lignes ajoutées à la main dans l'Estimation : créées dans le Bilan si absentes
+      const manualDone = new Set();
+      for (const r of manualRows) {
+        const pid = numOrNull(r.productEl.value);
+        const q = numOrNull(r.qtyEl.value);
+        const key = bilanKey(pid, '');
+        if (!pid || !q || byKey.has(key) || bilanDismissed.has(key)) continue;
+        const p = prods.find(x => String(x.id) === String(pid));
+        addBilanRow({product_id: pid, label: '', qty: q, unit: r.qtyUnitLbl.value || (p && p.unit) || 'kg', prix_reel: null});
+        manualDone.add(key);
+      }
+      for (const [key, it] of aggregated) {
+        if (manualDone.has(key)) continue;   // déjà ajouté depuis une ligne manuelle
+        const estPid = estPick[estLblKey(it.cat, it.label)] || (it.product_id != null ? String(it.product_id) : '');
+        // la ligne du Bilan est retrouvée par n'importe laquelle de ses clés successives :
+        // libellé seul ('l:…'), puis produit ('p:…') une fois qu'on lui a rattaché un produit
+        const labelKey = bilanKey(null, it.label);
+        const prodKey = estPid ? bilanKey(numOrNull(estPid), '') : null;
+        const row = byKey.get(key) || (prodKey && byKey.get(prodKey)) || byKey.get(labelKey);
+        const dismissed = bilanDismissed.has(key) || (prodKey && bilanDismissed.has(prodKey)) || bilanDismissed.has(labelKey);
+        if (row) {
+          // ligne déjà présente : recalée sur l'estimation, sauf saisie manuelle
+          if (!row.touched) {
+            row._syncing = true;   // le recalage automatique ne marque pas la ligne « modifiée à la main »
+            try {
+              if (estPid && row.productEl.value !== estPid) {
+                row.productEl.setValue(estPid);
+                const p = prods.find(x => String(x.id) === estPid);
+                if (p && p.unit) row.unitEl.value = p.unit;
+              }
+              const dispQty = estQty[estLblKey(it.cat, it.label)];
+              const syncQty = dispQty != null ? dispQty : it.qkg;
+              if (syncQty > 0) {
+                row.qtyEl.value = syncQty.toFixed(3);
+                if (it.unit) row.unitEl.value = it.unit;
+              }
+            } finally { row._syncing = false; }
+          }
+        } else if (!dismissed) {
+          const dispQty = estQty[estLblKey(it.cat, it.label)];
+          const syncQty = dispQty != null ? dispQty : it.qkg;
+          const prow = addBilanRow({product_id: estPid ? Number(estPid) : it.product_id, label: it.label, qty: syncQty > 0 ? syncQty : null, unit: it.unit, prix_reel: null});
+          if (!estPid) prow.touched = false;   // sans produit connu : la ligne reste recalable tant qu'elle n'est pas éditée
+        }
+      }
+      calcBilanTotal();
+    } finally { rebuildRunning = false; lockIfView(); if (rebuildPending) { rebuildPending = false; rebuildEstimation(); } }
+  }
+
+  // ── Sub-tab system ───────────────────────────────────────────────
+  const SUBTABS = [
+    {key: 'menu', label: '🗒 Menu', content: tab1Content},
+    {key: 'estimation', label: '💰 Estimation des coûts', content: tab2Content},
+    {key: 'bilan', label: '📋 Bilan', content: tab3Content},
+  ];
+  let activeSubTab = 'menu';
+  const subTabBar = h('div', {style: 'display:flex;gap:0;border-bottom:2px solid var(--line);margin-bottom:16px;flex-wrap:wrap'});
+  const subTabContent = h('div', {});
+
+  const drawSubTabs = () => {
+    subTabBar.replaceChildren(...SUBTABS.map(st => h('button', {
+      'data-nolock': true,
+      style: 'border:none;border-bottom:3px solid ' + (activeSubTab === st.key ? 'var(--acc)' : 'transparent') + ';border-radius:0;background:transparent;padding:10px 18px;font-size:14px;font-weight:' + (activeSubTab === st.key ? '600' : '400') + ';color:' + (activeSubTab === st.key ? 'var(--acc)' : 'var(--mute)') + ';margin-bottom:-2px;cursor:pointer',
+      onclick: () => { activeSubTab = st.key; drawSubTabs(); if (st.key === 'estimation' || st.key === 'bilan') rebuildEstimation(); }
+    }, st.label)));
+    subTabContent.replaceChildren(SUBTABS.find(st => st.key === activeSubTab).content);
+    // Après « ✏️ Modifier » (bascule sans recharger) : un onglet visité avant la bascule
+    // est resté verrouillé car absent de l'écran au moment du déverrouillage.
+    if (!mopts.viewOnly) subTabContent.querySelectorAll('input,select,textarea,button').forEach(e => { e.disabled = false; });
+  };
+  drawSubTabs();
+
+  const body = h('div', {}, headerSection, subTabBar, subTabContent);
+  upd();
+  refreshPrices();
+
+  const doSave = canWrite() ? async () => {
+    if (!hdr.date.value) throw new Error('Indiquez le jour');
+    const items = bilanRows
+      .map(row => ({product_id: numOrNull(row.productEl.value), qty: numOrNull(row.qtyEl.value), unit: row.unitEl.value.trim() || null, prix_reel: numOrNull(row.prixReelEl.value)}))
+      .filter(i => i.product_id && i.qty);
+    const data = {
+      date: hdr.date.value,
+      nb_maternelles: Number(hdr.mat.value) || 0,
+      nb_elementaires: Number(hdr.elem.value) || 0,
+      nb_adultes: Number(hdr.adu.value) || 0,
+      modif_prevu: modifCb.checked,
+      statut: finaliseCb.checked ? 'passe' : 'en_cours',
+      entree: menuSels.entree.dishInp.value.trim() || null,
+      plat: menuSels.plat.dishInp.value.trim() || null,
+      accompagnement: menuSels.accompagnement.dishInp.value.trim() || null,
+      laitage: menuSels.laitage.dishInp.value.trim() || null,
+      dessert: menuSels.dessert.dishInp.value.trim() || null,
+      commentaire_post: commentairePost.value.trim() || null,
+      recipe_entree: numOrNull(menuSels.entree.recipeSel.value),
+      recipe_plat: numOrNull(menuSels.plat.recipeSel.value),
+      recipe_accompagnement: numOrNull(menuSels.accompagnement.recipeSel.value),
+      recipe_laitage: numOrNull(menuSels.laitage.recipeSel.value),
+      recipe_dessert: numOrNull(menuSels.dessert.recipeSel.value),
+      estimation: estRows.map(r => ({cat: r._cat, label: r._label, product_id: numOrNull(r.productEl.value),
+        qty: numOrNull(r.qtyEl.value), price: numOrNull(r.prixHTEl.value), unit: r.qtyUnitLbl.value || null, manual: !!r._manual})),
+      items
+    };
+    await api(m.id ? '/meals/' + m.id : '/meals', {method: m.id ? 'PUT' : 'POST', body: data});
+    if (pageWrap) { const fresh = await pageMeals(); pageWrap.replaceChildren(...fresh.childNodes); }
+  } : null;
+  mopts.saveHandler = doSave;
+  modal(m.id ? 'Repas du ' + dfr(m.date) : 'Nouveau repas', body, (canWrite() && !mopts.viewOnly) ? doSave : null, mopts);
+}
+
+/* ---------- Recettes ---------- */
+const recipeView = {q: '', cat: ''};
+async function pageRecettes() {
+  const recipes = await api('/recipes').catch(() => []);
+  const list = Array.isArray(recipes) ? recipes : (recipes.items || []);
+  const cats = [...new Set(list.map(r => r.categorie).filter(Boolean))].sort(cmp);
+  const q = h('input', {placeholder: 'Rechercher une recette…', value: recipeView.q, style: 'min-width:200px'});
+  const fc = select([['', 'Toutes les catégories'], ...MEAL_CATS.map(c => [c, MEAL_CATS_LABELS[c]])], recipeView.cat);
+  const tb = h('tbody');
+  const draw = () => {
+    recipeView.q = q.value; recipeView.cat = fc.value;
+    const t = q.value.toLowerCase();
+    const vis = list.filter(r => (!t || (r.name||'').toLowerCase().includes(t)) && (!fc.value || r.categorie === fc.value));
+    // tri : entrée, plat, accompagnement, laitage, dessert, puis alphabétique (recettes sans catégorie en dernier)
+    const catRank = c => { const i = MEAL_CATS.indexOf(c); return i === -1 ? MEAL_CATS.length : i; };
+    vis.sort((a, b) => catRank(a.categorie) - catRank(b.categorie) || cmp(a.name || '', b.name || ''));
+    tb.replaceChildren(...vis.map(r => {
+      const tr = h('tr', {class: 'clickable'},
+        h('td', {}, h('b', {}, r.name)),
+        h('td', {}, r.categorie ? MEAL_CATS_LABELS[r.categorie] || r.categorie : ''),
+        h('td', {class: 'n'},
+          h('button', {class: 'icon-btn', title: 'Modifier', onclick: e => { e.stopPropagation(); loadAndEditRecipe(r.id); }}, '✏️'),
+          canWrite() ? h('button', {class: 'icon-btn d', title: 'Supprimer', onclick: e => { e.stopPropagation(); confirmDel(`Supprimer la recette "${r.name}" ?`, () => api('/recipes/' + r.id, {method: 'DELETE'}))(); }}, '🗑️') : null));
+      tr.addEventListener('click', () => loadAndEditRecipe(r.id));
+      return tr;
+    }));
+  };
+  for (const c of [q, fc]) c.addEventListener('input', draw);
+  draw();
+  return h('div', {},
+    h('div', {class: 'tools'}, h('h2', {}, 'Recettes'), h('div', {class: 'ctl'}, q, fc,
+      canWrite() ? h('button', {class: 'p', onclick: () => recipeForm({name: '', items: []})}, '+ Recette') : null)),
+    h('div', {class: 'card tablewrap'}, list.length
+      ? h('table', {},
+          h('thead', {}, h('tr', {}, ['Nom', 'Catégorie', ''].map(x => h('th', {}, x)))),
+          tb)
+      : h('div', {class: 'empty'}, 'Aucune recette. Créez-en une avec "+ Recette".')));
+}
+
+// Recalcule les quantités figées d'une recette à partir des grammages courants
+// (défauts + surcharges par label). Si le libellé CGRS n'existe plus, les valeurs stockées sont conservées.
+function recomputeRecipeItems(recipe) {
+  if (!recipe || !Array.isArray(recipe.items)) return recipe;
+  const nbMat = Number(recipe.nb_maternelles) || 0;
+  const nbElem = Number(recipe.nb_elementaires) || 0;
+  const nbAdu = Number(recipe.nb_adultes) || 0;
+  const principal = recipe.items.find(it => it.principal && it.intitule_gemrcn);
+  if (!principal) return recipe;
+  const gRow = getGrammageRows().find(g => g.label === principal.intitule_gemrcn);
+  if (!gRow) return recipe;
+  const gMat = parseCgrsValGlobal(gRow.cgrs[0]) || 0;
+  const gElem = parseCgrsValGlobal(gRow.cgrs[1]) || 0;
+  const gAdu = parseCgrsValGlobal(gRow.cgrs[2]) || 0;
+  principal.qty_maternelle = gMat;
+  principal.qty_elementaire = gElem;
+  principal.qty_adulte = gAdu;
+  const total = gMat * nbMat + gElem * nbElem + gAdu * nbAdu;
+  // Ingrédients secondaires : même logique proportionnelle que recipeForm (au moment de l'enregistrement)
+  if (total > 0) {
+    // Même formule que recipeForm : part du total × 1000 / effectif, soit des grammes par personne
+    const perPerson = (qServi, g, n) => n > 0 ? Math.round(qServi * (g * n) / total / n * 1000 * 10) / 10 : null;
+    for (const it of recipe.items) {
+      if (it.principal) continue;
+      const qServi = Number(it.qty_servi) || 0;
+      if (qServi <= 0) continue;
+      it.qty_maternelle = perPerson(qServi, gMat, nbMat);
+      it.qty_elementaire = perPerson(qServi, gElem, nbElem);
+      it.qty_adulte = perPerson(qServi, gAdu, nbAdu);
+    }
+  }
+  return recipe;
+}
+
+async function loadAndEditRecipe(id) {
+  const recipe = recomputeRecipeItems(await api('/recipes/' + id));
+  recipeForm(recipe);
+}
+
+async function recipeForm(r, onSavedCb = null) {
+  await loadGramRows();   // grammages (et coefficients cru/cuit) depuis la base
+  // r: {id?, name, categorie, items: [{product_id, label, qty_maternelle, qty_elementaire, qty_adulte}]}
+  const nameInp = h('input', {value: r.name || '', placeholder: 'Nom de la recette *'});
+  const catSel = select([['', '— aucune catégorie —'], ...MEAL_CATS.map(c => [c, MEAL_CATS_LABELS[c]])], r.categorie || '');
+
+  // Reference convive counts for this recipe
+  const nbMatInp  = h('input', {type: 'number', min: 0, step: 1, value: r.nb_maternelles  ?? (r.id ? 0 : CONVIVES_DEF.mat), style: 'width:80px'});
+  const nbElemInp = h('input', {type: 'number', min: 0, step: 1, value: r.nb_elementaires ?? (r.id ? 0 : CONVIVES_DEF.elem), style: 'width:80px'});
+  const nbAduInp  = h('input', {type: 'number', min: 0, step: 1, value: r.nb_adultes      ?? (r.id ? 0 : CONVIVES_DEF.adu), style: 'width:80px'});
+
+  // Grammage rows flat list — filtered by recipe category
+  const gramRows = getGrammageRows();
+  const _beefIdx    = gramRows.findIndex(g => g.label.startsWith('Bœuf braisé'));
+  const _fromageIdx = gramRows.findIndex(g => g.label === 'Fromages');
+  function getFilteredGramRowsByCat(cat) {
+    if (!cat || _beefIdx < 0) return gramRows;
+    if (cat === 'entree') return gramRows.slice(0, _beefIdx);
+    if (cat === 'plat' || cat === 'accompagnement') return gramRows.slice(_beefIdx, _fromageIdx >= 0 ? _fromageIdx : gramRows.length);
+    if (cat === 'laitage' || cat === 'dessert') return _fromageIdx >= 0 ? gramRows.slice(_fromageIdx) : gramRows;
+    return gramRows;
+  }
+  function getCurrentGramOpts() {
+    return [['', '— sélectionner un intitulé CGRS —'], ...getFilteredGramRowsByCat(catSel.value)
+      .map((g, i) => [String(i), g.label])
+      .filter(([, l]) => l.length > 1 && !/^\*+$/.test(l.trim()))];
+  }
+  let filteredGramRows = getFilteredGramRowsByCat(r.categorie || '');
+
+  const tb = h('tbody');
+  let principalTr = null; // track which row is principal
+
+  // Recalcule Qté à servir / Qté à commander de l'ingrédient principal à partir
+  // de son intitulé CGRS et des convives de référence (appelé quand l'un change).
+  const recalcPrincipalQtys = (initial = false) => {
+    for (const tr of tb.children) {
+      const it = tr._it;
+      if (!it || !it.principalCb.checked) continue;
+      if (it.gramSel.value === '') return;
+      const gRow = filteredGramRows[Number(it.gramSel.value)];
+      if (!gRow) return;
+      const nbMat  = Number(nbMatInp.value)  || 0;
+      const nbElem = Number(nbElemInp.value) || 0;
+      const nbAdu  = Number(nbAduInp.value)  || 0;
+      const gMat  = parseCgrsValGlobal(gRow.cgrs[0]) || 0;
+      const gElem = parseCgrsValGlobal(gRow.cgrs[1]) || 0;
+      const gAdu  = parseCgrsValGlobal(gRow.cgrs[2]) || 0;
+      const total = gMat * nbMat + gElem * nbElem + gAdu * nbAdu;
+      const isUnit = !!gRow.unit;
+      const isLitre = !isUnit && [0, 1, 2].some(i => String(gRow.cgrs[i]).toLowerCase().includes('l'));
+      const unit = isUnit ? 'unité' : (isLitre ? 'l' : 'kg');
+      // Qté à servir : grammage net × convives. Qté à commander : à servir × coefficient cru/cuit.
+      const coeff = Number(gRow.coeff) || 1;
+      const value = isUnit ? Math.round(total) : (isLitre ? total.toFixed(3) : (total / 1000).toFixed(3));
+      const toBuy = total * coeff;
+      const valueCmd = isUnit ? Math.ceil(toBuy) : (isLitre ? toBuy.toFixed(3) : (toBuy / 1000).toFixed(3));
+      // Unité : on respecte l'unité enregistrée à l'ouverture, sinon celle du grammage
+      const keepSavedUnit = initial && it.origIt && it.origIt.unit;
+      if (!keepSavedUnit) {
+        for (const sel of [it.unitLbl, it.unitLbl2]) {
+          if (![...sel.options].some(o => o.value === unit)) sel.add(new Option(unit, unit));
+          sel.value = unit;
+        }
+      }
+      it.qServiInp.value = value;
+      it.qCommanderInp.value = valueCmd;
+      // Avertissement : intitulé sans grammage pour une catégorie de convives active
+      const missing = [
+        nbMat > 0 && parseCgrsValGlobal(gRow.cgrs[0]) == null && 'maternelles',
+        nbElem > 0 && parseCgrsValGlobal(gRow.cgrs[1]) == null && 'élémentaires',
+        nbAdu > 0 && parseCgrsValGlobal(gRow.cgrs[2]) == null && 'adultes',
+      ].filter(Boolean);
+      if (it.gramHint) {
+        it.gramHint.textContent = missing.length
+          ? '⚠ Pas de grammage recommandé pour les ' + missing.join(' et les ') + ' — exclu du calcul' : '';
+      }
+      return;
+    }
+  };
+
+  // Changer les convives de référence recalcule les quantités de l'ingrédient principal
+  [nbMatInp, nbElemInp, nbAduInp].forEach(inp => inp.addEventListener('input', recalcPrincipalQtys));
+
+  const makeIngredientRow = (it = {}) => {
+    const isPrincipal = !!it.principal;
+    const principalCb = h('input', {type: 'checkbox', checked: isPrincipal, title: 'Ingrédient principal'});
+
+    // Grammage label dropdown (shown only when principal is checked)
+    // Pre-select by matching stored label to gramRows
+    let initGramIdx = '';
+    if (isPrincipal && (it.intitule_gemrcn || it.label)) {
+      const idx = filteredGramRows.findIndex(g => g.label === (it.intitule_gemrcn || it.label));
+      if (idx >= 0) initGramIdx = String(idx);
+    }
+    const gramSel = select(getCurrentGramOpts(), initGramIdx, {style: 'min-width:260px'});
+    const gramHint = h('small', {class: 'hint'});
+    const gramWrap = h('div', {style: isPrincipal ? '' : 'display:none'}, gramSel, gramHint);
+
+    // Label input (shown when NOT principal)
+    const labelInp = h('input', {value: it.label || '', placeholder: 'Libellé libre', style: 'width:160px'});
+
+    // Quantities: qServi (total to serve) and qCommander (total to order)
+    const qServiInp    = h('input', {type: 'number', step: 'any', min: 0, value: it.qty_servi    ?? '', placeholder: '—', style: 'width:72px', title: 'Quantité totale à servir'});
+    const qCommanderInp = h('input', {type: 'number', step: 'any', min: 0, value: it.qty_commander ?? '', placeholder: '—', style: 'width:72px', title: 'Quantité totale à commander'});
+    // Unité éditable (une seule pour les deux quantités de la ligne)
+    const UNIT_CHOICES = ['kg', 'g', 'l', 'cl', 'ml', 'unité', 'colis', 'botte', 'barquette', 'bidon', 'boite'];
+    const initUnit = it.unit || it.product_unit || 'kg';
+    if (!UNIT_CHOICES.includes(initUnit)) UNIT_CHOICES.push(initUnit);
+    const makeUnitSel = () => h('select', {style: 'width:72px', title: 'Unité'},
+      UNIT_CHOICES.map(u => h('option', {value: u, selected: u === initUnit}, u)));
+    const unitLbl = makeUnitSel();
+    const unitLbl2 = makeUnitSel();
+    // Les deux sélecteurs d'unité de la ligne restent synchronisés
+    unitLbl.addEventListener('change', () => { unitLbl2.value = unitLbl.value; });
+    unitLbl2.addEventListener('change', () => { unitLbl.value = unitLbl2.value; });
+
+    // When principal checkbox changes: enforce only one principal
+    principalCb.addEventListener('change', () => {
+      if (principalCb.checked) {
+        // Uncheck all others
+        for (const otr of tb.children) {
+          if (otr !== tr && otr._it && otr._it.principalCb.checked) {
+            otr._it.principalCb.checked = false;
+            otr._it.gramWrap.style.display = 'none';
+          }
+        }
+        gramWrap.style.display = '';
+      } else {
+        gramWrap.style.display = 'none';
+      }
+    });
+
+    // When grammage selection changes: update unit label + auto-calc qServi/qCommander
+    gramSel.addEventListener('change', () => {
+      if (gramSel.value === '') return;
+      recalcPrincipalQtys();
+    });
+
+    const tr = h('tr', {},
+      h('td', {style: 'text-align:center'}, principalCb),
+      h('td', {}, labelInp),
+      h('td', {}, gramWrap),
+      h('td', {class: 'n'}, h('div', {style: 'display:flex;align-items:center;gap:4px'}, qServiInp, unitLbl)),
+      h('td', {class: 'n'}, h('div', {style: 'display:flex;align-items:center;gap:4px'}, qCommanderInp, unitLbl2)),
+      h('td', {}, h('button', {class: 's d', onclick: () => tr.remove()}, '✕')));
+    tr._it = {principalCb, gramSel, gramWrap, gramHint, labelInp, qServiInp, qCommanderInp, unitLbl, unitLbl2, origIt: it};
+    return tr;
+  };
+
+  catSel.addEventListener('change', () => {
+    filteredGramRows = getFilteredGramRowsByCat(catSel.value);
+    const newOpts = getCurrentGramOpts();
+    for (const tr of tb.children) {
+      const it = tr._it;
+      if (!it || !it.gramSel) continue;
+      const prevVal = it.gramSel.value;
+      it.gramSel.replaceChildren(...newOpts.map(([v, l]) => { const o = document.createElement('option'); o.value = v; o.textContent = l; return o; }));
+      it.gramSel.value = prevVal;
+      if (it.gramSel.value !== prevVal) it.gramSel.value = '';
+    }
+  });
+  const addRow = (it = {}) => tb.append(makeIngredientRow(it));
+
+  // Rebuild existing items: detect principal from it.principal flag or first item with gramSel
+  (r.items && r.items.length ? r.items : [{}]).forEach(it => addRow(it));
+  // Recalcule les quantités de l'ingrédient principal avec le grammage CGRS actuel
+  recalcPrincipalQtys(true);
+
+  const body = h('div', {},
+    h('div', {class: 'f', style: 'margin-bottom:12px'},
+      field('Nom *', nameInp),
+      field('Catégorie', catSel)),
+    h('div', {class: 'card', style: 'margin-bottom:12px;padding:12px 16px'},
+      h('div', {style: 'font-weight:600;font-size:13px;color:var(--acc);margin-bottom:8px'}, '👥 Nombre de convives de référence pour cette recette'),
+      h('div', {style: 'display:flex;gap:20px;flex-wrap:wrap;align-items:center'},
+        h('label', {style: 'display:flex;align-items:center;gap:6px;font-size:14px;color:var(--ink)'}, h('span', {}, 'Maternelles'), nbMatInp),
+        h('label', {style: 'display:flex;align-items:center;gap:6px;font-size:14px;color:var(--ink)'}, h('span', {}, 'Élémentaires'), nbElemInp),
+        h('label', {style: 'display:flex;align-items:center;gap:6px;font-size:14px;color:var(--ink)'}, h('span', {}, 'Adultes'), nbAduInp))),
+    h('h3', {}, 'Ingrédients'),
+    h('p', {class: 'mute', style: 'margin-top:0;font-size:13px'}, 'Cochez "Principal" sur l\'ingrédient principal : choisissez son intitulé CGRS pour récupérer automatiquement les grammages. Les ingrédients secondaires utilisent les quantités totales à servir/commander.'),
+    h('div', {class: 'tablewrap'}, h('table', {},
+      h('thead', {}, h('tr', {},
+        h('th', {style: 'text-align:center;width:60px'}, 'Principal'),
+        h('th', {}, 'Libellé'),
+        h('th', {}, 'Intitulé grammage GEMRCN'),
+        h('th', {style: 'text-align:left'}, 'Qté à servir'),
+        h('th', {style: 'text-align:left'}, 'Qté à commander'),
+        h('th', {}))),
+      tb)),
+    h('button', {style: 'margin-top:8px', onclick: () => addRow({})}, '+ Ingrédient'),
+    r.served && r.served.length ? h('div', {style: 'margin-top:14px'},
+      h('h3', {}, 'Servie les jours suivants'),
+      h('div', {class: 'chips'}, r.served.map(s =>
+        h('span', {class: 'pill', title: `${s.guests || 0} convive(s) · ${STATUT_LABELS[s.statut] || s.statut || ''}${s.plat ? ' · ' + s.plat : ''}`},
+          dfr(s.date) + (s.guests ? ' · ' + s.guests + ' cv' : ''))))) : null);
+
+  modal(r.id ? 'Recette : ' + r.name : 'Nouvelle recette', body, canWrite() ? async () => {
+    if (!nameInp.value.trim()) throw new Error('Le nom est obligatoire');
+    const nbMat  = Number(nbMatInp.value)  || 0;
+    const nbElem = Number(nbElemInp.value) || 0;
+    const nbAdu  = Number(nbAduInp.value)  || 0;
+
+    // Find principal row to get per-person grams
+    let principalGrams = null; // {gMat, gElem, gAdu}
+    let principalTotal = 0;    // total grams for reference population
+    for (const tr of tb.children) {
+      const it = tr._it;
+      if (!it || !it.principalCb.checked) continue;
+      const idx = it.gramSel.value;
+      if (idx !== '') {
+        const gRow = filteredGramRows[Number(idx)];
+        const gMat  = parseCgrsValGlobal(gRow.cgrs[0]) || 0;
+        const gElem = parseCgrsValGlobal(gRow.cgrs[1]) || 0;
+        const gAdu  = parseCgrsValGlobal(gRow.cgrs[2]) || 0;
+        principalGrams = {gMat, gElem, gAdu};
+        principalTotal = gMat * nbMat + gElem * nbElem + gAdu * nbAdu;
+      }
+      break;
+    }
+
+    const items = [...tb.children].map(tr => {
+      const it = tr._it;
+      if (!it) return null;
+      // Le libellé est toujours celui saisi ; l'intitulé CGRS est stocké à part (intitule_gemrcn)
+      const intitule = it.principalCb.checked && it.gramSel.value !== '' ? filteredGramRows[Number(it.gramSel.value)].label : null;
+      const label = it.labelInp.value.trim() || intitule || null;
+      if (!label) return null;
+      const qServi    = Number(it.qServiInp.value)     || 0;
+      const qCommander = Number(it.qCommanderInp.value) || 0;
+
+      if (it.principalCb.checked && principalGrams) {
+        // Per-person grams come from CGRS grammage table
+        return {
+          product_id: null,
+          label,
+          qty_maternelle:  principalGrams.gMat,
+          qty_elementaire: principalGrams.gElem,
+          qty_adulte:      principalGrams.gAdu,
+          qty_servi:    qServi,
+          qty_commander: qCommander,
+          principal: true,
+          intitule_gemrcn: intitule
+        };
+      } else {
+        // Secondary: compute per-person proportionally from principal
+        let qMat = null, qElem = null, qAdu = null;
+        if (principalGrams && principalTotal > 0) {
+          // Total for this secondary ingredient distributed proportionally
+          qMat  = qServi > 0 ? qServi * (principalGrams.gMat  * nbMat)  / principalTotal : null;
+          qElem = qServi > 0 ? qServi * (principalGrams.gElem * nbElem) / principalTotal : null;
+          qAdu  = qServi > 0 ? qServi * (principalGrams.gAdu  * nbAdu)  / principalTotal : null;
+          // Convert from total to per-person (divide by count)
+          if (nbMat  > 0 && qMat  != null) qMat  = qMat  / nbMat  * 1000;  // g per person
+          if (nbElem > 0 && qElem != null) qElem = qElem / nbElem * 1000;
+          if (nbAdu  > 0 && qAdu  != null) qAdu  = qAdu  / nbAdu  * 1000;
+        }
+        return {
+          product_id: null,
+          label,
+          qty_maternelle:  qMat  != null ? Math.round(qMat  * 10) / 10 : null,
+          qty_elementaire: qElem != null ? Math.round(qElem * 10) / 10 : null,
+          qty_adulte:      qAdu  != null ? Math.round(qAdu  * 10) / 10 : null,
+          qty_servi:    qServi,
+          qty_commander: qCommander,
+          principal: false,
+          intitule_gemrcn: null
+        };
+      }
+    }).filter(Boolean);
+
+    const data = {
+      name: nameInp.value.trim(),
+      categorie: catSel.value || null,
+      description: null,
+      nb_maternelles:  nbMat,
+      nb_elementaires: nbElem,
+      nb_adultes:      nbAdu,
+      items
+    };
+    const res = await api(r.id ? '/recipes/' + r.id : '/recipes', {method: r.id ? 'PUT' : 'POST', body: data});
+    if (onSavedCb) onSavedCb(res.id ?? r.id);
+  } : null);
+}
+
+/* ---------- Stocks ---------- */
+const stockView = {q: '', cat: '', sup: '', hideZero: false};
+async function pageStocks() {
+  const [data, ] = await Promise.all([api('/stock')]);
+  const rows = data.rows;
+  const cats = [...new Set(rows.map(r => r.category).filter(Boolean))].sort(cmp);
+  const sups = [...new Map(rows.filter(r => r.supplier_id).map(r => [r.supplier_id, r.supplier_name])).entries()];
+  const q = h('input', {placeholder: 'Rechercher un produit…', value: stockView.q, style: 'min-width:220px'});
+  const fc = select([['', 'Toutes les catégories'], ...cats.map(c => [c, c])], stockView.cat);
+  const fs = select([['', 'Tous les fournisseurs'], ...sups.map(([id, n]) => [id, n])], stockView.sup);
+  const hz = h('input', {type: 'checkbox', checked: stockView.hideZero});
+  const tb = h('tbody');
+  const totalBox = h('span', {class: 'mute'});
+  const draw = () => {
+    stockView.q = q.value; stockView.cat = fc.value; stockView.sup = fs.value; stockView.hideZero = hz.checked;
+    const t = q.value.toLowerCase();
+    const vis = rows.filter(r => (!t || ((r.name || '') + ' ' + (r.ref || '')).toLowerCase().includes(t)) && (!fc.value || r.category === fc.value)
+      && (!fs.value || String(r.supplier_id) === fs.value) && (!hz.checked || Math.abs(r.stock) > 1e-9));
+    const val = vis.reduce((a, r) => a + (r.value || 0), 0);
+    totalBox.textContent = `${vis.length} produit${vis.length > 1 ? 's' : ''} · valeur du stock : ${eur(val)}`;
+    tb.replaceChildren(...vis.map(r => h('tr', {},
+      h('td', {class: 'mute'}, r.ref || ''), h('td', {}, h('b', {}, r.name)), h('td', {}, r.supplier_name || ''), h('td', {}, r.category || ''),
+      h('td', {class: 'n'}, num(r.received)), h('td', {class: 'n'}, num(r.used)), h('td', {class: 'n'}, r.adjusted ? (r.adjusted > 0 ? '+' : '') + num(r.adjusted) : ''),
+      h('td', {class: 'n' + (r.stock < -1e-9 ? ' neg' : ''), title: r.stock < -1e-9 ? 'Sorties supérieures aux réceptions saisies : vérifiez les réceptions ou faites un inventaire' : null}, h('b', {}, num(r.stock))),
+      h('td', {}, r.unit || ''), h('td', {class: 'n'}, eur(r.value)),
+      h('td', {class: 'n'}, canWrite() ? h('button', {class: 's', onclick: () => inventoryForm(r)}, 'Inventaire') : null))));
+  };
+  for (const c of [q, fc, fs, hz]) c.addEventListener('input', draw);
+  draw();
+  return h('div', {},
+    h('div', {class: 'tools'}, h('h2', {}, 'Stocks'), h('div', {class: 'ctl'}, q, fc, fs, h('label', {class: 'chk', style: 'margin:0'}, 'Masquer les stocks à zéro', hz))),
+    h('div', {style: 'margin:-4px 0 8px'}, totalBox),
+    h('div', {class: 'card tablewrap'}, rows.length ? h('table', {},
+      h('thead', {}, h('tr', {}, ['Réf.', 'Produit', 'Fournisseur', 'Catégorie', 'Reçu', 'Sorti', 'Ajusté', 'Stock', 'Unité', 'Valeur', ''].map((x, k) => h('th', {class: k >= 4 && k <= 7 || k === 9 ? 'n' : ''}, x)))), tb)
+      : h('div', {class: 'empty'}, 'Aucun mouvement de stock : le stock = réceptions − sorties des repas.'),
+      h('p', {class: 'mute'}, 'Stock = quantités reçues (bons de livraison et factures) − quantités sorties pour les repas ± ajustements d\'inventaire. Les unités sont converties vers celle du produit (g → kg, etc.).')),
+    data.adjustments.length ? h('div', {class: 'card tablewrap'}, h('h3', {}, 'Derniers ajustements d\'inventaire'),
+      h('table', {}, h('tr', {}, ['Date', 'Produit', 'Écart', 'Motif', 'Par', ''].map((x, k) => h('th', {class: k === 2 ? 'n' : ''}, x))),
+        data.adjustments.map(a => h('tr', {}, h('td', {}, dfr(a.date)), h('td', {}, a.product_name), h('td', {class: 'n'}, `${a.qty > 0 ? '+' : ''}${num(a.qty)} ${a.unit || ''}`), h('td', {}, a.reason || ''), h('td', {class: 'mute'}, a.username || ''),
+          h('td', {class: 'n'}, canWrite() ? h('button', {class: 's d', onclick: confirmDel('Annuler cet ajustement ?', () => api('/stock/adjustments/' + a.id, {method: 'DELETE'}))}, 'Annuler') : null))))) : null);
+}
+function inventoryForm(r) {
+  const qty = h('input', {type: 'number', step: 'any', value: r.stock});
+  const reason = h('input', {placeholder: 'ex. inventaire du 18/10, perte, don…'});
+  modal(`Inventaire — ${r.name}`, h('div', {class: 'f'},
+    h('div', {class: 'full mute'}, `Stock calculé : ${num(r.stock)} ${r.unit || ''}. Saisissez la quantité réellement présente : l'écart est enregistré comme ajustement.`),
+    field(`Quantité réelle (${r.unit || ''})`, qty), field('Motif', reason)), async () => {
+    if (qty.value === '') throw new Error('Indiquez la quantité réelle');
+    const res = await api('/stock/adjust', {method: 'POST', body: {product_id: r.product_id, unit: r.unit, target_qty: Number(qty.value), reason: reason.value.trim() || null}});
+    toast(res.delta ? `Ajustement enregistré : ${res.delta > 0 ? '+' : ''}${num(res.delta)} ${r.unit || ''}` : 'Aucun écart : stock inchangé');
+  });
+}
+
+/* ---------- Paramètres ---------- */
+async function pageSettings() {
+  const [list, st, users, actionLog] = await Promise.all([api('/commitments'), api('/settings'), api('/users'), api('/action-log')]);
+  const labels = Object.fromEntries(state.meta.metrics);
+  const cn = h('input', {value: st.client_names, placeholder: 'ex. C.G.R.S. SAFFRE'});
+  let dMat, dElem, dAdu;
+  return h('div', {},
+    h('h2', {}, 'Paramètres'),
+    h('div', {class: 'card'}, h('h3', {}, 'Utilisateurs'),
+      h('p', {class: 'mute', style: 'margin-top:0'}, 'Administrateur : tous les droits. Lecture seule : consulte tout sans rien modifier. Statistiques : accès à la seule page Statistiques, sans aucun prix (achats HT, prix par repas, coûts matières).'),
+      h('div', {class: 'tablewrap'}, h('table', {},
+        h('tr', {}, ['Identifiant', 'Profil', 'Créé le', ''].map(x => h('th', {}, x))),
+        users.map(u => {
+          const tr = h('tr', {class: 'clickable'},
+            h('td', {}, h('b', {}, u.username), u.id === state.user.id ? h('span', {class: 'mute'}, ' (vous)') : null),
+            h('td', {}, state.meta.roles[u.role] || u.role), h('td', {}, dfr((u.created || '').slice(0, 10))),
+            h('td', {class: 'n'},
+              h('button', {class: 'icon-btn', title: 'Modifier', onclick: e => { e.stopPropagation(); userForm(u); }}, '✏️'),
+              u.id === state.user.id ? null : h('button', {class: 'icon-btn d', title: 'Supprimer', onclick: e => { e.stopPropagation(); confirmDel(`Supprimer l'utilisateur ${u.username} ?`, () => api('/users/' + u.id, {method: 'DELETE'}))(); }}, '🗑️')));
+          tr.addEventListener('click', () => userForm(u));
+          return tr;
+        }))),
+      h('div', {style: 'margin-top:10px'}, h('button', {class: 'p', onclick: () => userForm()}, '+ Utilisateur'))),
+    commitmentsCard('Engagements du marché', 'marche', list, labels, 'Cibles du marché, comparées aux valeurs réelles dans la page Statistiques. Un engagement peut être limité à une catégorie de produits (ex. % bio dans les fruits).'),
+    h('div', {class: 'card'}, h('h3', {}, 'Convives par défaut'),
+      h('p', {class: 'mute', style: 'margin-top:0'}, 'Valeurs proposées par défaut pour les nouveaux repas, les nouvelles recettes et le calculateur de la page Grammages.'),
+      h('div', {class: 'row', style: 'margin:0;align-items:end'},
+        field('Maternelles', dMat = h('input', {type: 'number', min: 0, step: 1, value: CONVIVES_DEF.mat})),
+        field('Élémentaires', dElem = h('input', {type: 'number', min: 0, step: 1, value: CONVIVES_DEF.elem})),
+        field('Adultes', dAdu = h('input', {type: 'number', min: 0, step: 1, value: CONVIVES_DEF.adu})),
+        h('button', {class: 'p', onclick: async () => {
+          try {
+            const d = {mat: Number(dMat.value), elem: Number(dElem.value), adu: Number(dAdu.value)};
+            await api('/convives-defaults', {method: 'PUT', body: d});
+            CONVIVES_DEF = d;
+            toast('Enregistré');
+          } catch (e) { alert(e.message); }
+        }}, 'Enregistrer'))),
+    h('div', {class: 'card'}, h('h3', {}, 'Nom de la cantine'),
+      h('p', {class: 'mute', style: 'margin-top:0'}, "Tel qu'il apparaît sur les documents (plusieurs noms séparés par « ; »). L'import PDF ne le prendra jamais pour un fournisseur."),
+      h('div', {class: 'row', style: 'margin:0'}, h('div', {style: 'flex:1'}, cn),
+        h('button', {onclick: async () => { try { await api('/settings', {method: 'PUT', body: {client_names: cn.value}}); toast('Enregistré'); } catch (e) { alert(e.message); } }}, 'Enregistrer'))),
+    h('div', {class: 'card'}, h('h3', {}, 'Export Dolibarr'),
+      h('p', {class: 'mute', style: 'margin-top:0'}, 'Fichiers CSV à importer avec l\'assistant d\'import Dolibarr (séparateur « ; », UTF-8). TVA 5,5 %, produits à vendre et à acheter. Importez d\'abord les fournisseurs, puis les produits, puis les réceptions (commandes fournisseurs) et les repas (commandes clients).'),
+      h('div', {style: 'display:flex;gap:8px;flex-wrap:wrap'},
+        h('a', {class: 'btn', style: 'text-decoration:none', href: '/api/export/dolibarr/suppliers'}, '⬇ Fournisseurs'),
+        h('a', {class: 'btn', style: 'text-decoration:none', href: '/api/export/dolibarr/products'}, '⬇ Produits'),
+        h('a', {class: 'btn', style: 'text-decoration:none', href: '/api/export/dolibarr/orders'}, '⬇ Réceptions (commandes fournisseurs)'),
+        h('a', {class: 'btn', style: 'text-decoration:none', href: '/api/export/dolibarr/meals'}, '⬇ Repas (commandes clients)'))),
+    h('div', {class: 'card'}, h('h3', {}, 'Sauvegarde'),
+      h('p', {class: 'mute', style: 'margin-top:0'}, 'Télécharge toutes les données de l\'application : base de données (fournisseurs, produits, réceptions, repas, stocks, utilisateurs, paramètres), PDF importés et fiches techniques. Ce fichier contient des données sensibles (mots de passe chiffrés) : conservez-le en lieu sûr. La procédure de restauration est dans le fichier LISEZ-MOI.txt de l\'archive.'),
+      h('div', {class: 'filebox'},
+        h('button', {class: 'p', onclick: downloadBackup}, '⬇ Sauvegarder toutes les données'),
+        h('label', {class: 'btn', style: 'color:var(--ink)'}, '⬆ Restaurer une sauvegarde',
+          h('input', {type: 'file', accept: '.zip', style: 'display:none', onchange: restoreBackup}))),
+      h('p', {class: 'mute', style: 'font-size:12px;margin-bottom:0'}, 'Restaurer remplace toutes les données actuelles par celles de la sauvegarde (une copie de sécurité de l\'état actuel est conservée sur le serveur). Vous devrez vous reconnecter.')),
+    h('div', {class: 'card'}, h('h3', {}, 'Historique des actions'),
+      h('p', {class: 'mute', style: 'margin-top:0'}, 'Les 200 dernières actions enregistrées (création, modification, suppression d\'utilisateurs et de paramètres).'),
+      actionLog.length ? h('div', {class: 'tablewrap'}, h('table', {},
+        h('tr', {}, ['Date / heure', 'Utilisateur', 'Action', 'Description'].map(x => h('th', {}, x))),
+        actionLog.map(e => {
+          const ACTION_LABELS = {create: 'Création', update: 'Modification', delete: 'Suppression'};
+          const dt = (e.ts || '').replace('T', '\u00a0').slice(0, 16);
+          const dtFr = dt ? dt.slice(8, 10) + '/' + dt.slice(5, 7) + '/' + dt.slice(0, 4) + '\u00a0' + dt.slice(11) : '—';
+          return h('tr', {},
+            h('td', {class: 'mute'}, dtFr),
+            h('td', {}, h('b', {}, e.username || '')),
+            h('td', {}, h('span', {class: e.action === 'delete' ? 'pill w' : 'pill'}, ACTION_LABELS[e.action] || e.action)),
+            h('td', {}, e.description || ''));
+        })))
+      : h('div', {class: 'empty'}, 'Aucune action enregistrée pour le moment.')));
+}
+async function downloadBackup() {
+  busy(true);
+  try {
+    const r = await fetch('/api/backup', {headers: {'X-Requested-With': 'cgrs'}, credentials: 'same-origin'});
+    if (!r.ok) throw new Error('Erreur serveur ' + r.status);
+    const disp = r.headers.get('Content-Disposition') || '';
+    const m = disp.match(/filename="?([^";]+)"?/i);
+    const name = m ? m[1] : 'cgrs_backup_' + new Date().toISOString().slice(0, 10) + '.zip';
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    toast('Sauvegarde téléchargée : ' + name);
+  } catch (e) {
+    alert('Sauvegarde impossible : ' + e.message);
+  } finally { busy(false); }
+}
+async function restoreBackup(ev) {
+  const file = ev.target.files[0];
+  ev.target.value = '';
+  if (!file) return;
+  if (!confirm(`Restaurer « ${file.name} » ?\n\nToutes les données actuelles (fournisseurs, produits, réceptions, repas, stocks, utilisateurs…) seront remplacées par celles de la sauvegarde.`)) return;
+  const fd = new FormData();
+  fd.append('file', file);
+  busy(true);
+  try {
+    const r = await api('/restore', {method: 'POST', body: fd});
+    busy(false);
+    alert(`Sauvegarde restaurée (${r.files} fichier(s) remis en place). Reconnectez-vous.`);
+    location.reload();
+  } catch (e) { busy(false); alert('Restauration impossible : ' + e.message); }
+}
+function userForm(u = {}) {
+  const i = {
+    username: h('input', {value: u.username, autocomplete: 'off', disabled: !!u.id}),
+    role: select(Object.entries(state.meta.roles), u.role || 'reader', {disabled: u.id === state.user.id}),
+    password: h('input', {type: 'password', autocomplete: 'new-password', placeholder: u.id ? 'Laisser vide pour ne pas changer' : ''}),
+  };
+  const body = h('div', {class: 'f'}, field('Identifiant', i.username), field('Profil', i.role),
+    field('Mot de passe' + (u.id ? '' : ' (8 caractères minimum)'), i.password, 'full'),
+    u.id ? h('div', {class: 'full mute'}, 'Modifier le profil ou le mot de passe déconnecte l\'utilisateur.') : null);
+  modal(u.id ? `Modifier ${u.username}` : 'Nouvel utilisateur', body, async () => {
+    if (u.id) {
+      const d = {};
+      if (i.role.value !== u.role) d.role = i.role.value;
+      if (i.password.value) d.password = i.password.value;
+      if (Object.keys(d).length) await api('/users/' + u.id, {method: 'PUT', body: d});
+    } else {
+      await api('/users', {method: 'POST', body: {username: i.username.value, password: i.password.value, role: i.role.value}});
+    }
+  });
+}
+function engagementsCard(title, items) {
+  return h('div', {class: 'card'}, h('h3', {}, title),
+    items.length ? h('div', {class: 'tablewrap'}, h('table', {},
+      h('tr', {}, ['Engagement', 'Indicateur', 'Cible', 'Réalisé', 'Écart', ''].map((x, k) => h('th', {class: k > 1 && k < 5 ? 'n' : ''}, x))),
+      items.map(c => {
+        const metrics = c.metrics && c.metrics.length ? c.metrics : (c.metric ? [c.metric] : []);
+        const cats = c.categories && c.categories.length ? c.categories : (c.category ? [c.category] : []);
+        const unit = metrics.includes('price_per_meal') ? ' €' : ' %';
+        const gap = c.actual == null ? null : Math.round((c.actual - c.target) * 100) / 100;
+        const catInfo = cats.length ? ' · ' + cats.join(', ') : '';
+        return h('tr', {},
+          h('td', {}, h('b', {}, c.label), catInfo ? h('span', {class: 'mute'}, catInfo) : null),
+          h('td', {class: 'mute'}, c.metric_label || metrics.join(' + ')),
+          h('td', {class: 'n'}, (c.mode === 'max' ? '≤ ' : '≥ ') + num(c.target) + unit),
+          h('td', {class: 'n'}, c.actual == null ? '—' : num(c.actual) + unit),
+          h('td', {class: 'n'}, gap == null ? '—' : (gap > 0 ? '+' : '') + num(gap)),
+          h('td', {}, c.status === 'ok' ? h('span', {class: 'pill'}, 'Respecté') : c.status === 'ko' ? h('span', {class: 'pill w'}, 'Non atteint') : h('span', {class: 'mute'}, 'Pas de données')));
+      })))
+      : h('div', {class: 'empty'}, 'Aucun engagement défini.' + (isAdmin() ? ' Ajoutez-les dans Paramètres.' : '')));
+}
+function commitmentsCard(title, level, list, labels, intro) {
+  const mine = list.filter(c => (c.level || 'marche') === level);
+  return h('div', {class: 'card'}, h('h3', {}, title),
+    h('p', {class: 'mute', style: 'margin-top:0'}, intro),
+    mine.length ? h('div', {class: 'tablewrap'}, h('table', {},
+      h('tr', {}, ['Engagement', 'Indicateur', 'Catégorie', 'Gamme', 'Cible', 'Notes', ''].map(x => h('th', {}, x))),
+      mine.map(c => {
+        const metrics = c.metrics && c.metrics.length ? c.metrics : (c.metric ? [c.metric] : []);
+        const cats = c.categories && c.categories.length ? c.categories : (c.category ? [c.category] : []);
+        const gammes = c.gammes || [];
+        const metricLabel = metrics.map(m => labels[m] || m).join(' + ') || '—';
+        const catLabel = cats.length ? cats.join(', ') : 'Toutes';
+        const gammeLabel = gammes.length ? gammes.map(g => (state.meta.gammes || {})[g] || g).join(', ') : '—';
+        const unit = metrics.includes('price_per_meal') ? ' €' : ' %';
+        const tr = h('tr', {class: 'clickable'},
+          h('td', {}, h('b', {}, c.label)),
+          h('td', {class: 'mute'}, metricLabel),
+          h('td', {}, catLabel),
+          h('td', {class: 'mute'}, gammeLabel),
+          h('td', {}, (c.mode === 'max' ? '≤ ' : '≥ ') + num(c.target) + unit),
+          h('td', {class: 'mute'}, c.notes || ''),
+          h('td', {class: 'n'},
+            h('button', {class: 'icon-btn', title: 'Modifier', onclick: e => { e.stopPropagation(); commitmentForm(c); }}, '✏️'),
+            h('button', {class: 'icon-btn d', title: 'Supprimer', onclick: e => { e.stopPropagation(); confirmDel(`Supprimer « ${c.label} » ?`, () => api('/commitments/' + c.id, {method: 'DELETE'}))(); }}, '🗑️')));
+        tr.addEventListener('click', () => commitmentForm(c));
+        return tr;
+      }))) : h('div', {class: 'empty'}, 'Aucun engagement.'),
+    h('div', {style: 'margin-top:10px'}, h('button', {class: 'p', onclick: () => commitmentForm({level})}, '+ Engagement')));
+}
+function commitmentForm(c = {}) {
+  const i = {};
+  const selMetrics = c.metrics && c.metrics.length ? c.metrics : (c.metric ? [c.metric] : []);
+  const selCats = c.categories && c.categories.length ? c.categories : (c.category ? [c.category] : []);
+  const selGammes = c.gammes || [];
+  const body = h('div', {class: 'f'},
+    field('Type', i.level = select([['marche', 'Engagement du marché'], ['par', 'Engagement PAR']], c.level || 'marche')),
+    field('Intitulé *', i.label = h('input', {value: c.label || '', placeholder: 'ex. Produits bio'})),
+    field('Indicateur(s) *', i.metrics = checkGroup(state.meta.metrics, selMetrics), 'full'),
+    field('Catégorie(s) (optionnel)', i.categories = checkGroup(state.meta.categories.map(x => [x, x]), selCats), 'full'),
+    field('Gamme(s) (optionnel)', i.gammes = checkGroup(Object.entries(state.meta.gammes).map(([k,v]) => [k, v]), selGammes), 'full'),
+    field('Sens', i.mode = select([['min', 'Au moins (≥)'], ['max', 'Au plus (≤)']], c.mode || 'min')),
+    field('Cible (% ou € pour le prix / repas)', i.target = h('input', {type: 'number', step: 'any', value: c.target != null ? c.target : ''})),
+    field('Notes', i.notes = h('input', {value: c.notes || '', placeholder: 'ex. valeur au 1er septembre 2026'}), 'full'));
+  modal(c.id ? "Modifier l'engagement" : 'Nouvel engagement', body, async () => {
+    if (!i.label.value) throw new Error("L'intitulé est obligatoire");
+    if (i.target.value === '') throw new Error('Indiquez la cible');
+    const metrics = i.metrics.values();
+    if (!metrics.length) throw new Error('Choisissez au moins un indicateur');
+    const d = {
+      label: i.label.value,
+      metrics: metrics,
+      metric: metrics[0] || '',
+      categories: i.categories.values(),
+      category: i.categories.values()[0] || null,
+      gammes: i.gammes.values(),
+      mode: i.mode.value,
+      level: i.level.value,
+      target: Number(i.target.value),
+      notes: i.notes.value || null
+    };
+    await api(c.id ? '/commitments/' + c.id : '/commitments', {method: c.id ? 'PUT' : 'POST', body: d});
+  });
+}
+
+/* ---------- Grammages flat list (module-level for recipeForm access) ---------- */
+const GRAMMAGES_DATA = {
+  entrees: {
+    label: 'Entrées',
+    sections: [
+      {
+        title: null,
+        rows: [
+          {label: 'Pain', gemrcn: ['30', '40', '50 à 100'], cgrs: ['30', '40', '50'], coeff: 1},
+        ]
+      },
+      {
+        title: 'Crudités sans assaisonnement',
+        rows: [
+          {label: 'Avocat', gemrcn: ['50', '70', '80 à 100'], cgrs: ['50', '70', '90'], coeff: 1},
+          {label: 'Carottes, céleri et autres racines râpées', gemrcn: ['50', '70', '90 à 120'], cgrs: ['50', '70', '105'], coeff: 1},
+          {label: 'Choux rouges et choux blanc émincé', gemrcn: ['40', '60', '80 à 100'], cgrs: ['40', '60', '90'], coeff: 1},
+          {label: 'Concombre', gemrcn: ['60', '80', '90 à 100'], cgrs: ['60', '80', '95'], coeff: 1},
+          {label: 'Endive', gemrcn: ['20', '30', '80 à 100'], cgrs: ['20', '30', '90'], coeff: 1},
+          {label: 'Melon, Pastèque', gemrcn: ['120', '150', '150 à 200'], cgrs: ['120', '150', '175'], coeff: 1},
+          {label: 'Pamplemousse (à l\'unité ou segments)', gemrcn: ['1/2', '1/2', '1/2'], cgrs: ['1/2', '1/2', '1'], coeff: 1, unit: 'unité'},
+          {label: 'Radis', gemrcn: ['30', '50', '80 à 100'], cgrs: ['30', '50', '90'], coeff: 1},
+          {label: 'Salade verte', gemrcn: ['25', '30', '40 à 60'], cgrs: ['25', '30', '50'], coeff: 1},
+          {label: 'Tomate', gemrcn: ['60', '80', '100 à 120'], cgrs: ['60', '80', '110'], coeff: 1},
+          {label: 'Salade composée à base de crudités', gemrcn: ['40', '60', '80 à 100'], cgrs: ['40', '60', '90'], coeff: 1},
+          {label: 'Champignons crus', gemrcn: ['40', '60', '80 à 100'], cgrs: ['40', '60', '90'], coeff: 1},
+          {label: 'Fenouil', gemrcn: ['40', '60', '80 à 100'], cgrs: ['40', '60', '90'], coeff: 1},
+        ]
+      },
+      {
+        title: 'Cuidités sans assaisonnement',
+        rows: [
+          {label: 'Potage à base de légumes', gemrcn: ['0,125 l', '0,167 l', '0,250 l'], cgrs: ['0,125 l', '0,167 l', '0,250 l'], coeff: 1},
+          {label: 'Artichaut entier (à l\'unité)', gemrcn: ['1/2', '1/2', '1'], cgrs: ['1/2', '1/2', '1'], coeff: 1, unit: 'unité'},
+          {label: 'Fond d\'artichaut', gemrcn: ['50', '70', '80 à 100'], cgrs: ['50', '70', '90'], coeff: 1},
+          {label: 'Asperges', gemrcn: ['50', '70', '80 à 100'], cgrs: ['50', '70', '90'], coeff: 1},
+          {label: 'Betteraves', gemrcn: ['50', '70', '90 à 120'], cgrs: ['50', '70', '105'], coeff: 1},
+          {label: 'Céleri', gemrcn: ['50', '70', '90 à 120'], cgrs: ['50', '70', '105'], coeff: 1},
+          {label: 'Champignons', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1},
+          {label: 'Choux-fleurs', gemrcn: ['50', '70', '90 à 120'], cgrs: ['50', '70', '105'], coeff: 1},
+          {label: 'Cœurs de palmier', gemrcn: ['40', '60', '80 à 100'], cgrs: ['40', '60', '90'], coeff: 1},
+          {label: 'Fenouil', gemrcn: ['40', '60', '80 à 100'], cgrs: ['40', '60', '90'], coeff: 1},
+          {label: 'Haricots verts', gemrcn: ['50', '70', '90 à 120'], cgrs: ['50', '70', '105'], coeff: 1},
+          {label: 'Poireaux (blancs de poireaux)', gemrcn: ['50', '70', '90 à 120'], cgrs: ['50', '70', '105'], coeff: 1},
+          {label: 'Salade composée à base de légumes cuits', gemrcn: ['50', '70', '90 à 120'], cgrs: ['50', '70', '105'], coeff: 1},
+          {label: 'Soja (germes de haricots mungo)', gemrcn: ['50', '70', '90 à 120'], cgrs: ['50', '70', '105'], coeff: 1},
+          {label: 'Terrine de légumes', gemrcn: ['30', '30', '30 à 50'], cgrs: ['30', '30', '40'], coeff: 1},
+        ]
+      },
+      {
+        title: 'Entrées de féculents (salades composées à base de pommes de terre, blé, riz, semoule ou pâtes)',
+        rows: [
+          {label: 'Féculents (salade composée)', gemrcn: ['60', '80', '100 à 150'], cgrs: ['60', '80', '125'], coeff: 1},
+        ]
+      },
+      {
+        title: 'Entrées protidiques diverses',
+        rows: [
+          {label: 'Œuf dur (à l\'unité)', gemrcn: ['1/2', '1', '1 à 1,5'], cgrs: ['1/2', '1', '1'], coeff: 1, unit: 'unité'},
+          {label: 'Hareng', gemrcn: ['30', '40', '40 à 60'], cgrs: ['30', '40', '50'], coeff: 1},
+          {label: 'Maquereau', gemrcn: ['30', '30', '40 à 50'], cgrs: ['30', '30', '45'], coeff: 1},
+          {label: 'Sardines (à l\'unité)', gemrcn: ['1', '1', '2'], cgrs: ['1', '1', '2'], coeff: 1, unit: 'unité'},
+          {label: 'Thon au naturel', gemrcn: ['30', '30', '40 à 50'], cgrs: ['30', '30', '45'], coeff: 1},
+          {label: 'Surimi', gemrcn: ['30', '30', '40 à 50'], cgrs: ['30', '30', '45'], coeff: 1},
+          {label: 'Jambon cru de pays', gemrcn: ['20', '30', '40 à 50'], cgrs: ['20', '30', '45'], coeff: 1},
+          {label: 'Jambon blanc', gemrcn: ['30', '40', '50'], cgrs: ['30', '40', '50'], coeff: 1},
+          {label: 'Pâté, terrine, mousse', gemrcn: ['30', '30', '30 à 50'], cgrs: ['30', '30', '40'], coeff: 1},
+          {label: 'Pâté en croûte', gemrcn: ['45', '45', '65'], cgrs: ['45', '45', '65'], coeff: 1},
+          {label: 'Rillettes', gemrcn: ['30', '30', '30 à 50'], cgrs: ['30', '30', '40'], coeff: 1},
+          {label: 'Salami – Saucisson – Mortadelle', gemrcn: ['30', '30', '40 à 50'], cgrs: ['30', '30', '45'], coeff: 1},
+        ]
+      },
+      {
+        title: 'Entrées de préparations pâtissières salées',
+        rows: [
+          {label: 'Nems', gemrcn: ['50', '50', '100'], cgrs: ['50', '50', '100'], coeff: 1},
+          {label: 'Crêpes', gemrcn: ['50', '50', '100'], cgrs: ['50', '50', '100'], coeff: 1},
+          {label: 'Friand, feuilleté', gemrcn: ['55 à 70', '55 à 70', '80 à 120'], cgrs: ['60', '60', '100'], coeff: 1},
+          {label: 'Pizza', gemrcn: ['70', '70', '90'], cgrs: ['70', '70', '90'], coeff: 1},
+          {label: 'Tarte salée', gemrcn: ['70', '70', '90'], cgrs: ['70', '70', '90'], coeff: 1},
+        ]
+      },
+      {
+        title: 'Assaisonnement hors-d\'œuvre',
+        rows: [
+          {label: 'Assaisonnement (poids matière grasse)', gemrcn: ['5', '7', '8'], cgrs: ['5', '7', '8'], coeff: 1},
+        ]
+      },
+    ]
+  },
+  plats: {
+    label: 'Plats + Accompagnements',
+    sections: [
+      {
+        title: 'Bœuf',
+        rows: [
+          {label: 'Bœuf braisé, bœuf sauté, bouilli de bœuf', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1.33},
+          {label: 'Rôti de bœuf, steak', gemrcn: ['40', '60', '80 à 100'], cgrs: ['40', '60', '90'], coeff: 1.33},
+          {label: 'Steak haché de bœuf, viande hachée de bœuf', gemrcn: ['50', '70', '100'], cgrs: ['50', '70', '100'], coeff: 1.25},
+          {label: 'Hamburger de bœuf, autre préparation de viande de bœuf hachée', gemrcn: ['50', '70', '100'], cgrs: ['50', '70', '100'], coeff: 1},
+          {label: 'Boulettes de bœuf de 30 g pièce crues (à l\'unité)', gemrcn: ['2', '3', '4 à 5'], cgrs: ['2', '3', '4'], coeff: 1, unit: 'unité'},
+        ]
+      },
+      {
+        title: 'Veau',
+        rows: [
+          {label: 'Sauté de veau ou blanquette (sans os)', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1.25},
+          {label: 'Escalope de veau, rôti de veau', gemrcn: ['40', '60', '80 à 100'], cgrs: ['40', '60', '90'], coeff: 1.33},
+          {label: 'Steak haché de veau, viande hachée de veau', gemrcn: ['50', '70', '80 à 100'], cgrs: ['50', '70', '90'], coeff: 1.25},
+          {label: 'Hamburger de veau, Rissolette, préparation de viande de veau hachée', gemrcn: ['50', '70', '100'], cgrs: ['50', '70', '100'], coeff: 1},
+          {label: 'Paupiette de veau', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1.25},
+        ]
+      },
+      {
+        title: 'Agneau – Mouton',
+        rows: [
+          {label: 'Gigot', gemrcn: ['40', '60', '80 à 100'], cgrs: ['40', '60', '90'], coeff: 1.33},
+          {label: 'Sauté (sans os)', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1.25},
+          {label: 'Côte d\'agneau avec os', gemrcn: ['—', '80', '100 à 120'], cgrs: ['—', '80', '110'], coeff: 1.33},
+          {label: 'Boulettes d\'agneau-mouton de 30 g pièce crues (à l\'unité)', gemrcn: ['2', '3', '4 à 5'], cgrs: ['2', '3', '4'], coeff: 1, unit: 'unité'},
+          {label: 'Merguez de 50 g pièce crues (à l\'unité)', gemrcn: ['1', '2', '2 à 3'], cgrs: ['1', '2', '2'], coeff: 1, unit: 'unité'},
+        ]
+      },
+      {
+        title: 'Porc',
+        rows: [
+          {label: 'Rôti de porc, grillade (sans os)', gemrcn: ['40', '60', '80 à 100'], cgrs: ['40', '60', '90'], coeff: 1.33},
+          {label: 'Sauté (sans os)', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1.25},
+          {label: 'Côte de porc (avec os)', gemrcn: ['—', '80', '100 à 120'], cgrs: ['—', '80', '110'], coeff: 1.33},
+          {label: 'Jambon DD, palette de porc', gemrcn: ['40', '60', '80 à 100'], cgrs: ['40', '60', '90'], coeff: 1.25},
+          {label: 'Andouillettes', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1},
+          {label: 'Saucisse de porc de 50 g pièce crue (à l\'unité)', gemrcn: ['1', '2', '2 à 3'], cgrs: ['1', '2', '2'], coeff: 1, unit: 'unité'},
+        ]
+      },
+      {
+        title: 'Volaille – Lapin',
+        rows: [
+          {label: 'Rôti, escalope et aiguillettes de volaille, blanc de poulet', gemrcn: ['40', '60', '80 à 100'], cgrs: ['40', '60', '90'], coeff: 1.33},
+          {label: 'Sauté et émincé de volaille', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1.25},
+          {label: 'Jambon de volaille', gemrcn: ['40', '60', '80 à 100'], cgrs: ['40', '60', '90'], coeff: 1},
+          {label: 'Cordon bleu ou pané façon cordon bleu', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1},
+          {label: 'Cuisse, haut de cuisse, pilon de volaille (avec os)', gemrcn: ['100', '140', '140 à 180'], cgrs: ['100', '140', '160'], coeff: 1.33},
+          {label: 'Brochette', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1.33},
+          {label: 'Paupiette de volaille', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1.25},
+          {label: 'Fingers, beignets, nuggets de 20 g pièce cuits (à l\'unité)', gemrcn: ['2', '3', '5'], cgrs: ['2', '3', '5'], coeff: 1, unit: 'unité'},
+          {label: 'Escalope panée de volaille ou autre viande', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1},
+          {label: 'Cuisse ou demi-cuisse de lapin (avec os)', gemrcn: ['100', '140', '140 à 180'], cgrs: ['100', '140', '160'], coeff: 1.33},
+          {label: 'Sauté et émincé de lapin (sans os)', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1.25},
+          {label: 'Paupiette de lapin', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1.25},
+          {label: 'Saucisse de volaille de 50 g pièce crue (à l\'unité)', gemrcn: ['1', '2', '2 à 3'], cgrs: ['1', '2', '2'], coeff: 1, unit: 'unité'},
+        ]
+      },
+      {
+        title: 'Abats',
+        rows: [
+          {label: 'Foie, langue, rognons, boudin', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1},
+          {label: 'Tripes avec sauce', gemrcn: ['50', '70', '100 à 200'], cgrs: ['50', '70', '110'], coeff: 1},
+        ]
+      },
+      {
+        title: 'Œufs (plat principal)',
+        rows: [
+          {label: 'Œufs durs (à l\'unité)', gemrcn: ['1', '2', '2 à 3'], cgrs: ['1', '2', '2'], coeff: 1, unit: 'unité'},
+          {label: 'Omelette', gemrcn: ['60', '90', '90 à 130'], cgrs: ['60', '90', '110'], coeff: 1},
+        ]
+      },
+      {
+        title: 'Poissons (sans sauce)',
+        rows: [
+          {label: 'Poissons non enrobés sans arêtes (filets, rôtis, steaks, brochettes, cubes)', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1.25},
+          {label: 'Brochettes de poisson', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1.25},
+          {label: 'Darne', gemrcn: ['—', '—', '120 à 140'], cgrs: ['—', '—', '130'], coeff: 1.25},
+          {label: 'Beignets, poissons panés ou enrobés (croquettes, paupiettes…)', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1},
+          {label: 'Poissons entiers', gemrcn: ['—', '—', '150 à 170'], cgrs: ['—', '—', '160'], coeff: 1.25},
+        ]
+      },
+      {
+        title: 'Plats composés',
+        rows: [
+          {label: 'Denrée protidique du plat composé (choucroute, paëlla, hachis, brandade, légumes farcis, raviolis, cannellonis, lasagnes…)', gemrcn: ['50', '70', '100 à 120'], cgrs: ['50', '70', '110'], coeff: 1.25},
+          {label: 'Portion de plat composé (denrée protidique + garniture + sauce)', gemrcn: ['180', '250', '250 à 300'], cgrs: ['180', '250', '275'], coeff: 1},
+          {label: 'Préparations pâtissières en plat principal (crêpes, pizzas, croque monsieur, friands, quiches…)', gemrcn: ['100', '150', '200'], cgrs: ['100', '150', '200'], coeff: 1.1},
+          {label: 'Quenelle', gemrcn: ['60', '80', '120 à 160'], cgrs: ['60', '80', '140'], coeff: 1},
+        ]
+      },
+      {
+        title: 'Légumes cuits',
+        rows: [
+          {label: 'Légumes cuits (accompagnement)', gemrcn: ['100', '100', '150'], cgrs: ['100', '100', '150'], coeff: 1},
+        ]
+      },
+      {
+        title: 'Féculents cuits',
+        rows: [
+          {label: 'Riz', gemrcn: ['120', '170', '200 à 250'], cgrs: ['120', '170', '225'], coeff: 0.4},
+          {label: 'Pâtes', gemrcn: ['120', '170', '200 à 250'], cgrs: ['120', '170', '225'], coeff: 0.36},
+          {label: 'Pommes de terre', gemrcn: ['120', '170', '200 à 250'], cgrs: ['120', '170', '225'], coeff: 1},
+          {label: 'Purée de pomme de terre (fraîche ou reconstituée)', gemrcn: ['150', '200', '250'], cgrs: ['150', '200', '250'], coeff: 1},
+          {label: 'Frites', gemrcn: ['120', '170', '200 à 250'], cgrs: ['120', '170', '225'], coeff: 1},
+          {label: 'Chips', gemrcn: ['30', '30', '60'], cgrs: ['30', '30', '60'], coeff: 1},
+          {label: 'Légumes secs', gemrcn: ['120', '170', '200 à 250'], cgrs: ['120', '170', '225'], coeff: 0.37},
+        ]
+      },
+      {
+        title: 'Sauces pour plats',
+        rows: [
+          {label: 'Sauces (jus de viande, sauce tomate, béchamel, beurre blanc, mayonnaise, ketchup…) – poids matière grasse', gemrcn: ['5', '7', '8'], cgrs: ['5', '7', '8'], coeff: 1},
+        ]
+      },
+    ]
+  },
+  fromages: {
+    label: 'Fromages',
+    sections: [
+      {
+        title: null,
+        rows: [
+          {label: 'Fromages', gemrcn: ['16 à 20', '16 à 30', '16 à 40'], cgrs: ['18', '23', '28'], coeff: 1},
+        ]
+      }
+    ]
+  },
+  desserts: {
+    label: 'Desserts + Laitages',
+    sections: [
+      {
+        title: 'Laitages',
+        rows: [
+          {label: 'Fromage blanc, fromages frais', gemrcn: ['90 à 120', '90 à 120', '90 à 120'], cgrs: ['105', '105', '105'], coeff: 1},
+          {label: 'Yaourt et autres laits fermentés', gemrcn: ['100 à 125', '100 à 125', '100 à 125'], cgrs: ['110', '110', '110'], coeff: 1},
+          {label: 'Petit suisse et autres fromages frais de type suisse', gemrcn: ['50 à 60', '50 à 60', '100 à 120'], cgrs: ['55', '55', '110'], coeff: 1},
+          {label: 'Lait demi-écrémé (menus 4 composantes)', gemrcn: ['125 ml', '125 ml', '250 ml'], cgrs: ['125 ml', '125 ml', '250 ml'], coeff: 1},
+        ]
+      },
+      {
+        title: 'Desserts',
+        rows: [
+          {label: 'Desserts lactés', gemrcn: ['90 à 125', '90 à 125', '90 à 125'], cgrs: ['105', '105', '105'], coeff: 1},
+          {label: 'Mousse', gemrcn: ['10 à 12 cl', '10 à 12 cl', '10 à 12 cl'], cgrs: ['11 cl', '11 cl', '11 cl'], coeff: 1},
+          {label: 'Fruits crus', gemrcn: ['100', '100', '100 à 150'], cgrs: ['100', '100', '125'], coeff: 1},
+          {label: 'Fruits cuits', gemrcn: ['100', '100', '100 à 150'], cgrs: ['100', '100', '125'], coeff: 1},
+          {label: 'Fruits secs', gemrcn: ['20', '20', '30'], cgrs: ['20', '20', '30'], coeff: 1},
+          {label: 'Pâtisseries à base de pâte à choux (en portions ou à découper)', gemrcn: ['20 à 45', '20 à 45', '40 à 60'], cgrs: ['32', '32', '50'], coeff: 1},
+          {label: 'Pâtisseries fraîches, surgelées ou déshydratées (en portions ou à découper)', gemrcn: ['40 à 60', '40 à 60', '60 à 80'], cgrs: ['50', '50', '70'], coeff: 1},
+          {label: 'Pâtisserie sèche emballée (biscuits et gâteaux à température ambiante)', gemrcn: ['20 à 30', '20 à 30', '30 à 50'], cgrs: ['25', '25', '40'], coeff: 1},
+          {label: 'Biscuits d\'accompagnement', gemrcn: ['15', '15', '20'], cgrs: ['15', '15', '20'], coeff: 1},
+          {label: 'Glaces et sorbets', gemrcn: ['50 à 70 ml', '50 à 100 ml', '50 à 150 ml'], cgrs: ['60 ml', '75 ml', '100 ml'], coeff: 1},
+          {label: 'Desserts contenant plus de 60 % de fruits', gemrcn: ['80 à 100', '80 à 100', '80 à 100'], cgrs: ['90', '90', '90'], coeff: 1},
+        ]
+      },
+    ]
+  },
+};
+const GRAM_UNIT_RE = /à l'unité/;
+
+function gramRowsFromData(data) {
+  // Aplatit les données structurées en liste de lignes complètes : {label, gemrcn, cgrs, coeff, unit, section_*}
+  const rows = [];
+  for (const [sk, tab] of Object.entries(data)) {
+    for (const sec of tab.sections) {
+      for (const row of sec.rows) {
+        rows.push({
+          section_key: sk, section_label: tab.label, section_title: sec.title || null,
+          label: row.label, gemrcn: row.gemrcn || [], cgrs: row.cgrs,
+          coeff: row.coeff != null ? row.coeff : 1,
+          unit: row.unit || (GRAM_UNIT_RE.test(row.label) ? 'unité' : null),
+        });
+      }
+    }
+  }
+  // surcharges éventuelles non encore migrées en base
+  for (const r of rows) {
+    const ov = GRAM_OVERRIDES[r.label];
+    if (ov) {
+      if (Array.isArray(ov.cgrs)) r.cgrs = ov.cgrs.slice();
+      if (ov.coeff != null) r.coeff = ov.coeff;
+    }
+  }
+  return rows;
+}
+
+let GRAM_ROWS = null;   // grammages chargés depuis la base de données
+
+async function loadGramRows() {
+  if (GRAM_ROWS) return GRAM_ROWS;
+  await loadGramOverrides();
+  const builtin = gramRowsFromData(GRAMMAGES_DATA);
+  try {
+    const rows = await api('/grammages-rows');
+    if (Array.isArray(rows) && rows.length) { GRAM_ROWS = rows; return GRAM_ROWS; }
+    // Premier lancement : la base est vide, on y enregistre les valeurs par défaut
+    GRAM_ROWS = builtin;
+    api('/grammages-rows', {method: 'PUT', body: {rows: builtin.map(r => ({...r}))}}).catch(() => {});
+  } catch (e) { GRAM_ROWS = builtin; }
+  return GRAM_ROWS;
+}
+
+function getGrammageRows() {
+  return GRAM_ROWS || gramRowsFromData(GRAMMAGES_DATA);
+}
+
+// Cache global des surcharges de grammages, indexé par libellé : {[label]: {cgrs, coeff}}
+let CONVIVES_DEF = {mat: 140, elem: 240, adu: 5};
+let GRAM_OVERRIDES = {};
+async function loadGramOverrides() {
+  try { GRAM_OVERRIDES = (await api('/grammages')) || {}; } catch (e) { GRAM_OVERRIDES = {}; }
+  return GRAM_OVERRIDES;
+}
+
+function parseCgrsValGlobal(s) {
+  if (!s || s === '—') return null;
+  const str = String(s).trim().replace(',', '.');
+  const vol = str.match(/^(\d+(?:\.\d+)?)\s*(ml|cl|l)$/i);
+  if (vol) {
+    const n = parseFloat(vol[1]);
+    const u = vol[2].toLowerCase();
+    const factor = u === 'ml' ? 0.001 : u === 'cl' ? 0.01 : 1;
+    return n * factor; // litres
+  }
+  if (/[a-zA-Z]/.test(str)) return null;
+  const frac = str.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/);
+  if (frac) return parseFloat(frac[1]) / parseFloat(frac[2]);
+  const n = parseFloat(str);
+  return isNaN(n) ? null : n;
+}
+
+/* ---------- Grammages ---------- */
+async function pageGrammages() {
+  // Helper: parse a CGRS gramme string to a number (returns null if not parseable)
+  function parseCgrs(s) {
+    if (!s || s === '—') return null;
+    const str = String(s).trim().replace(',', '.');
+    if (/[a-zA-Z]/.test(str)) return null;
+    const frac = str.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/);
+    if (frac) return parseFloat(frac[1]) / parseFloat(frac[2]);
+    const n = parseFloat(str);
+    return isNaN(n) ? null : n;
+  }
+
+  // Parses a CGRS value, detecting volume units (ml, cl, l) → returns litres
+  function parseCgrsVal(s) {
+    if (!s || s === '—') return {val: null, litre: false};
+    const str = String(s).trim().replace(',', '.');
+    // Detect volume units: ml, cl, l
+    const vol = str.match(/^(\d+(?:\.\d+)?)\s*(ml|cl|l)$/i);
+    if (vol) {
+      const n = parseFloat(vol[1]);
+      const u = vol[2].toLowerCase();
+      const factor = u === 'ml' ? 0.001 : u === 'cl' ? 0.01 : 1;
+      return {val: n * factor, litre: true};
+    }
+    if (/[a-zA-Z]/.test(str)) return {val: null, litre: false};
+    const frac = str.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/);
+    if (frac) return {val: parseFloat(frac[1]) / parseFloat(frac[2]), litre: false};
+    const n = parseFloat(str);
+    return {val: isNaN(n) ? null : n, litre: false};
+  }
+
+
+  // ── Données chargées depuis la base de données ────────────────────────────
+  await loadGramRows();
+  const GRAMMAGES = {};
+  for (const r of GRAM_ROWS) {
+    let tab = GRAMMAGES[r.section_key];
+    if (!tab) tab = GRAMMAGES[r.section_key] = {label: r.section_label || r.section_key, sections: []};
+    let sec = tab.sections.find(s => (s.title || null) === (r.section_title || null));
+    if (!sec) { sec = {title: r.section_title || null, rows: []}; tab.sections.push(sec); }
+    sec.rows.push({label: r.label, gemrcn: r.gemrcn || [], cgrs: r.cgrs, coeff: r.coeff != null ? r.coeff : 1, unit: r.unit || undefined});
+  }
+
+  // ── Debounced save ─────────────────────────────────────────────────────────
+  let _saveTimer = null;
+  // Collecte toutes les lignes de grammages telles qu'affichées/éditées
+  function collectGramRows() {
+    const rows = [];
+    for (const [sk, tab] of Object.entries(GRAMMAGES)) {
+      for (const sec of tab.sections) {
+        for (const row of sec.rows) {
+          rows.push({section_key: sk, section_label: tab.label, section_title: sec.title || null,
+            label: row.label, gemrcn: row.gemrcn || [], cgrs: row.cgrs.slice(),
+            coeff: row.coeff != null ? row.coeff : 1, unit: row.unit || null});
+        }
+      }
+    }
+    return rows;
+  }
+  // Met à jour immédiatement le cache GRAM_ROWS (utilisé par Recettes et Repas), sans attendre la sauvegarde différée
+  function syncOverridesNow() {
+    GRAM_ROWS = collectGramRows();
+  }
+  function schedSave() {
+    syncOverridesNow();
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(async () => {
+      try {
+        await api('/grammages-rows', {method: 'PUT', body: {rows: collectGramRows()}});
+        toast('Grammages enregistrés ✓');
+      } catch(e) { toast('Erreur sauvegarde grammages'); }
+    }, 1400);
+  }
+
+  // Convives state
+  let nbMat = CONVIVES_DEF.mat, nbElem = CONVIVES_DEF.elem, nbAdu = CONVIVES_DEF.adu;
+
+  const note = h('div', {class: 'note'},
+    '📋 Grammages recommandés par le GEMRCN et grammages appliqués par le CGRS (en grammes, sauf mention contraire). Tolérance ± 10 %.');
+
+  // Convives inputs panel
+  const inpMat  = h('input', {type:'number', min:'0', value: String(CONVIVES_DEF.mat), style:'width:70px;text-align:center', oninput: () => { nbMat  = parseInt(inpMat.value)||0;  updateTotal(); recalc(); }});
+  const inpElem = h('input', {type:'number', min:'0', value: String(CONVIVES_DEF.elem), style:'width:70px;text-align:center', oninput: () => { nbElem = parseInt(inpElem.value)||0; updateTotal(); recalc(); }});
+  const inpAdu  = h('input', {type:'number', min:'0', value: String(CONVIVES_DEF.adu), style:'width:70px;text-align:center', oninput: () => { nbAdu  = parseInt(inpAdu.value)||0;  updateTotal(); recalc(); }});
+  const totalSpan = h('span', {style:'font-weight:600'}, String(nbMat + nbElem + nbAdu));
+  function updateTotal() { totalSpan.textContent = nbMat + nbElem + nbAdu; }
+
+  const convivesPanel = h('div', {class:'card', style:'display:flex;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:16px;padding:12px 16px'},
+    h('span', {style:'font-weight:600;color:var(--acc)'}, '👥 Nombre de convives :'),
+    h('label', {style:'display:flex;align-items:center;gap:6px'}, h('span', {}, 'Maternelles'), inpMat),
+    h('label', {style:'display:flex;align-items:center;gap:6px'}, h('span', {}, 'Élémentaires'), inpElem),
+    h('label', {style:'display:flex;align-items:center;gap:6px'}, h('span', {}, 'Adultes'), inpAdu),
+    h('span', {style:'color:var(--muted);font-size:13px'}, 'Total : ', totalSpan, ' repas'));
+
+  const tabs = Object.keys(GRAMMAGES);
+  let active = tabs[0];
+  const tabBar = h('div', {style: 'display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px'});
+  const content = h('div', {});
+
+  // Map of row td elements for live update: array of {tdServi, tdAcheter, row}
+  let rowCells = [];
+
+  function calcRow(row) {
+    const mv = parseCgrsVal(row.cgrs[0]);
+    const ev = parseCgrsVal(row.cgrs[1]);
+    const av = parseCgrsVal(row.cgrs[2]);
+    const isLitre = mv.litre || ev.litre || av.litre;
+    const total = (mv.val !== null ? mv.val * nbMat : 0)
+                + (ev.val !== null ? ev.val * nbElem : 0)
+                + (av.val !== null ? av.val * nbAdu : 0);
+    if (row.unit) {
+      // pas de coefficient cru/cuit pour les pièces : la quantité à commander est la même que celle à servir
+      return {servi: Math.round(total), achat: Math.round(total), isUnit: true};
+    }
+    if (isLitre) {
+      return {servi: total, achat: total * (row.coeff || 1), isLitre: true};
+    }
+    const achat = (total / 1000) * (row.coeff || 1);
+    return {servi: total, achat: achat};
+  }
+
+  function fmtServi(res) {
+    if (nbMat + nbElem + nbAdu === 0) return '—';
+    if (res.isUnit) return Math.round(res.servi) + ' unités';
+    if (res.isLitre) return res.servi.toFixed(3) + ' l';
+    return (res.servi / 1000).toFixed(3) + ' kg';
+  }
+  function fmtAchat(res) {
+    if (nbMat + nbElem + nbAdu === 0) return '—';
+    if (res.isUnit) return Math.round(res.achat) + ' unités';
+    if (res.isLitre) return res.achat.toFixed(3) + ' l';
+    return res.achat.toFixed(3) + ' kg';
+  }
+
+  function recalc() {
+    for (const {tdServi, tdAcheter, row} of rowCells) {
+      const res = calcRow(row);
+      tdServi.textContent   = fmtServi(res);
+      tdAcheter.textContent = fmtAchat(res);
+    }
+  }
+
+  // Build an editable input for a CGRS cell or coeff cell
+  function mkCgrsInput(row, idx) {
+    const inp = h('input', {
+      type: 'text',
+      value: row.cgrs[idx],
+      style: 'width:52px;text-align:center;border:1px solid var(--line);border-radius:4px;padding:2px 4px;font-size:12px;background:var(--bg)'
+    });
+    inp.oninput = () => {
+      row.cgrs[idx] = inp.value.trim();
+      recalc();
+      schedSave();
+    };
+    return inp;
+  }
+
+  function mkCoeffInput(row) {
+    const inp = h('input', {
+      type: 'number',
+      step: '0.01',
+      min: '0.01',
+      value: row.coeff,
+      style: 'width:58px;text-align:center;border:1px solid var(--line);border-radius:4px;padding:2px 4px;font-size:12px;background:var(--bg)'
+    });
+    inp.oninput = () => {
+      const v = parseFloat(inp.value);
+      if (!isNaN(v) && v > 0) { row.coeff = v; recalc(); schedSave(); }
+    };
+    return inp;
+  }
+
+  const renderTab = () => {
+    rowCells = [];
+    const cat = GRAMMAGES[active];
+    const sections = [];
+    for (const sec of cat.sections) {
+      if (sec.title) {
+        sections.push(h('tr', {},
+          h('td', {colspan: '11', style: 'background:var(--acc2);color:var(--acc);font-weight:600;font-size:13px;padding:8px 10px;border-bottom:1px solid var(--line)'}, sec.title)));
+      }
+      for (const row of sec.rows) {
+        const unitTag = row.unit ? h('span', {class: 'pill', style: 'margin-left:4px;font-size:11px'}, row.unit) : null;
+        const res = calcRow(row);
+        const tdServi   = h('td', {class: 'n', style: 'border-left:2px solid var(--line);color:var(--acc);font-weight:500'}, fmtServi(res));
+        const tdAcheter = h('td', {class: 'n', style: 'font-weight:600'}, fmtAchat(res));
+        rowCells.push({tdServi, tdAcheter, row});
+        sections.push(h('tr', {},
+          h('td', {}, row.label, unitTag),
+          h('td', {class: 'n'}, row.gemrcn[0]),
+          h('td', {class: 'n'}, row.gemrcn[1]),
+          h('td', {class: 'n'}, row.gemrcn[2]),
+          h('td', {class: 'n', style: 'border-left:2px solid var(--line);padding:3px 6px'}, mkCgrsInput(row, 0)),
+          h('td', {class: 'n', style: 'padding:3px 6px'}, mkCgrsInput(row, 1)),
+          h('td', {class: 'n', style: 'padding:3px 6px'}, mkCgrsInput(row, 2)),
+          h('td', {class: 'n', style: 'border-left:2px solid var(--line);padding:3px 6px'}, mkCoeffInput(row)),
+          tdServi,
+          tdAcheter));
+      }
+    }
+    content.replaceChildren(
+      h('div', {class: 'card tablewrap'},
+        h('table', {},
+          h('thead', {},
+            h('tr', {},
+              h('th', {style: 'min-width:220px'}, 'Produit'),
+              h('th', {class: 'n', style: 'font-size:11px'}, 'GEMRCN Mat.'),
+              h('th', {class: 'n', style: 'font-size:11px'}, 'GEMRCN Élém.'),
+              h('th', {class: 'n', style: 'font-size:11px'}, 'GEMRCN Adulte'),
+              h('th', {class: 'n', style: 'border-left:2px solid var(--line);font-size:11px'}, 'CGRS Mat.'),
+              h('th', {class: 'n', style: 'font-size:11px'}, 'CGRS Élém.'),
+              h('th', {class: 'n', style: 'font-size:11px'}, 'CGRS Adulte'),
+              h('th', {class: 'n', style: 'border-left:2px solid var(--line);min-width:72px;font-size:11px'}, 'Coeff cru/cuit'),
+              h('th', {class: 'n', style: 'border-left:2px solid var(--line);min-width:95px;color:var(--acc);font-size:11px'}, 'Qté à servir'),
+              h('th', {class: 'n', style: 'min-width:90px;font-size:11px'}, 'Qté à acheter'))),
+          h('tbody', {}, ...sections))));
+  };
+
+  const drawTabs = () => {
+    tabBar.replaceChildren(...tabs.map(k =>
+      h('button', {
+        class: k === active ? 'p' : '',
+        style: 'height:34px;padding:0 14px;font-size:14px',
+        onclick: () => { active = k; drawTabs(); renderTab(); }
+      }, GRAMMAGES[k].label)));
+  };
+
+  drawTabs();
+  renderTab();
+
+  return h('div', {},
+    h('div', {class: 'tools'}, h('h2', {}, 'Grammages GEMRCN')),
+    note,
+    convivesPanel,
+    tabBar,
+    content);
+}
+
+/* ---------- navigation ---------- */
+const PAGES = {
+  stats: ['Statistiques', pageStats, ['admin', 'editor', 'reader', 'stats']],
+  orders: ['Réceptions', pageOrders, ['admin', 'editor', 'reader']],
+  suppliers: ['Fournisseurs', pageSuppliers, ['admin', 'editor', 'reader']],
+  products: ['Produits', pageProducts, ['admin', 'editor', 'reader']],
+  stocks: ['Stocks', pageStocks, ['admin', 'editor', 'reader']],
+  recipes: ['Recettes', pageRecettes, ['admin', 'editor', 'reader']],
+  meals: ['Repas', pageMeals, ['admin', 'editor', 'reader']],
+  grammages: ['Grammages', pageGrammages, ['admin', 'editor', 'reader', 'stats']],
+  settings: ['Paramètres', pageSettings, ['admin']],
+};
+const allowedPages = () => Object.entries(PAGES).filter(([, p]) => p[2].includes(state.user.role)).map(([k]) => k);
+
+function renderShell() {
+  $('#auth').hidden = true;
+  $('#shell').hidden = false;
+  $('#me').replaceChildren(
+    h('span', {}, `${state.user.username} · ${(state.meta.roles[state.user.role] || '').split(' (')[0]}`),
+    h('button', {class: 's', onclick: async () => { try { await api('/auth/logout', {method: 'POST', noRedirect: true}); } catch {} state.user = null; location.hash = ''; boot(); }}, 'Déconnexion'));
+}
+let renderSeq = 0;   // une page lente à charger ne doit pas écraser la page demandée ensuite (clics rapides sur le menu)
+async function render() {
+  if (!state.user) return;
+  const ok = allowedPages();
+  let key = location.hash.slice(1);
+  if (!ok.includes(key)) key = ok[0];
+  $('#nav').replaceChildren(...ok.map(k => h('a', {href: '#' + k, class: k === key ? 'on' : ''}, PAGES[k][0])));
+  const seq = ++renderSeq;
+  try { const page = await PAGES[key][1](); if (seq === renderSeq) $('#app').replaceChildren(page); }
+  catch (e) { if (e.status !== 401 && seq === renderSeq) $('#app').replaceChildren(h('div', {class: 'card'}, 'Erreur : ' + e.message)); }
+}
+window.addEventListener('hashchange', render);
+async function enter() { state.meta = await api('/meta'); await loadGramOverrides(); await loadGramRows(); try { CONVIVES_DEF = await api('/convives-defaults'); } catch (e) {} const a = $('#auth'); a.hidden = true; a.replaceChildren(); renderShell(); await render(); }
+async function boot() {
+  try {
+    const st = await api('/auth/status', {noRedirect: true});
+    if (st.user) { state.user = st.user; await enter(); }
+    else showAuth(st.setup_needed);
+  } catch (e) { $('#auth').hidden = false; $('#auth').replaceChildren(h('div', {class: 'authbox'}, h('div', {class: 'card'}, 'Impossible de joindre le serveur : ' + e.message))); }
+}
+boot();
+</script>
+
+<div id="pdf-viewer" hidden style="position:fixed;inset:0;z-index:1000;background:#0009;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow:auto">
+  <div style="background:var(--card);border-radius:14px;width:100%;max-width:1040px;height:calc(100vh - 48px);display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)">
+      <strong id="pdf-title"></strong>
+      <div style="display:flex;gap:10px">
+        <button onclick="closePdf()">✕ Fermer</button>
+      </div>
+    </div>
+    <iframe id="pdf-frame" style="flex:1;border:0"></iframe>
+  </div>
+</div>
+<script>
+function openPdf(url, title) {
+  document.getElementById('pdf-title').textContent = title || 'Document';
+  document.getElementById('pdf-frame').src = url;
+  document.getElementById('pdf-viewer').hidden = false;
+}
+function closePdf() {
+  document.getElementById('pdf-frame').src = 'about:blank';   // libère le PDF
+  document.getElementById('pdf-viewer').hidden = true;
+}
+document.getElementById('pdf-viewer').addEventListener('click', e => { if (e.target.id === 'pdf-viewer') closePdf(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('pdf-viewer').hidden) closePdf(); });
+</script>
+
+
+
+</body>
+</html>

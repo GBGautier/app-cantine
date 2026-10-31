@@ -1,0 +1,4 @@
+# Outils pour construire l'exécutable Windows (construire_exe.bat) ; versions compatibles avec le verrou principal.
+-c requirements.txt
+pywebview==6.2.1
+pyinstaller==6.22.3
