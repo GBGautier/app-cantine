@@ -18,6 +18,7 @@ se contente d'importer l'application assemblée ici.
 | `utils.py` | Horodatage, journal d'actions, conversion d'unités, lecture/écriture SQL générique |
 | `uploads.py` | Enregistrement des fichiers envoyés (PDF, fiches techniques) |
 | `pricing.py` | Historique des prix des produits |
+| `services/` | **Règles de calcul sans base ni serveur** (fonctions pures, testées à part) : `stats` (répartitions, indicateurs Egalim, engagements), `meals` (coût des repas, liste de courses), `stock`, `recipes` (coût d'une recette), `orders` (références, doublons, prix, rapprochement), `units`, `prices` |
 | `routes/auth.py`, `users.py` | Connexion, premier compte, mot de passe ; gestion des utilisateurs |
 | `routes/suppliers.py`, `products.py` | Fournisseurs ; produits, fiches techniques, prix |
 | `routes/orders.py` | Réceptions (bons de livraison, factures), import de PDF, rapprochement |
@@ -30,3 +31,6 @@ se contente d'importer l'application assemblée ici.
 
 Ajouts du durcissement : `errors.py` (erreurs de base de données → réponses claires, erreurs internes avec référence),
 `journal.py` (journal fichier), `autobackup.py` (sauvegardes automatiques). Voir `docs/DEPLOIEMENT.md`.
+
+**Où mettre une nouvelle règle de calcul ?** Dans `services/`, en fonction pure (elle reçoit des données, rend un
+résultat, sans accès à la base), avec son test dans `tests/`. La route lit la base, appelle la fonction et répond.
