@@ -1,13 +1,15 @@
 """Assemblage de l'application FastAPI : base de données, en-têtes de sécurité, routes, fichiers statiques."""
 
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 import db
-from cgrs import errors, journal
-from cgrs.config import LOGS, STATIC
+from cgrs import autobackup, errors, journal
+from cgrs.config import BACKUP_INTERVAL_HOURS, BACKUP_KEEP, BACKUPS, LOGS, STATIC
 from cgrs.routes.commitments import seed_commitments
 from cgrs.routes import auth
 from cgrs.routes import users
@@ -31,7 +33,23 @@ from cgrs.routes import action_log
 
 journal.setup(LOGS)
 db.init()
-app = FastAPI(title="CGRS – réceptions & stocks")
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Sauvegardes automatiques : une au démarrage si la dernière est ancienne, puis vérification chaque heure."""
+    scheduler = None
+    if BACKUP_INTERVAL_HOURS > 0:
+        scheduler = autobackup.Scheduler(db.DB_PATH, BACKUPS, BACKUP_INTERVAL_HOURS, BACKUP_KEEP)
+        scheduler.start()
+    try:
+        yield
+    finally:
+        if scheduler:
+            scheduler.stop()
+
+
+app = FastAPI(title="CGRS – réceptions & stocks", lifespan=lifespan)
 
 
 @app.middleware("http")
