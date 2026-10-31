@@ -13,6 +13,7 @@ import tempfile
 import time
 import urllib.request
 from pathlib import Path
+from urllib.parse import urlparse
 
 import pytest
 
@@ -89,8 +90,18 @@ def navigateur():
 @pytest.fixture()
 def contexte(navigateur):
     c = navigateur.new_context(locale="fr-FR", accept_downloads=True)
-    # les bibliothèques d'export PDF viennent d'un CDN : inutile (et impossible hors ligne) pour ces tests
-    c.route("**/cdnjs.cloudflare.com/**", lambda r: r.abort())
+    # l'application ne doit dépendre d'aucun site externe : toute requête hors de la machine locale est refusée,
+    # et notée (voir le test hors ligne)
+    c.externes = []
+
+    def local_seulement(route):
+        if urlparse(route.request.url).hostname in ("127.0.0.1", "localhost"):
+            route.continue_()
+        else:
+            c.externes.append(route.request.url)
+            route.abort()
+
+    c.route("**/*", local_seulement)
     yield c
     c.close()
 
@@ -104,6 +115,7 @@ def page(contexte, serveur):
     p.set_default_timeout(8000)
     yield p
     assert not p.erreurs_js, f"Erreurs JavaScript dans la page : {p.erreurs_js}"
+    assert not contexte.externes, f"Requêtes vers des sites externes : {contexte.externes}"
 
 
 class Api:
