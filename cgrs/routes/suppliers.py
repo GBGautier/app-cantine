@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import APIRouter
 from pydantic import BaseModel, field_validator
 
-import db
+from cgrs import db
 from cgrs.constants import DAYS
 from cgrs.security import READ, WRITE
 from cgrs.utils import insert, update

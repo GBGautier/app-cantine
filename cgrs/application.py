@@ -7,7 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-import db
+from cgrs import db
 from cgrs import autobackup, errors, journal
 from cgrs.config import API_DOCS, BACKUP_INTERVAL_HOURS, BACKUP_KEEP, BACKUPS, HSTS, LOGS, STATIC
 from cgrs.routes.commitments import seed_commitments

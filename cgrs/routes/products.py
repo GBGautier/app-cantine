@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
-import db
+from cgrs import db
 from cgrs.config import UPLOADS
 from cgrs.pricing import add_history, load_history, price_at
 from cgrs.security import READ, WRITE

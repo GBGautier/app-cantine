@@ -8,8 +8,8 @@ from typing import Optional
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
-import db
-import pdf_parser
+from cgrs import db
+from cgrs.parsers import pdf_parser
 from cgrs.config import UPLOADS
 from cgrs.pricing import add_history, refresh_product_price
 from cgrs.routes.settings import get_client_names

@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
-import db
+from cgrs import db
 from cgrs import journal
 from cgrs.security import ANY, check_password_rule, check_rate, clean_username, COOKIE, current_user, DUMMY_HASH, FAILS, hash_password, register_fail, sha, start_session, verify_password
 from cgrs.utils import now_iso

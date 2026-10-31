@@ -1,6 +1,6 @@
 """Historique des prix des produits."""
 
-import db
+from cgrs import db
 
 
 def add_history(product_id, day, price, unit, order_id, source):

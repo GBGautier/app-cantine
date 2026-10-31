@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from pydantic import BaseModel
 
-import db
+from cgrs import db
 
 
 def now_iso():

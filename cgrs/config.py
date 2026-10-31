@@ -2,7 +2,7 @@
 
 import os
 
-import paths
+from cgrs import paths
 
 
 STATIC = paths.STATIC

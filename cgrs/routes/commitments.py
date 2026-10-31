@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-import db
+from cgrs import db
 from cgrs.security import ADMIN, READ
 from cgrs.utils import insert, update
 

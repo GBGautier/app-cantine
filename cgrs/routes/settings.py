@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-import db
+from cgrs import db
 from cgrs.security import ADMIN
 from cgrs.utils import log_action
 

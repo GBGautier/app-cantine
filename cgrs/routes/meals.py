@@ -6,8 +6,8 @@ from typing import Optional
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel, field_validator
 
-import db
-import menu_parser
+from cgrs import db
+from cgrs.parsers import menu_parser
 from cgrs.config import UPLOADS
 from cgrs.constants import CATEGORIES, LOCAL
 from cgrs.pricing import load_history, price_at

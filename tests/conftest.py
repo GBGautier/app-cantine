@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))   # racine du pr
 @pytest.fixture()
 def database(tmp_path, monkeypatch):
     """Base SQLite vide et initialisée, dans un dossier temporaire."""
-    import db
+    from cgrs import db
     monkeypatch.setattr(db, "DB_PATH", tmp_path / "test.db")
     db.init()
     return db
@@ -19,7 +19,7 @@ def database(tmp_path, monkeypatch):
 @pytest.fixture(scope="session")
 def client(tmp_path_factory):
     """Client HTTP de l'application complète, sur une base temporaire, connecté en administrateur."""
-    import db
+    from cgrs import db
     db.DB_PATH = tmp_path_factory.mktemp("data") / "api.db"   # avant l'import de l'application, qui initialise la base
     from fastapi.testclient import TestClient
 

@@ -8,7 +8,8 @@ from pathlib import Path
 RACINE = Path(__file__).resolve().parent.parent
 
 SCRIPT = textwrap.dedent("""
-    import sys, db, tempfile, pathlib
+    import sys, tempfile, pathlib
+    from cgrs import db
     db.DB_PATH = pathlib.Path(tempfile.mkdtemp()) / "t.db"
     from fastapi.testclient import TestClient
     from cgrs.application import app

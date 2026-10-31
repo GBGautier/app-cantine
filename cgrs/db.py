@@ -3,7 +3,7 @@ import functools
 import sqlite3
 import threading
 
-import paths
+from cgrs import paths
 
 DB_PATH = paths.DB_PATH   # %LOCALAPPDATA%/CGRS/cantine.db (exe) ou a cote du code (serveur/dev)
 

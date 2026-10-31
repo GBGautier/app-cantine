@@ -11,8 +11,8 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 
-import db
-import paths
+from cgrs import db
+from cgrs import paths
 from cgrs.config import UPLOADS
 from cgrs.security import ADMIN
 

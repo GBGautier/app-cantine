@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter
 
-import db
-import dolibarr
+from cgrs import db
+from cgrs.parsers import dolibarr
 from cgrs.security import READ
 
 

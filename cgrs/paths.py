@@ -11,12 +11,15 @@ import pathlib
 
 APP_NAME = "CGRS"
 
+# Racine du projet (ce fichier est dans cgrs/) : les données restent à côté du code, comme avant le déplacement
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+
 
 def app_dir() -> pathlib.Path:
     """Dossier des ressources en lecture seule (front static/, ...)."""
     if getattr(sys, "frozen", False):
         return pathlib.Path(sys._MEIPASS)
-    return pathlib.Path(__file__).parent
+    return ROOT
 
 
 def data_dir() -> pathlib.Path:
@@ -24,7 +27,7 @@ def data_dir() -> pathlib.Path:
     if getattr(sys, "frozen", False):
         base = pathlib.Path.home() / "AppData" / "Local" / APP_NAME
     else:
-        base = pathlib.Path(__file__).parent
+        base = ROOT
     base.mkdir(parents=True, exist_ok=True)
     return base
 

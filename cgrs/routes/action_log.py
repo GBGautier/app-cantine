@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-import db
+from cgrs import db
 from cgrs.security import ADMIN
 
 

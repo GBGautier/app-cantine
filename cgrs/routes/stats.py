@@ -4,7 +4,7 @@ from typing import Optional
 
 from fastapi import APIRouter
 
-import db
+from cgrs import db
 from cgrs.constants import GAMMES, LOCAL, PROVENANCES
 from cgrs.routes.commitments import commitment_out
 from cgrs.routes.meals import meals_metrics

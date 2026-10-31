@@ -5,7 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-import db
+from cgrs import db
 from cgrs.constants import ROLES
 from cgrs.security import ADMIN, check_password_rule, clean_username, hash_password
 from cgrs.utils import log_action, now_iso

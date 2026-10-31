@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-import db
+from cgrs import db
 from cgrs.pricing import load_history, price_at
 from cgrs.security import READ, WRITE
 from cgrs.utils import log_action, now_iso

@@ -10,7 +10,9 @@ se contente d'importer l'application assemblée ici.
 | Module | Contenu |
 |---|---|
 | `application.py` | Création de l'application, en-têtes de sécurité, enregistrement des routes, amorçage des données par défaut, fichiers statiques |
-| `config.py` | Chemins : dossier statique, dossier des fichiers envoyés (`paths.py` à la racine reste la source) |
+| `db.py`, `paths.py` | Base SQLite (schéma, transactions) ; emplacement des données (à côté du code, ou `%LOCALAPPDATA%\CGRS` pour l'exécutable) |
+| `parsers/` | Lecture des PDF de réceptions (`pdf_parser`), des menus (`menu_parser`), exports Dolibarr (`dolibarr`) |
+| `config.py` | Chemins : dossier statique, dossier des fichiers envoyés (`paths.py` reste la source) |
 | `constants.py` | Provenances, gammes, catégories, jours, profils |
 | `security.py` | Mots de passe, sessions, profils et droits (`READ`, `EDIT`, `ADMIN`, `ANY`), limitation des tentatives |
 | `utils.py` | Horodatage, journal d'actions, conversion d'unités, lecture/écriture SQL générique |
@@ -24,8 +26,7 @@ se contente d'importer l'application assemblée ici.
 | `routes/settings.py`, `convives.py`, `grammages.py`, `commitments.py`, `meta.py` | Paramètres, effectifs par défaut, grammages, engagements, métadonnées du frontend |
 | `routes/backup.py`, `export.py`, `files.py`, `action_log.py` | Sauvegarde / restauration ; exports Dolibarr ; fichiers ; journal |
 
-Ce qui reste à la racine, inchangé : `db.py`, `paths.py`, `pdf_parser.py`, `menu_parser.py`, `dolibarr.py`, `main.py`,
-`static/`, `lancer.bat`, `requirements.txt` (déplacer ces fichiers pourrait casser un exécutable déjà construit).
+À la racine : `app.py` (`uvicorn app:app`), `main.py` (application de bureau), `lancer.bat`, `static/` (interface).
 
 Ajouts du durcissement : `errors.py` (erreurs de base de données → réponses claires, erreurs internes avec référence),
 `journal.py` (journal fichier), `autobackup.py` (sauvegardes automatiques). Voir `docs/DEPLOIEMENT.md`.

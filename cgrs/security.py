@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, HTTPException, Request, Response
 
-import db
+from cgrs import db
 from cgrs.config import SECURE_COOKIES
 from cgrs.utils import now_iso
 
