@@ -1,6 +1,5 @@
 """Réceptions : bons de livraison et factures, import de PDF."""
 
-import re
 from datetime import date as date_cls
 from pathlib import Path
 from typing import Optional
@@ -15,7 +14,15 @@ from cgrs.pricing import add_history, refresh_product_price
 from cgrs.routes.settings import get_client_names
 from cgrs.security import READ, WRITE
 from cgrs.uploads import save_upload
-from cgrs.utils import convert, insert, update
+from cgrs.services.orders import (
+    find_duplicate_in,
+    invoice_price_day,
+    order_total,
+    price_differs,
+    price_in_product_unit,
+    rank_candidates,
+)
+from cgrs.utils import insert, update
 
 
 router = APIRouter()
@@ -44,11 +51,6 @@ class Order(BaseModel):
     new_supplier_direct: bool = False  # … et le marquer « direct producteur » (ses produits le seront aussi)
     replaces: list[int] = []  # bons de livraison remplacés par cette facture
     lines: list[Line] = []
-
-
-def ref_key(s):
-    k = re.sub(r"[^A-Z0-9]", "", (s or "").upper())
-    return re.sub(r"^(?:BL|BC|FAC|FA|FC)", "", k)
 
 
 @router.get("/api/orders")
@@ -82,14 +84,6 @@ def save_lines(order_id, lines):
             "INSERT INTO order_lines (order_id, product_id, ref, label, qty, unit, unit_price, total_ht) VALUES (?,?,?,?,?,?,?,?)",
             (order_id, l.product_id, l.ref, l.label, l.qty, l.unit, l.unit_price, total),
         )
-
-
-def order_total(o: Order):
-    if o.total_ht is not None:
-        return o.total_ht
-    return round(
-        sum((l.total_ht if l.total_ht is not None else (l.qty or 0) * (l.unit_price or 0)) for l in o.lines), 2
-    )
 
 
 def resolve_creations(o: Order):
@@ -163,20 +157,16 @@ def update_prices(order_id, o: Order, day=None):
         if l.unit_price is None:
             continue
         # le prix n'est comparé que si les unités sont compatibles (€/kg avec €/kg, pas avec €/pièce)
-        if l.unit and p["unit"] and convert(1, l.unit, p["unit"]) is None:
+        price = price_in_product_unit(l.unit_price, l.unit, p["unit"])
+        if price is None:
             continue
-        price = l.unit_price
-        if l.unit and p["unit"]:
-            factor = convert(1, l.unit, p["unit"])  # prix par unité de la ligne -> prix par unité du produit
-            if factor:
-                price = round(price / factor, 4)
         last = db.one(
             "SELECT price, date FROM price_history WHERE product_id=? ORDER BY date DESC, id DESC LIMIT 1", (p["id"],)
         )
-        if last is None or abs(last["price"] - price) > 1e-9:
+        if last is None or price_differs(last["price"], price):
             add_history(p["id"], day, price, p["unit"], order_id, "reception")
             if last is None or (last["date"] or "") <= day:
-                if p["unit_price"] is None or abs(p["unit_price"] - price) > 1e-9:
+                if p["unit_price"] is None or price_differs(p["unit_price"], price):
                     changes.append({"name": p["name"], "old": p["unit_price"], "new": price, "unit": p["unit"]})
                 db.execute("UPDATE products SET unit_price=? WHERE id=?", (price, p["id"]))
     return changes
@@ -194,8 +184,7 @@ def remove_order(order_id):
 def price_day(order_id, o: Order, rdates):
     """Date des relevés de prix : une facture qui remplace des bons de livraison garde leur date de livraison."""
     cur = db.one("SELECT delivery_date FROM orders WHERE id=?", (order_id,))
-    dd = [d for d in [cur and cur["delivery_date"], *(rdates or [])] if d] if o.kind == "facture" else []
-    day = min(dd) if dd else None
+    day = invoice_price_day(o.kind, cur and cur["delivery_date"], rdates)
     db.execute("UPDATE orders SET delivery_date=? WHERE id=?", (day, order_id))
     return day
 
@@ -224,21 +213,11 @@ def normalize_order(o: Order):
 
 def find_duplicate(ref, kind, supplier_id=None, exclude_id=None):
     """Réception déjà enregistrée avec la même référence (et le même type, chez le même fournisseur s'il est connu)."""
-    key = pdf_parser.norm_ref(ref or "")
-    if not key:
-        return None
-    for r in db.rows(
+    rows = db.rows(
         "SELECT o.id, o.ref, o.kind, o.date, o.supplier_id, s.name AS supplier_name FROM orders o "
         "LEFT JOIN suppliers s ON s.id=o.supplier_id WHERE o.ref IS NOT NULL AND o.ref != ''"
-    ):
-        if (
-            r["id"] != exclude_id
-            and pdf_parser.norm_ref(r["ref"]) == key
-            and r["kind"] == kind
-            and (not supplier_id or r["supplier_id"] in (supplier_id, None))
-        ):
-            return r
-    return None
+    )
+    return find_duplicate_in(rows, ref, kind, supplier_id, exclude_id)
 
 
 @router.post("/api/orders")
@@ -321,17 +300,7 @@ def replacement_candidates(q: CandidateQuery, user: dict = WRITE):
         "ORDER BY date DESC, id DESC LIMIT 60",
         (q.supplier_id, q.exclude_id or -1),
     )
-    keys = {ref_key(r) for r in q.refs if ref_key(r)}
-    for c in cands:
-        reasons = []
-        if ref_key(c["ref"]) and ref_key(c["ref"]) in keys:
-            reasons.append("cité sur la facture")
-        if q.total_ht is not None and c["total_ht"] is not None and abs(c["total_ht"] - q.total_ht) < 0.01:
-            reasons.append("même montant")
-        c["match"] = bool(reasons)
-        c["reason"] = ", ".join(reasons)
-    cands.sort(key=lambda c: not c["match"])
-    return cands[:25]
+    return rank_candidates(cands, q.refs, q.total_ht)
 
 
 @router.post("/api/orders/parse-pdf")
