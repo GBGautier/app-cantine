@@ -71,8 +71,17 @@ Un message « Erreur interne du serveur. Référence à communiquer : xxxxxxxx �
 
 ```
 pip install -r requirements.txt -r requirements-dev.txt
-pytest
+pytest                      # tests de l'API et du code (rapides)
 ruff check .
 ```
 
-La configuration de `pytest` et de `ruff` est dans `pyproject.toml`.
+Les tests d'interface (`tests/ui/`) pilotent un vrai navigateur sur une base vide et jetable : connexion, fournisseurs,
+produits, réception, droits par profil, sauvegarde. Ils demandent une installation de Chromium, une seule fois :
+
+```
+playwright install chromium
+pytest tests/ui
+```
+
+Sans Chromium installé, ils sont simplement ignorés. La variable `CGRS_UI_TARGET` permet de jouer les mêmes tests sur
+un autre dossier de code (par exemple une ancienne version). La configuration de `pytest` et de `ruff` est dans `pyproject.toml`.
