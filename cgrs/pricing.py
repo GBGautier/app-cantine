@@ -1,6 +1,7 @@
 """Historique des prix des produits."""
 
 from cgrs import db
+from cgrs.services.prices import price_at  # noqa: F401  (réexporté : anciens imports)
 
 
 def add_history(product_id, day, price, unit, order_id, source):
@@ -24,17 +25,3 @@ def load_history():
     for r in db.rows("SELECT product_id, date, price FROM price_history ORDER BY date, id"):
         h.setdefault(r["product_id"], []).append((r["date"] or "", r["price"]))
     return h
-
-
-def price_at(hist, pid, day, fallback):
-    """Prix d'un produit à une date (dernier relevé connu à cette date), à défaut le prix courant."""
-    seq = hist.get(pid)
-    if not seq:
-        return fallback
-    best = None
-    for d, p in seq:
-        if d <= (day or ""):
-            best = p
-        else:
-            break
-    return best if best is not None else seq[0][1]
