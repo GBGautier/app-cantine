@@ -13,7 +13,7 @@ Avec l'exécutable Windows, ces dossiers sont dans `%LOCALAPPDATA%\CGRS\` ; sino
 
 ## Application de bureau Windows
 
-**Exécutable (recommandé)** : double-cliquez sur `construire_exe.bat` (Python 3.12 ou 3.13 requis, une seule fois, sur
+**Exécutable (recommandé)** : double-cliquez sur `windows\construire_exe.bat` (Python 3.12 ou 3.13 requis, une seule fois, sur
 un poste de construction). Il produit `dist\CGRS.exe`, un fichier unique à copier sur n'importe quel poste Windows,
 sans installer Python. Au lancement, une fenêtre s'ouvre sur l'application. Le poste doit avoir Microsoft Edge WebView2
 (déjà présent sur Windows 10/11 à jour).
@@ -21,7 +21,7 @@ sans installer Python. Au lancement, une fenêtre s'ouvre sur l'application. Le 
 Les données de l'exécutable sont dans `%LOCALAPPDATA%\CGRS\` (base, `uploads\`, `sauvegardes-auto\`, `logs\`) :
 mettre à jour l'exécutable ne touche pas aux données. Si l'exécutable ne démarre pas, lisez `logs\cgrs.log`.
 
-**Sans exécutable** : `lancer.bat` crée un environnement Python au premier lancement, puis ouvre l'application dans le
+**Sans exécutable** : `windows\lancer.bat` crée un environnement Python au premier lancement, puis ouvre l'application dans le
 navigateur (données à côté du code).
 
 Dans les deux cas, les sauvegardes automatiques tournent dès le lancement (une copie par jour, 14 conservées).
@@ -71,7 +71,7 @@ Un message « Erreur interne du serveur. Référence à communiquer : xxxxxxxx �
 
 ```
 pip install -r requirements.txt
-pip install -r requirements-dev.txt   # séparément : requirements.txt impose les empreintes, pas requirements-dev.txt
+pip install -r requirements/dev.txt   # séparément : requirements.txt impose les empreintes, pas requirements/dev.txt
 pytest                      # tests de l'API et du code (rapides)
 ruff check .
 ruff format .                 # met le code en forme (lignes de 120 caractères maximum)
@@ -93,16 +93,16 @@ un autre dossier de code (par exemple une ancienne version). La configuration de
 `requirements.txt` fixe la version exacte de chaque bibliothèque (y compris les bibliothèques indirectes) avec leurs
 empreintes : deux installations à des dates différentes donnent exactement le même programme, et un paquet falsifié
 serait refusé. Il est généré, **ne le modifiez pas à la main**. Les dépendances que vous choisissez sont dans
-`requirements.in` ; `requirements-build.in` / `requirements-build.txt` servent uniquement à construire l'exécutable.
+`requirements/app.in` ; `requirements/build.in` / `requirements/build.txt` servent uniquement à construire l'exécutable.
 
 Mettre à jour (à faire de temps en temps, par exemple après une alerte de sécurité) :
 
 ```
 pip install uv pip-audit
-uv pip compile requirements.in --universal --python-version 3.12 --generate-hashes -o requirements.txt --upgrade
-uv pip compile requirements-build.in --universal --python-version 3.12 --generate-hashes -o requirements-build.txt --upgrade
+uv pip compile requirements/app.in --universal --python-version 3.12 --generate-hashes -o requirements.txt --upgrade
+uv pip compile requirements/build.in --universal --python-version 3.12 --generate-hashes -o requirements/build.txt --upgrade
 pip install -r requirements.txt
-pip install -r requirements-dev.txt
+pip install -r requirements/dev.txt
 pytest && pytest tests/ui
 pip-audit -r requirements.txt --no-deps --disable-pip
 ```

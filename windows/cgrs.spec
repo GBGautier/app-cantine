@@ -1,8 +1,14 @@
 # Construction de l'exécutable (PyInstaller) : voir construire_exe.bat
-#   pyinstaller cgrs.spec  ->  dist/CGRS.exe (Windows) ou dist/CGRS (autre système)
+#   depuis la racine du projet : pyinstaller windows/cgrs.spec  ->  dist/CGRS.exe (Windows) ou dist/CGRS (autre système)
+import os
+import sys
+
 from PyInstaller.utils.hooks import collect_all, collect_submodules
 
-datas = [("static", "static")]          # l'interface (lue depuis le dossier d'extraction)
+ROOT = os.path.abspath(os.path.join(SPECPATH, ".."))   # racine du projet (ce fichier est dans windows/)
+sys.path.insert(0, ROOT)
+
+datas = [(os.path.join(ROOT, "static"), "static")]          # l'interface (lue depuis le dossier d'extraction)
 binaries = []
 hiddenimports = collect_submodules("uvicorn") + collect_submodules("cgrs") + ["multipart"]
 
@@ -13,7 +19,7 @@ for pkg in ("pdfplumber", "pdfminer", "pytesseract"):
     binaries += b
     hiddenimports += h
 
-a = Analysis(["main.py"], pathex=["."], binaries=binaries, datas=datas, hiddenimports=hiddenimports,
+a = Analysis([os.path.join(ROOT, "main.py")], pathex=[ROOT], binaries=binaries, datas=datas, hiddenimports=hiddenimports,
              excludes=["pytest", "httpx", "ruff", "tkinter"])
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, a.binaries, a.datas, [],

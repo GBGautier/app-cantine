@@ -25,11 +25,11 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
-            requirements-dev.txt
+            requirements/dev.txt
       - name: Installer les dépendances
         run: |
           python -m pip install -r requirements.txt
-          python -m pip install -r requirements-dev.txt
+          python -m pip install -r requirements/dev.txt
       - name: Qualité du code (ruff)
         run: python -m ruff check .
       - name: Mise en forme (ruff format)
@@ -48,11 +48,11 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
-            requirements-dev.txt
+            requirements/dev.txt
       - name: Installer les dépendances
         run: |
           python -m pip install -r requirements.txt
-          python -m pip install -r requirements-dev.txt
+          python -m pip install -r requirements/dev.txt
           python -m playwright install --with-deps chromium
       - name: Tests d'interface
         run: python -m pytest tests/ui

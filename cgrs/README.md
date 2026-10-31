@@ -4,7 +4,7 @@ Découpage de l'ancien `app.py` (1915 lignes) en modules. **Le code a été dép
 l'ancien fichier se retrouve à l'identique ici (seuls changent les imports, `@app.get` → `@router.get`, et l'assemblage
 dans `application.py`).
 
-`uvicorn app:app` et `from app import app` (main.py, lancer.bat) continuent de fonctionner : `app.py` à la racine
+`uvicorn app:app` et `from app import app` (main.py, windows/lancer.bat) continuent de fonctionner : `app.py` à la racine
 se contente d'importer l'application assemblée ici.
 
 | Module | Contenu |
@@ -27,7 +27,7 @@ se contente d'importer l'application assemblée ici.
 | `routes/settings.py`, `convives.py`, `grammages.py`, `commitments.py`, `meta.py` | Paramètres, effectifs par défaut, grammages, engagements, métadonnées du frontend |
 | `routes/backup.py`, `export.py`, `files.py`, `action_log.py` | Sauvegarde / restauration ; exports Dolibarr ; fichiers ; journal |
 
-À la racine : `app.py` (`uvicorn app:app`), `main.py` (application de bureau), `lancer.bat`, `static/` (interface).
+À la racine : `app.py` (`uvicorn app:app`), `main.py` (application de bureau), `static/` (interface). Scripts Windows dans `windows/`, dépendances dans `requirements/` (sauf `requirements.txt`, à la racine).
 
 Ajouts du durcissement : `errors.py` (erreurs de base de données → réponses claires, erreurs internes avec référence),
 `journal.py` (journal fichier), `autobackup.py` (sauvegardes automatiques). Voir `docs/DEPLOIEMENT.md`.

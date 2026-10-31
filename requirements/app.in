@@ -1,4 +1,4 @@
-# Dépendances DIRECTES de l'application, aux versions testées. Ne modifiez pas requirements.txt à la main :
+# Dépendances DIRECTES de l'application, aux versions testées. Ne modifiez pas requirements.txt (à la racine) à la main :
 # changez une version ici, puis régénérez le verrou (voir docs/DEPLOIEMENT.md, « Mettre à jour les dépendances »).
 fastapi==0.162.0
 uvicorn==0.54.0

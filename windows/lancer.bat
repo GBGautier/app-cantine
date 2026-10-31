@@ -1,6 +1,7 @@
 @echo off
 chcp 65001 >nul
-cd /d "%~dp0"
+cd /d "%~dp0.."
+rem (ce script est dans windows\ : on travaille depuis le dossier du projet, ou se trouvent venv\ et les donnees)
 title CGRS
 
 rem --- 1. environnement Python (cree une seule fois) ---

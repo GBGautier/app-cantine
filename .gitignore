@@ -223,4 +223,4 @@ uploads/
 cantine.dblogs/
 
 # Configuration de construction de l'exécutable : à versionner (les autres .spec sont ignorés)
-!cgrs.spec
+!windows/cgrs.spec
