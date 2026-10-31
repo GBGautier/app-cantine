@@ -8,6 +8,9 @@ from PyInstaller.utils.hooks import collect_all, collect_submodules
 ROOT = os.path.abspath(os.path.join(SPECPATH, ".."))   # racine du projet (ce fichier est dans windows/)
 sys.path.insert(0, ROOT)
 
+# CGRS_DEBUG=1 (voir construire_exe.bat debug) : exécutable avec console, pour voir les erreurs de démarrage
+DEBUG = os.environ.get("CGRS_DEBUG") == "1"
+
 datas = [(os.path.join(ROOT, "static"), "static")]          # l'interface (lue depuis le dossier d'extraction)
 binaries = []
 hiddenimports = collect_submodules("uvicorn") + collect_submodules("cgrs") + ["multipart"]
@@ -23,7 +26,6 @@ a = Analysis([os.path.join(ROOT, "main.py")], pathex=[ROOT], binaries=binaries, 
              excludes=["pytest", "httpx", "ruff", "tkinter"])
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, a.binaries, a.datas, [],
-          name="CGRS",
-          console=False,                # sans console : pour la diagnostiquer, mettre True (ou lire logs/cgrs.log)
-          # pas de fenêtre noire : l'interface s'ouvre dans une fenêtre dédiée
+          name="CGRS-debug" if DEBUG else "CGRS",
+          console=DEBUG,   # normal : sans console (fenêtre seule) ; debug : avec console
           icon=None)

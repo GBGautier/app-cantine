@@ -69,12 +69,14 @@ def fatal(message: str):
 
 def main():
     try:
+        log.info("Demarrage de CGRS (executable : %s)", getattr(sys, "frozen", False))
         port = find_free_port()
 
         # FastAPI dans un thread daemon (tue avec le process principal)
         thread = threading.Thread(target=run_server, args=(port,), daemon=True)
         thread.start()
         wait_for_server(thread)
+        log.info("Serveur pret sur le port %s ; ouverture de la fenetre", port)
 
         import webview  # import differe : evite d'exiger pywebview sur un serveur
 
