@@ -34,7 +34,7 @@ L'application n'a pas de HTTPS propre : placez-la **derrière un proxy HTTPS** (
 l'exposez jamais directement.
 
 ```
-pip install -r requirements.txt
+pip install -r requirements.txt   # versions et empreintes figées : installation reproductible
 uvicorn app:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1
 ```
 
@@ -85,3 +85,22 @@ pytest tests/ui
 
 Sans Chromium installé, ils sont simplement ignorés. La variable `CGRS_UI_TARGET` permet de jouer les mêmes tests sur
 un autre dossier de code (par exemple une ancienne version). La configuration de `pytest` et de `ruff` est dans `pyproject.toml`.
+
+## Dépendances figées
+
+`requirements.txt` fixe la version exacte de chaque bibliothèque (y compris les bibliothèques indirectes) avec leurs
+empreintes : deux installations à des dates différentes donnent exactement le même programme, et un paquet falsifié
+serait refusé. Il est généré, **ne le modifiez pas à la main**. Les dépendances que vous choisissez sont dans
+`requirements.in` ; `requirements-build.in` / `requirements-build.txt` servent uniquement à construire l'exécutable.
+
+Mettre à jour (à faire de temps en temps, par exemple après une alerte de sécurité) :
+
+```
+pip install uv pip-audit
+uv pip compile requirements.in --universal --python-version 3.12 --generate-hashes -o requirements.txt --upgrade
+uv pip compile requirements-build.in --universal --python-version 3.12 --generate-hashes -o requirements-build.txt --upgrade
+pip install -r requirements.txt -r requirements-dev.txt
+pytest && pytest tests/ui
+pip-audit -r requirements.txt --no-deps --disable-pip
+```
+Ne livrez la mise à jour que si les tests passent. Pour une seule bibliothèque : `--upgrade-package fastapi`.

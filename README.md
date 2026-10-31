@@ -1,6 +1,6 @@
 # CGRS – réceptions & stocks
 
-Lancement (Python 3.10+) :
+Lancement (Python 3.12 ou 3.13) :
 
     pip install -r requirements.txt
     python -m uvicorn app:app --port 8000

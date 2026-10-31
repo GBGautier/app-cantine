@@ -7,7 +7,7 @@ rem Construit dist\CGRS.exe (un seul fichier, à copier sur n'importe quel poste
 if not exist "venv\Scripts\python.exe" (
   py -3.13 -m venv venv 2>nul || py -3.12 -m venv venv 2>nul || python -m venv venv
 )
-"venv\Scripts\python.exe" -m pip install -r requirements.txt pywebview pyinstaller
+"venv\Scripts\python.exe" -m pip install -r requirements.txt -r requirements-build.txt
 if errorlevel 1 ( echo Installation des dependances impossible. & pause & exit /b 1 )
 "venv\Scripts\python.exe" -m PyInstaller --noconfirm --clean cgrs.spec
 if errorlevel 1 ( echo La construction a echoue. & pause & exit /b 1 )

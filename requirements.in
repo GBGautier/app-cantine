@@ -1,0 +1,8 @@
+# Dépendances DIRECTES de l'application, aux versions testées. Ne modifiez pas requirements.txt à la main :
+# changez une version ici, puis régénérez le verrou (voir docs/DEPLOIEMENT.md, « Mettre à jour les dépendances »).
+fastapi==0.162.0
+uvicorn==0.54.0
+pdfplumber==0.11.10
+python-multipart==0.0.32
+pytesseract==0.3.13
+Pillow==13.0.0
