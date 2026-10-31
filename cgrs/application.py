@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 import db
+from cgrs import errors
 from cgrs.config import STATIC
 from cgrs.routes.commitments import seed_commitments
 from cgrs.routes import auth
@@ -45,6 +46,9 @@ async def security_headers(request: Request, call_next):
     if request.url.path.startswith("/api/"):
         resp.headers["Cache-Control"] = "no-store"
     return resp
+
+
+errors.register(app)
 
 
 # Enregistrement des routes (ordre des sections de l'ancien app.py)

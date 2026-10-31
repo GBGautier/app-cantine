@@ -65,6 +65,7 @@ def fill_unpriced_lines(product_id):
 
 
 @router.post("/api/products")
+@db.atomic
 def create_product(p: Product, user: dict = WRITE):
     pid = insert("products", p)
     if p.unit_price is not None:
@@ -74,6 +75,7 @@ def create_product(p: Product, user: dict = WRITE):
 
 
 @router.put("/api/products/{id}")
+@db.atomic
 def edit_product(id: int, p: Product, user: dict = WRITE):
     old = db.one("SELECT unit_price FROM products WHERE id=?", (id,))
     if not old:

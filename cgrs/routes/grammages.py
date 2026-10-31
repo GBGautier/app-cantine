@@ -62,6 +62,7 @@ class GrammageRowsUpdate(BaseModel):
 
 
 @router.put("/api/grammages-rows")
+@db.atomic
 def put_grammages_rows(g: GrammageRowsUpdate, user: dict = EDIT):
     db.execute("DELETE FROM grammages")
     for r in g.rows:

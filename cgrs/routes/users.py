@@ -35,6 +35,7 @@ def list_users(user: dict = ADMIN):
 
 
 @router.post("/api/users")
+@db.atomic
 def create_user(u: NewUser, user: dict = ADMIN):
     if u.role not in ROLES:
         raise HTTPException(400, "Profil inconnu")
@@ -49,6 +50,7 @@ def create_user(u: NewUser, user: dict = ADMIN):
 
 
 @router.put("/api/users/{id}")
+@db.atomic
 def edit_user(id: int, u: UserEdit, user: dict = ADMIN):
     target = db.one("SELECT * FROM users WHERE id=?", (id,))
     if not target:

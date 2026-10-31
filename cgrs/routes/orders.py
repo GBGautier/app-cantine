@@ -213,6 +213,7 @@ def find_duplicate(ref, kind, supplier_id=None, exclude_id=None):
 
 
 @router.post("/api/orders")
+@db.atomic
 def create_order(o: Order, user: dict = WRITE):
     normalize_order(o)
     dup = find_duplicate(o.ref, o.kind, o.supplier_id)
@@ -232,6 +233,7 @@ def create_order(o: Order, user: dict = WRITE):
 
 
 @router.put("/api/orders/{id}")
+@db.atomic
 def edit_order(id: int, o: Order, user: dict = WRITE):
     if not db.one("SELECT 1 AS x FROM orders WHERE id=?", (id,)):
         raise HTTPException(404)
@@ -257,6 +259,7 @@ def edit_order(id: int, o: Order, user: dict = WRITE):
 
 
 @router.delete("/api/orders/{id}")
+@db.atomic
 def delete_order(id: int, user: dict = WRITE):
     remove_order(id)
     return {"ok": True}

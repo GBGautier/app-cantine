@@ -194,6 +194,7 @@ async def parse_menu_pdf(file: UploadFile = File(...), user: dict = WRITE):
 
 
 @router.post("/api/meals")
+@db.atomic
 def create_meal(m: Meal, user: dict = WRITE):
     mid = db.execute(
         "INSERT INTO meals (date, entree, plat, accompagnement, laitage, dessert, statut) VALUES (?,?,?,?,?,?,?)",
@@ -203,6 +204,7 @@ def create_meal(m: Meal, user: dict = WRITE):
 
 
 @router.put("/api/meals/{id}")
+@db.atomic
 def edit_meal(id: int, m: Meal, user: dict = WRITE):
     if not db.one("SELECT 1 AS x FROM meals WHERE id=?", (id,)):
         raise HTTPException(404)

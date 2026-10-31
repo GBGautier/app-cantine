@@ -1,4 +1,7 @@
+import contextlib
+import functools
 import sqlite3
+import threading
 from pathlib import Path
 
 import paths
@@ -244,7 +247,51 @@ def init():
                       ('"' + old + '"', '"' + new + '"', '%"' + old + '"%'))
 
 
+_local = threading.local()   # connexion de la transaction en cours, propre à chaque thread
+
+
+def _current():
+    return getattr(_local, "conn", None)
+
+
+@contextlib.contextmanager
+def transaction():
+    """Regroupe plusieurs écritures : tout est enregistré ensemble, ou rien si une erreur survient.
+
+    Sans cela, chaque db.execute() valide immédiatement : une erreur au milieu d'une saisie laissait un enregistrement
+    partiel (par exemple un repas créé sans ses produits). Les appels imbriqués rejoignent la transaction en cours.
+    À utiliser uniquement dans du code synchrone (route `def`, exécutée dans son propre thread) : une route `async def`
+    partage le thread de la boucle d'événements et ne doit pas ouvrir de transaction.
+    """
+    if _current() is not None:
+        yield
+        return
+    c = conn()
+    _local.conn = c
+    try:
+        yield
+        c.commit()
+    except BaseException:
+        c.rollback()
+        raise
+    finally:
+        _local.conn = None
+        c.close()
+
+
+def atomic(fn):
+    """Décorateur : exécute toute la fonction dans une transaction (voir transaction())."""
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        with transaction():
+            return fn(*args, **kwargs)
+    return wrapper
+
+
 def rows(sql, args=()):
+    c = _current()
+    if c is not None:
+        return [dict(r) for r in c.execute(sql, args).fetchall()]
     with conn() as c:
         return [dict(r) for r in c.execute(sql, args).fetchall()]
 
@@ -255,6 +302,9 @@ def one(sql, args=()):
 
 
 def execute(sql, args=()):
+    c = _current()
+    if c is not None:
+        return c.execute(sql, args).lastrowid
     with conn() as c:
         cur = c.execute(sql, args)
         return cur.lastrowid

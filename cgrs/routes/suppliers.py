@@ -77,6 +77,7 @@ def create_supplier(s: Supplier, user: dict = WRITE):
 
 
 @router.put("/api/suppliers/{id}")
+@db.atomic
 def edit_supplier(id: int, s: Supplier, user: dict = WRITE):
     old = db.one("SELECT direct_producteur, keywords, parser_regex FROM suppliers WHERE id=?", (id,))
     if user["role"] != "admin" and old:   # ces deux champs ne sont pas modifiables hors administrateur

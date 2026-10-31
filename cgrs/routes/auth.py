@@ -22,6 +22,7 @@ def auth_status(request: Request):
 
 
 @router.post("/api/auth/setup")
+@db.atomic
 def auth_setup(c: Credentials, request: Request, response: Response):
     """Création du premier compte (administrateur) : possible uniquement tant qu'aucun utilisateur n'existe."""
     if request.headers.get("x-requested-with") != "cgrs":

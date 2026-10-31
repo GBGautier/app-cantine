@@ -106,6 +106,7 @@ def save_recipe_items(recipe_id, items: list[RecipeItem]):
 
 
 @router.post("/api/recipes")
+@db.atomic
 def create_recipe(r: Recipe, user: dict = WRITE):
     rid = db.execute(
         "INSERT INTO recipes (name, categorie, description, nb_maternelles, nb_elementaires, nb_adultes, created) "
@@ -117,6 +118,7 @@ def create_recipe(r: Recipe, user: dict = WRITE):
 
 
 @router.put("/api/recipes/{id}")
+@db.atomic
 def edit_recipe(id: int, r: Recipe, user: dict = WRITE):
     if not db.one("SELECT 1 AS x FROM recipes WHERE id=?", (id,)):
         raise HTTPException(404)
