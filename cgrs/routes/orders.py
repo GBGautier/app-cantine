@@ -17,9 +17,10 @@ from cgrs.uploads import save_upload
 from cgrs.services.orders import (
     find_duplicate_in,
     invoice_price_day,
+    line_total,
     order_total,
-    price_differs,
     price_in_product_unit,
+    price_update_plan,
     rank_candidates,
 )
 from cgrs.utils import insert, update
@@ -77,9 +78,7 @@ def get_order(id: int, user: dict = READ):
 
 def save_lines(order_id, lines):
     for l in lines:
-        total = l.total_ht
-        if total is None and l.qty is not None and l.unit_price is not None:
-            total = round(l.qty * l.unit_price, 2)
+        total = line_total(l.qty, l.unit_price, l.total_ht)
         db.execute(
             "INSERT INTO order_lines (order_id, product_id, ref, label, qty, unit, unit_price, total_ht) VALUES (?,?,?,?,?,?,?,?)",
             (order_id, l.product_id, l.ref, l.label, l.qty, l.unit, l.unit_price, total),
@@ -163,12 +162,15 @@ def update_prices(order_id, o: Order, day=None):
         last = db.one(
             "SELECT price, date FROM price_history WHERE product_id=? ORDER BY date DESC, id DESC LIMIT 1", (p["id"],)
         )
-        if last is None or price_differs(last["price"], price):
+        record, apply, report = price_update_plan(
+            last and last["price"], last and last["date"], price, day, p["unit_price"]
+        )
+        if record:
             add_history(p["id"], day, price, p["unit"], order_id, "reception")
-            if last is None or (last["date"] or "") <= day:
-                if p["unit_price"] is None or price_differs(p["unit_price"], price):
-                    changes.append({"name": p["name"], "old": p["unit_price"], "new": price, "unit": p["unit"]})
-                db.execute("UPDATE products SET unit_price=? WHERE id=?", (price, p["id"]))
+        if apply:
+            if report:
+                changes.append({"name": p["name"], "old": p["unit_price"], "new": price, "unit": p["unit"]})
+            db.execute("UPDATE products SET unit_price=? WHERE id=?", (price, p["id"]))
     return changes
 
 

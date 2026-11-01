@@ -21,6 +21,25 @@ def order_total(o):
     )
 
 
+def line_total(qty, unit_price, total_ht):
+    """Montant HT d'une ligne : celui saisi, à défaut quantité x prix unitaire arrondi au centime (sinon rien)."""
+    if total_ht is None and qty is not None and unit_price is not None:
+        return round(qty * unit_price, 2)
+    return total_ht
+
+
+def price_update_plan(last_price, last_date, price, day, current_price):
+    """Que faire d'un prix relevé sur une réception : (à inscrire à l'historique, à appliquer au produit, à signaler).
+
+    `last_price`/`last_date` : dernier relevé de l'historique (None s'il n'y en a pas) ; `day` : date de ce relevé ;
+    `current_price` : prix actuel du produit. Le prix du produit ne change que si le relevé est le plus récent.
+    """
+    record = last_price is None or price_differs(last_price, price)
+    apply = record and (last_price is None or (last_date or "") <= day)
+    report = apply and (current_price is None or price_differs(current_price, price))
+    return record, apply, report
+
+
 def price_in_product_unit(unit_price, line_unit, product_unit):
     """Prix d'une ligne exprimé dans l'unité du produit ; None si les unités sont incompatibles (€/kg et €/pièce).
 

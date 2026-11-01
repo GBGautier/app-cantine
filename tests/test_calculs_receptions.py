@@ -7,9 +7,11 @@ import pytest
 from cgrs.services.orders import (
     find_duplicate_in,
     invoice_price_day,
+    line_total,
     order_total,
     price_differs,
     price_in_product_unit,
+    price_update_plan,
     rank_candidates,
     ref_key,
 )
@@ -127,3 +129,32 @@ def test_rapprochement_limite_a_25_resultats():
 )
 def test_date_des_releves_de_prix(type_, livraison_actuelle, remplaces, attendu):
     assert invoice_price_day(type_, livraison_actuelle, remplaces) == attendu
+
+
+@pytest.mark.parametrize(
+    "qte, prix, montant, attendu",
+    [
+        (3, 1.333, None, 4.0),  # quantité x prix, arrondi au centime
+        (3, 1.333, 5.0, 5.0),  # le montant saisi l'emporte
+        (None, 2.0, None, None),
+        (2, None, None, None),
+        (0, 5.0, None, 0.0),
+    ],
+)
+def test_montant_d_une_ligne(qte, prix, montant, attendu):
+    assert line_total(qte, prix, montant) == attendu
+
+
+@pytest.mark.parametrize(
+    "dernier, date_dernier, prix, jour, actuel, attendu",
+    [
+        (None, None, 2.0, "2030-01-10", None, (True, True, True)),  # premier relevé
+        (2.0, "2030-01-01", 2.0, "2030-01-10", 2.0, (False, False, False)),  # prix inchangé
+        (2.0, "2030-01-01", 2.5, "2030-01-10", 2.0, (True, True, True)),  # hausse récente
+        (2.0, "2030-02-01", 2.5, "2030-01-10", 2.0, (True, False, False)),  # relevé plus ancien : historique seul
+        (2.0, "2030-01-10", 2.5, "2030-01-10", 2.5, (True, True, False)),  # même jour, produit déjà à ce prix
+        (2.0, None, 2.5, "2030-01-10", None, (True, True, True)),  # date du relevé précédent inconnue
+    ],
+)
+def test_plan_de_mise_a_jour_du_prix(dernier, date_dernier, prix, jour, actuel, attendu):
+    assert price_update_plan(dernier, date_dernier, prix, jour, actuel) == attendu
