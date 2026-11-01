@@ -28,4 +28,4 @@ pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, a.binaries, a.datas, [],
           name="CGRS-debug" if DEBUG else "CGRS",
           console=DEBUG,   # normal : sans console (fenêtre seule) ; debug : avec console
-          icon=None)
+          icon=os.path.join(SPECPATH, "cgrs.ico"))

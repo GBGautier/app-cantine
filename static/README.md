@@ -18,5 +18,7 @@ avant lui au moment de son chargement ; les fonctions ne s'appellent entre elles
 | `js/visionneuse-pdf.js` | Visionneuse de PDF (chargée après la fenêtre qu'elle pilote) |
 | `vendor/` | Bibliothèques tierces embarquées (jsPDF) : voir `vendor/README.md` |
 
+Le logo (`img/logo.png`, `img/favicon.png`) sert dans l'en-tête et comme icône de l'onglet ; `windows/cgrs.ico` est l'icône de l'exécutable.
+
 Le navigateur revalide ces fichiers à chaque ouverture (`Cache-Control: no-cache`) : après une mise à jour, on ne
 retrouve jamais un mélange d'anciens et de nouveaux fichiers.
