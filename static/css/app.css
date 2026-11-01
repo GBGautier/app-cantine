@@ -6,11 +6,11 @@ body{margin:0;font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;backgro
 a{color:var(--acc)}
 header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
 .wrap{max-width:1240px;margin:0 auto;padding:0 16px}
-header .wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap;min-height:54px}
-.logo{height:40px;width:auto;margin-right:-10px}
+header .wrap{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:54px}
+.logo{height:40px;width:auto;margin-right:-6px}
 .brand{font-size:18px;letter-spacing:.04em}
-nav{display:flex;gap:4px;flex-wrap:wrap;flex:1}
-nav a{padding:8px 12px;border-radius:8px;color:var(--mute);text-decoration:none;font-weight:500}
+nav{display:flex;gap:2px;flex-wrap:wrap;flex:1}
+nav a{padding:8px 8px;font-size:14px;white-space:nowrap;border-radius:8px;color:var(--mute);text-decoration:none;font-weight:500}
 nav a.on{background:var(--acc2);color:var(--acc)}
 #me{display:flex;gap:8px;align-items:center;color:var(--mute);font-size:13px}
 main{padding:20px 0 60px}
