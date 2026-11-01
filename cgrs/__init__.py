@@ -1,1 +1,1 @@
-"""CGRS – réceptions & stocks : application web (FastAPI + SQLite)."""
+"""Gestion de cantine – réceptions & stocks : application web (FastAPI + SQLite)."""

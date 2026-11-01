@@ -43,7 +43,7 @@ def backup(user: dict = ADMIN):
         z.writestr(
             "LISEZ-MOI.txt",
             (
-                f"Sauvegarde CGRS du {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
+                f"Sauvegarde du {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
                 "Contenu : cantine.db (toutes les données, y compris les comptes utilisateurs et leurs mots de passe chiffrés)\n"
                 "et uploads/ (PDF des réceptions, fiches techniques).\n\n"
                 "Ce fichier contient des données sensibles : ne le partagez pas.\n\n"
@@ -90,7 +90,9 @@ async def restore(file: UploadFile = File(...), user: dict = ADMIN):
             raise HTTPException(400, "Ce fichier n'est pas une archive .zip valide") from None
         with z:
             if "cantine.db" not in z.namelist():
-                raise HTTPException(400, "Archive invalide : cantine.db est absent (ce n'est pas une sauvegarde CGRS)")
+                raise HTTPException(
+                    400, "Archive invalide : cantine.db est absent (ce n'est pas une sauvegarde de cette application)"
+                )
             new_db = Path(tmp_dir) / "cantine.db"
             with z.open("cantine.db") as src, open(new_db, "wb") as dst:
                 dst.write(src.read())

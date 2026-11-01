@@ -18,6 +18,7 @@ import uvicorn
 
 from app import app
 from cgrs import journal
+from cgrs.services.branding import DEFAULT_NAME
 
 log = journal.get("bureau")
 
@@ -62,14 +63,14 @@ def fatal(message: str):
         try:
             import ctypes
 
-            ctypes.windll.user32.MessageBoxW(0, message, "CGRS", 0x10)
+            ctypes.windll.user32.MessageBoxW(0, message, DEFAULT_NAME, 0x10)
         except Exception:  # la boite de dialogue est un confort : le journal reste la reference
             pass
 
 
 def main():
     try:
-        log.info("Demarrage de CGRS (executable : %s)", getattr(sys, "frozen", False))
+        log.info("Demarrage (executable : %s)", getattr(sys, "frozen", False))
         port = find_free_port()
 
         # FastAPI dans un thread daemon (tue avec le process principal)
@@ -80,8 +81,10 @@ def main():
 
         import webview  # import differe : evite d'exiger pywebview sur un serveur
 
+        from cgrs.routes.branding import get_branding
+
         webview.create_window(
-            "CGRS – réceptions & stocks",
+            get_branding()["name"],  # nom choisi dans Paramètres > Personnalisation
             f"http://127.0.0.1:{port}",
             width=1200,
             height=800,
@@ -90,7 +93,7 @@ def main():
         webview.start(gui="edgechromium")  # force WebView2 sur Windows
     except Exception as e:
         log.exception("Echec du demarrage de l'application")
-        fatal(f"CGRS n'a pas pu demarrer : {e}\n\nDetails dans le dossier logs, fichier cgrs.log.")
+        fatal(f"L'application n'a pas pu demarrer : {e}\n\nDetails dans le dossier logs, fichier cgrs.log.")
         return
 
     # arret propre a la fermeture de la fenetre

@@ -11,6 +11,7 @@ from cgrs import autobackup, errors, journal
 from cgrs.config import API_DOCS, BACKUP_INTERVAL_HOURS, BACKUP_KEEP, BACKUPS, HSTS, LOGS, STATIC
 from cgrs.routes.commitments import seed_commitments
 from cgrs.routes import auth
+from cgrs.routes import branding
 from cgrs.routes import users
 from cgrs.routes import export
 from cgrs.routes import files
@@ -49,7 +50,7 @@ async def lifespan(_app: FastAPI):
 
 
 _docs = {} if API_DOCS else {"docs_url": None, "redoc_url": None, "openapi_url": None}
-app = FastAPI(title="CGRS – réceptions & stocks", lifespan=lifespan, **_docs)
+app = FastAPI(title="Gestion de cantine – réceptions & stocks", lifespan=lifespan, **_docs)
 
 
 @app.middleware("http")
@@ -78,6 +79,7 @@ errors.register(app)
 
 # Enregistrement des routes (ordre des sections de l'ancien app.py)
 app.include_router(auth.router)
+app.include_router(branding.router)
 app.include_router(users.router)
 app.include_router(export.router)
 app.include_router(files.router)
@@ -99,14 +101,9 @@ app.include_router(action_log.router)
 
 # Amorçage des données par défaut
 seed_commitments()
-DEFAULT_CLIENTS = "C.G.R.S. SAFFRE; CGRS; Saffré; Restaurant scolaire; Rest scolaire; Comité de gestion"
 _cn = db.one("SELECT value FROM settings WHERE key='client_names'")
-if not _cn:
-    db.execute("INSERT INTO settings (key, value) VALUES ('client_names', ?)", (DEFAULT_CLIENTS,))
-elif (
-    _cn["value"] == "C.G.R.S. SAFFRE"
-):  # ancienne valeur par défaut : on l'élargit aux variantes vues sur les documents
-    db.execute("UPDATE settings SET value=? WHERE key='client_names'", (DEFAULT_CLIENTS,))
+if not _cn:  # noms de la cantine sur les documents : à renseigner dans Paramètres (vide à l'installation)
+    db.execute("INSERT INTO settings (key, value) VALUES ('client_names', '')")
 
 
 @app.get("/")
