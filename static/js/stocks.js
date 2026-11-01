@@ -50,4 +50,3 @@ function inventoryForm(r) {
     toast(res.delta ? `Ajustement enregistré : ${res.delta > 0 ? '+' : ''}${num(res.delta)} ${r.unit || ''}` : 'Aucun écart : stock inchangé');
   });
 }
-

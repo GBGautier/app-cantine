@@ -323,4 +323,3 @@ function parseCgrsValGlobal(s) {
   const n = parseFloat(str);
   return isNaN(n) ? null : n;
 }
-

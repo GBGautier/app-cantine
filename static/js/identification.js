@@ -39,4 +39,3 @@ function passwordForm() {
     toast('Mot de passe modifié');
   });
 }
-

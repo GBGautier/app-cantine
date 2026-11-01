@@ -137,4 +137,3 @@ function productForm(sups, p = {}, mopts = {}) {
   mopts.onSwitch = () => { editable = true; drawDs(); };   // « ✏️ Modifier » : rend la fiche technique éditable
   modal(p.id ? (mopts.viewOnly ? p.name : 'Modifier le produit') : 'Nouveau produit', body, (canWrite() && !mopts.viewOnly) ? doSave : null, mopts);
 }
-

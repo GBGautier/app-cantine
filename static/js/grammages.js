@@ -236,4 +236,3 @@ async function pageGrammages() {
     tabBar,
     content);
 }
-

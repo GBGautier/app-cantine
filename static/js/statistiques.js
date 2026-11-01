@@ -39,4 +39,3 @@ async function pageStats() {
         : h('div', {class: 'empty'}, 'Aucun repas saisi sur la période'),
       h('p', {class: 'mute'}, 'Les quantités sorties sont valorisées au prix du produit à la date du repas (historique des prix des réceptions).')));
 }
-

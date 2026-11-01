@@ -84,4 +84,3 @@ function chart(points, fmt, bars = false, refLine = null) {
   return box;
 }
 function confirmDel(msg, fn) { return async () => { if (confirm(msg)) { try { await fn(); render(); } catch (e) { alert(e.message); } } }; }
-

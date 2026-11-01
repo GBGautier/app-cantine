@@ -209,4 +209,3 @@ function commitmentForm(c = {}) {
     await api(c.id ? '/commitments/' + c.id : '/commitments', {method: c.id ? 'PUT' : 'POST', body: d});
   });
 }
-

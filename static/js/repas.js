@@ -753,4 +753,3 @@ async function mealForm(m, mopts = {}, pageWrap = null) {
   mopts.saveHandler = doSave;
   modal(m.id ? 'Repas du ' + dfr(m.date) : 'Nouveau repas', body, (canWrite() && !mopts.viewOnly) ? doSave : null, mopts);
 }
-

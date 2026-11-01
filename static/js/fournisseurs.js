@@ -61,4 +61,3 @@ function supplierForm(s = {}, mopts = {}) {
   mopts.editTitle = s.id ? 'Modifier le fournisseur' : 'Nouveau fournisseur';
   modal(s.id ? (mopts.viewOnly ? s.name : 'Modifier le fournisseur') : 'Nouveau fournisseur', body, (canWrite() && !mopts.viewOnly) ? doSave : null, mopts);
 }
-

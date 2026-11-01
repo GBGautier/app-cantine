@@ -230,4 +230,3 @@ function exportStatsPdf(s, f) {
   const periodStr = fromStr || toStr ? `_${fromStr}_${toStr}` : '';
   doc.save(`stats_cgrs${periodStr}_${dateStr}.pdf`);
 }
-

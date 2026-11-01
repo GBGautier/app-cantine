@@ -238,4 +238,3 @@ async function orderForm(o, notice, warnings = [], mopts = {}) {
   const m = modal(o.id ? 'Réception' : 'Nouvelle réception', body, (canWrite() && !mopts.viewOnly) ? doSave : null, mopts);
   return m;
 }
-
