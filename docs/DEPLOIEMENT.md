@@ -13,10 +13,14 @@ Avec l'exécutable Windows, ces dossiers sont dans `%LOCALAPPDATA%\CGRS\` ; sino
 
 ## Application de bureau Windows
 
-**Exécutable (recommandé)** : double-cliquez sur `windows\construire_exe.bat` (Python 3.12 ou 3.13 requis, une seule fois, sur
+**Exécutable (facultatif)** : double-cliquez sur `windows\construire_exe.bat` (Python 3.12 ou 3.13 requis, une seule fois, sur
 un poste de construction). Il produit `dist\CGRS.exe`, un fichier unique à copier sur n'importe quel poste Windows,
 sans installer Python. Au lancement, une fenêtre s'ouvre sur l'application. Le poste doit avoir Microsoft Edge WebView2
 (déjà présent sur Windows 10/11 à jour).
+
+L'exécutable n'est pas signé : Windows 11 (Smart App Control) ou SmartScreen peut le bloquer avec le message « l'éditeur
+ne peut pas être vérifié ». Rien ne le corrige côté code ; utilisez alors `windows\lancer.bat` (non concerné), ou signez
+l'exécutable avec un certificat de signature de code (payant).
 
 Les données de l'exécutable sont dans `%LOCALAPPDATA%\CGRS\` (base, `uploads\`, `sauvegardes-auto\`, `logs\`) :
 mettre à jour l'exécutable ne touche pas aux données. Si l'exécutable ne démarre pas, lisez `logs\cgrs.log`.
