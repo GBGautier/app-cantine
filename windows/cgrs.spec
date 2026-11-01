@@ -1,5 +1,5 @@
 # Construction de l'exécutable (PyInstaller) : voir construire_exe.bat
-#   depuis la racine du projet : pyinstaller windows/cgrs.spec  ->  dist/CGRS.exe (Windows) ou dist/CGRS (autre système)
+#   depuis la racine du projet : pyinstaller windows/cgrs.spec  ->  dist/Cantine.exe (Windows) ou dist/Cantine (autre système)
 import os
 import sys
 
@@ -26,6 +26,6 @@ a = Analysis([os.path.join(ROOT, "main.py")], pathex=[ROOT], binaries=binaries, 
              excludes=["pytest", "httpx", "ruff", "tkinter"])
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, a.binaries, a.datas, [],
-          name="CGRS-debug" if DEBUG else "CGRS",
+          name="Cantine-debug" if DEBUG else "Cantine",
           console=DEBUG,   # normal : sans console (fenêtre seule) ; debug : avec console
           icon=os.path.join(SPECPATH, "cgrs.ico"))

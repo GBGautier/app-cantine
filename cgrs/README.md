@@ -10,7 +10,7 @@ se contente d'importer l'application assemblée ici.
 | Module | Contenu |
 |---|---|
 | `application.py` | Création de l'application, en-têtes de sécurité, enregistrement des routes, amorçage des données par défaut, fichiers statiques |
-| `db.py`, `paths.py` | Base SQLite (schéma, transactions) ; emplacement des données (à côté du code, ou `%LOCALAPPDATA%\CGRS` pour l'exécutable) |
+| `db.py`, `paths.py` | Base SQLite (schéma, transactions) ; emplacement des données (à côté du code, ou `%LOCALAPPDATA%\Cantine` pour l'exécutable) |
 | `parsers/` | Lecture des PDF de réceptions (`pdf_parser`), des menus (`menu_parser`), exports Dolibarr (`dolibarr`) |
 | `config.py` | Chemins : dossier statique, dossier des fichiers envoyés (`paths.py` reste la source) |
 | `constants.py` | Provenances, gammes, catégories, jours, profils |

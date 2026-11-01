@@ -9,12 +9,12 @@
 | Sauvegardes automatiques | `sauvegardes-auto/` (`auto-AAAAMMJJ-HHMMSS.db`) |
 | Journal technique | `logs/cgrs.log` (5 fichiers de 1 Mo maximum) |
 
-Avec l'exécutable Windows, ces dossiers sont dans `%LOCALAPPDATA%\CGRS\` ; sinon à côté du code.
+Avec l'exécutable Windows, ces dossiers sont dans `%LOCALAPPDATA%\Cantine\` ; sinon à côté du code.
 
 ## Application de bureau Windows
 
 **Exécutable (facultatif)** : double-cliquez sur `windows\construire_exe.bat` (Python 3.12 ou 3.13 requis, une seule fois, sur
-un poste de construction). Il produit `dist\CGRS.exe`, un fichier unique à copier sur n'importe quel poste Windows,
+un poste de construction). Il produit `dist\Cantine.exe`, un fichier unique à copier sur n'importe quel poste Windows,
 sans installer Python. Au lancement, une fenêtre s'ouvre sur l'application. Le poste doit avoir Microsoft Edge WebView2
 (déjà présent sur Windows 10/11 à jour).
 
@@ -22,8 +22,9 @@ L'exécutable n'est pas signé : Windows 11 (Smart App Control) ou SmartScreen p
 ne peut pas être vérifié ». Rien ne le corrige côté code ; utilisez alors `windows\lancer.bat` (non concerné), ou signez
 l'exécutable avec un certificat de signature de code (payant).
 
-Les données de l'exécutable sont dans `%LOCALAPPDATA%\CGRS\` (base, `uploads\`, `sauvegardes-auto\`, `logs\`) :
-mettre à jour l'exécutable ne touche pas aux données. Si l'exécutable ne démarre pas, lisez `logs\cgrs.log`.
+Les données de l'exécutable sont dans `%LOCALAPPDATA%\Cantine\` (base, `uploads\`, `sauvegardes-auto\`, `logs\`) :
+mettre à jour l'exécutable ne touche pas aux données. Un ancien dossier `%LOCALAPPDATA%\CGRS\` (anciennes versions) est repris
+automatiquement sous le nom `Cantine` au premier lancement ; s'il ne peut pas être renommé (fichier ouvert), l'ancien est utilisé. Si l'exécutable ne démarre pas, lisez `logs\cgrs.log`.
 
 **Sans exécutable** : `windows\lancer.bat` crée un environnement Python au premier lancement, puis ouvre l'application dans le
 navigateur (données à côté du code).

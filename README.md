@@ -21,7 +21,7 @@ python -m uvicorn app:app --port 8000
 
 Puis ouvrez <http://localhost:8000>.
 
-**Exécutable Windows (facultatif)** : `windows\construire_exe.bat` produit `dist\CGRS.exe` (fenêtre de bureau, sans Python
+**Exécutable Windows (facultatif)** : `windows\construire_exe.bat` produit `dist\Cantine.exe` (fenêtre de bureau, sans Python
 sur le poste). Il n'est pas signé : selon la configuration, Windows peut le bloquer (« l'éditeur ne peut pas être
 vérifié », Smart App Control). Dans ce cas, utilisez `windows\lancer.bat`. Détails dans `docs/DEPLOIEMENT.md`.
 
@@ -42,8 +42,8 @@ Ils apparaissent dans l'en-tête, sur l'écran de connexion, dans l'onglet du na
 bureau et sur les PDF. Le nom est aussi pris en compte par l'import de PDF (jamais pris pour un fournisseur). Le logo est
 enregistré dans la base : il suit les sauvegardes. Sans personnalisation, l'application s'appelle « Cantine ».
 
-L'icône de `CGRS.exe` est fixée à la construction : remplacez `windows\cgrs.ico` avant `construire_exe.bat` pour
-une autre icône. Les noms techniques (dossier `%LOCALAPPDATA%\CGRS`, `CGRS.exe`, variables `CGRS_*`) ne changent pas.
+L'icône de `Cantine.exe` est fixée à la construction : remplacez `windows\cgrs.ico` avant `construire_exe.bat` pour
+une autre icône. Les noms techniques (dossier `%LOCALAPPDATA%\Cantine`, `Cantine.exe`, variables `CGRS_*`) ne changent pas.
 
 ## Données et sauvegardes
 
@@ -54,7 +54,7 @@ une autre icône. Les noms techniques (dossier `%LOCALAPPDATA%\CGRS`, `CGRS.exe`
 | Sauvegardes automatiques (une par jour, 14 conservées) | `sauvegardes-auto/` |
 | Journal technique | `logs/cgrs.log` |
 
-Avec l'exécutable, ces dossiers sont dans `%LOCALAPPDATA%\CGRS\` ; sinon à côté du code.
+Avec l'exécutable, ces dossiers sont dans `%LOCALAPPDATA%\Cantine\` ; sinon à côté du code.
 
 - Paramètres > Sauvegarde télécharge tout (base + PDF) dans une archive .zip ; la restauration se fait depuis la même page.
 - **Copiez régulièrement `sauvegardes-auto/` et `uploads/` hors de l'ordinateur** (clé USB, disque réseau) : une sauvegarde
