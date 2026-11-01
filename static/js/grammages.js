@@ -77,7 +77,7 @@ async function pageGrammages() {
   let nbMat = CONVIVES_DEF.mat, nbElem = CONVIVES_DEF.elem, nbAdu = CONVIVES_DEF.adu;
 
   const note = h('div', {class: 'note'},
-    '📋 Grammages recommandés par le GEMRCN et grammages appliqués par le CGRS (en grammes, sauf mention contraire). Tolérance ± 10 %.');
+    '📋 Grammages recommandés par le GEMRCN et grammages appliqués par la cantine (en grammes, sauf mention contraire). Tolérance ± 10 %.');
 
   // Convives inputs panel
   const inpMat  = h('input', {type:'number', min:'0', value: String(CONVIVES_DEF.mat), style:'width:70px;text-align:center', oninput: () => { nbMat  = parseInt(inpMat.value)||0;  updateTotal(); recalc(); }});
@@ -208,9 +208,9 @@ async function pageGrammages() {
               h('th', {class: 'n', style: 'font-size:11px'}, 'GEMRCN Mat.'),
               h('th', {class: 'n', style: 'font-size:11px'}, 'GEMRCN Élém.'),
               h('th', {class: 'n', style: 'font-size:11px'}, 'GEMRCN Adulte'),
-              h('th', {class: 'n', style: 'border-left:2px solid var(--line);font-size:11px'}, 'CGRS Mat.'),
-              h('th', {class: 'n', style: 'font-size:11px'}, 'CGRS Élém.'),
-              h('th', {class: 'n', style: 'font-size:11px'}, 'CGRS Adulte'),
+              h('th', {class: 'n', style: 'border-left:2px solid var(--line);font-size:11px'}, 'Appliqué Mat.'),
+              h('th', {class: 'n', style: 'font-size:11px'}, 'Appliqué Élém.'),
+              h('th', {class: 'n', style: 'font-size:11px'}, 'Appliqué Adulte'),
               h('th', {class: 'n', style: 'border-left:2px solid var(--line);min-width:72px;font-size:11px'}, 'Coeff cru/cuit'),
               h('th', {class: 'n', style: 'border-left:2px solid var(--line);min-width:95px;color:var(--acc);font-size:11px'}, 'Qté à servir'),
               h('th', {class: 'n', style: 'min-width:90px;font-size:11px'}, 'Qté à acheter'))),

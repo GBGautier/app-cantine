@@ -1,5 +1,6 @@
 async function boot() {
   try {
+    await loadBranding();
     const st = await api('/auth/status', {noRedirect: true});
     if (st.user) { state.user = st.user; await enter(); }
     else showAuth(st.setup_needed);

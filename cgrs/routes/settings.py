@@ -16,13 +16,19 @@ class Settings(BaseModel):
 
 
 def get_client_names():
+    """Noms de la cantine sur les documents : ceux de la liste, plus le nom de la personnalisation s'il est défini."""
     r = db.one("SELECT value FROM settings WHERE key='client_names'")
-    return [x.strip() for x in (r["value"] if r else "").split(";") if x.strip()]
+    names = [x.strip() for x in (r["value"] if r else "").split(";") if x.strip()]
+    org = db.one("SELECT value FROM settings WHERE key='org_name'")
+    if org and org["value"].strip() and org["value"].strip() not in names:
+        names.append(org["value"].strip())
+    return names
 
 
 @router.get("/api/settings")
 def get_settings(user: dict = ADMIN):
-    return {"client_names": "; ".join(get_client_names())}
+    r = db.one("SELECT value FROM settings WHERE key='client_names'")
+    return {"client_names": "; ".join(x.strip() for x in (r["value"] if r else "").split(";") if x.strip())}
 
 
 @router.put("/api/settings")

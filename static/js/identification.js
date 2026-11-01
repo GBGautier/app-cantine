@@ -19,9 +19,9 @@ function showAuth(setup) {
     } catch (e) { err.textContent = e.message; err.style.display = 'block'; }
   };
   box.append(h('div', {class: 'authbox'}, h('div', {class: 'card'},
-    h('picture', {class: 'authlogo'},
-      h('source', {media: '(prefers-color-scheme: dark)', srcset: '/static/img/logo-complet-sombre.png'}),
-      h('img', {src: '/static/img/logo-complet.png', alt: 'CGRS – Cantine de Saffré', width: 209, height: 100})),
+    h('img', {class: 'authlogo', src: logoUrl(), alt: ''}),
+    h('h2', {style: 'text-align:center;margin-bottom:4px'}, branding.name),
+    branding.subtitle ? h('p', {class: 'mute', style: 'text-align:center;margin-top:0'}, branding.subtitle) : null,
     setup ? h('p', {class: 'mute'}, 'Première utilisation : créez le compte administrateur. Vous pourrez ensuite ajouter d\'autres utilisateurs dans Paramètres.') : null,
     h('label', {}, 'Identifiant'), u,
     h('label', {}, 'Mot de passe' + (setup ? ' (8 caractères minimum)' : '')), p,

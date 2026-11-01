@@ -2,7 +2,7 @@
 chcp 65001 >nul
 cd /d "%~dp0.."
 rem (ce script est dans windows\ : on travaille depuis le dossier du projet, ou se trouvent venv\ et les donnees)
-title CGRS
+title Gestion de cantine
 
 rem --- 1. environnement Python (cree une seule fois) ---
 if not exist "venv\Scripts\python.exe" (
@@ -32,7 +32,7 @@ if errorlevel 1 (
 
 rem --- 3. lancement ---
 echo.
-echo CGRS demarre sur http://localhost:8000  (fermez cette fenetre pour arreter)
+echo L application demarre sur http://localhost:8000  (fermez cette fenetre pour arreter)
 start "" /b cmd /c "timeout /t 3 >nul & start http://localhost:8000"
 "venv\Scripts\python.exe" -m uvicorn app:app --port 8000
 pause
