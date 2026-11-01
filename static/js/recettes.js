@@ -99,7 +99,7 @@ async function recipeForm(r, onSavedCb = null) {
     return gramRows;
   }
   function getCurrentGramOpts() {
-    return [['', '— sélectionner un intitulé CGRS —'], ...getFilteredGramRowsByCat(catSel.value)
+    return [['', '— sélectionner un intitulé de grammage —'], ...getFilteredGramRowsByCat(catSel.value)
       .map((g, i) => [String(i), g.label])
       .filter(([, l]) => l.length > 1 && !/^\*+$/.test(l.trim()))];
   }
@@ -255,7 +255,7 @@ async function recipeForm(r, onSavedCb = null) {
         h('label', {style: 'display:flex;align-items:center;gap:6px;font-size:14px;color:var(--ink)'}, h('span', {}, 'Élémentaires'), nbElemInp),
         h('label', {style: 'display:flex;align-items:center;gap:6px;font-size:14px;color:var(--ink)'}, h('span', {}, 'Adultes'), nbAduInp))),
     h('h3', {}, 'Ingrédients'),
-    h('p', {class: 'mute', style: 'margin-top:0;font-size:13px'}, 'Cochez "Principal" sur l\'ingrédient principal : choisissez son intitulé CGRS pour récupérer automatiquement les grammages. Les ingrédients secondaires utilisent les quantités totales à servir/commander.'),
+    h('p', {class: 'mute', style: 'margin-top:0;font-size:13px'}, 'Cochez "Principal" sur l\'ingrédient principal : choisissez son intitulé de grammage pour récupérer automatiquement les grammages. Les ingrédients secondaires utilisent les quantités totales à servir/commander.'),
     h('div', {class: 'tablewrap'}, h('table', {},
       h('thead', {}, h('tr', {},
         h('th', {style: 'text-align:center;width:60px'}, 'Principal'),

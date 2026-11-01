@@ -1,7 +1,7 @@
-# CGRS – réceptions & stocks
+# Gestion de cantine – réceptions & stocks
 
 Application de gestion des réceptions (bons de livraison, factures), des stocks, des recettes et des repas de la
-cantine de Saffré : fournisseurs, produits et prix, import de PDF, coût des repas, statistiques (Egalim), exports.
+cantine : fournisseurs, produits et prix, import de PDF, coût des repas, statistiques (Egalim), exports.
 Serveur FastAPI + base SQLite, interface web servie par l'application elle-même (aucun accès à Internet nécessaire).
 
 ## Lancer l'application
@@ -34,6 +34,16 @@ Le premier écran demande de créer le compte administrateur. Ensuite, Paramètr
 - **Statistiques** : uniquement la page Statistiques, sans aucun prix (les prix sont retirés côté serveur).
 
 Si l'application est accessible depuis le réseau, créez le compte administrateur tout de suite.
+
+## Personnaliser (nom, logo)
+
+Paramètres > **Personnalisation** : nom et sous-titre de votre cantine, et logo (PNG, JPEG ou WebP, 512 Ko maximum).
+Ils apparaissent dans l'en-tête, sur l'écran de connexion, dans l'onglet du navigateur, dans le titre de la fenêtre de
+bureau et sur les PDF. Le nom est aussi pris en compte par l'import de PDF (jamais pris pour un fournisseur). Le logo est
+enregistré dans la base : il suit les sauvegardes. Sans personnalisation, l'application s'appelle « Cantine ».
+
+L'icône de `CGRS.exe` est fixée à la construction : remplacez `windows\cgrs.ico` avant `construire_exe.bat` pour
+une autre icône. Les noms techniques (dossier `%LOCALAPPDATA%\CGRS`, `CGRS.exe`, variables `CGRS_*`) ne changent pas.
 
 ## Données et sauvegardes
 

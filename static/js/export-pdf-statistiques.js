@@ -34,7 +34,7 @@ function exportStatsPdf(s, f) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(...GREEN);
-  doc.text('CGRS — Statistiques des achats', margin, y);
+  doc.text(branding.name + ' — Statistiques des achats', margin, y);
   y += 7;
 
   // Période
@@ -220,7 +220,7 @@ function exportStatsPdf(s, f) {
     doc.setFontSize(8);
     doc.setTextColor(...MUTE);
     doc.text(`Page ${p} / ${totalPages}`, pageW - margin, doc.internal.pageSize.getHeight() - 8, {align: 'right'});
-    doc.text('CGRS', margin, doc.internal.pageSize.getHeight() - 8);
+    doc.text(branding.name, margin, doc.internal.pageSize.getHeight() - 8);
   }
 
   // Nom de fichier

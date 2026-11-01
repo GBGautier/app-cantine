@@ -1,11 +1,36 @@
 /* ---------- Paramètres ---------- */
+function brandingCard() {
+  const name = h('input', {value: branding.name, maxlength: 60, placeholder: 'Cantine'});
+  const sub = h('input', {value: branding.subtitle, maxlength: 80, placeholder: 'ex. Cantine de la commune'});
+  const preview = h('img', {src: logoUrl(), alt: '', style: 'height:64px;max-width:160px;object-fit:contain;border:1px solid var(--line);border-radius:8px;padding:4px'});
+  const file = h('input', {type: 'file', accept: 'image/png,image/jpeg,image/webp', style: 'display:none'});
+  const removeBtn = h('button', {class: 's d', style: branding.logo ? '' : 'display:none'}, 'Retirer le logo');
+  const refresh = b => { applyBranding(b); preview.src = logoUrl(); removeBtn.style.display = branding.logo ? '' : 'none'; };
+  const run = async fn => { try { refresh(await fn()); toast('Enregistré'); } catch (e) { alert(e.message); } };
+  file.addEventListener('change', () => {
+    const f = file.files[0]; file.value = '';
+    if (!f) return;
+    const fd = new FormData(); fd.append('file', f);
+    run(() => api('/branding/logo', {method: 'POST', body: fd}));
+  });
+  removeBtn.addEventListener('click', () => run(() => api('/branding/logo', {method: 'DELETE'})));
+  return h('div', {class: 'card'}, h('h3', {}, 'Personnalisation'),
+    h('p', {class: 'mute', style: 'margin-top:0'}, "Nom, sous-titre et logo de votre cantine : ils s'affichent dans l'en-tête, sur l'écran de connexion, dans l'onglet du navigateur et sur les PDF."),
+    h('div', {class: 'f'}, field('Nom', name), field('Sous-titre (facultatif)', sub)),
+    h('div', {style: 'margin-top:10px'}, h('button', {class: 'p', onclick: () => run(() => api('/branding', {method: 'PUT', body: {name: name.value, subtitle: sub.value}}))}, 'Enregistrer')),
+    h('div', {style: 'display:flex;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap'}, preview,
+      h('label', {class: 'btn', style: 'margin:0;cursor:pointer'}, 'Choisir un logo…', file), removeBtn,
+      h('span', {class: 'mute'}, 'PNG, JPEG ou WebP, 512 Ko maximum.')));
+}
+
 async function pageSettings() {
   const [list, st, users, actionLog] = await Promise.all([api('/commitments'), api('/settings'), api('/users'), api('/action-log')]);
   const labels = Object.fromEntries(state.meta.metrics);
-  const cn = h('input', {value: st.client_names, placeholder: 'ex. C.G.R.S. SAFFRE'});
+  const cn = h('input', {value: st.client_names, placeholder: 'ex. Restaurant scolaire ; Cantine municipale'});
   let dMat, dElem, dAdu;
   return h('div', {},
     h('h2', {}, 'Paramètres'),
+    brandingCard(),
     h('div', {class: 'card'}, h('h3', {}, 'Utilisateurs'),
       h('p', {class: 'mute', style: 'margin-top:0'}, 'Administrateur : tous les droits. Lecture seule : consulte tout sans rien modifier. Statistiques : accès à la seule page Statistiques, sans aucun prix (achats HT, prix par repas, coûts matières).'),
       h('div', {class: 'tablewrap'}, h('table', {},
@@ -36,8 +61,8 @@ async function pageSettings() {
             toast('Enregistré');
           } catch (e) { alert(e.message); }
         }}, 'Enregistrer'))),
-    h('div', {class: 'card'}, h('h3', {}, 'Nom de la cantine'),
-      h('p', {class: 'mute', style: 'margin-top:0'}, "Tel qu'il apparaît sur les documents (plusieurs noms séparés par « ; »). L'import PDF ne le prendra jamais pour un fournisseur."),
+    h('div', {class: 'card'}, h('h3', {}, 'Noms de la cantine sur les documents'),
+      h('p', {class: 'mute', style: 'margin-top:0'}, "Tels qu'ils apparaissent sur les bons de livraison et factures (plusieurs noms séparés par « ; »). L'import PDF ne les prendra jamais pour un fournisseur. Le nom choisi dans Personnalisation est déjà pris en compte."),
       h('div', {class: 'row', style: 'margin:0'}, h('div', {style: 'flex:1'}, cn),
         h('button', {onclick: async () => { try { await api('/settings', {method: 'PUT', body: {client_names: cn.value}}); toast('Enregistré'); } catch (e) { alert(e.message); } }}, 'Enregistrer'))),
     h('div', {class: 'card'}, h('h3', {}, 'Export Dolibarr'),
