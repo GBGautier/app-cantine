@@ -87,6 +87,8 @@ small.hint{display:block;color:var(--warn);font-size:12px;margin-top:2px}
 .note.w{background:var(--warnbg)}
 .authbox{max-width:380px;margin:12vh auto;padding:0 16px}
 .authbox .card{padding:24px}
+.authlogo{display:block;text-align:center;margin-bottom:8px}
+.authlogo img{max-width:100%;height:auto}
 .authbox label{margin-top:12px}
 .chart svg{width:100%;height:auto;display:block}
 .neg{color:var(--warn);font-weight:600}
