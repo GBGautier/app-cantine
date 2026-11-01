@@ -1,6 +1,7 @@
 """Tests d'interface : un vrai navigateur (Chromium) pilote l'application lancée sur une base vide et jetable.
 
 Prérequis : pip install playwright && playwright install chromium.  Sans cela, ces tests sont ignorés.
+Variable CGRS_UI_TOLERER_EXTERNE=1 : n'échoue pas sur les requêtes externes (version d'origine qui charge jsPDF depuis un CDN).
 Variable CGRS_UI_TARGET : dossier de code à tester (défaut : ce dépôt) ; permet de jouer les mêmes tests sur une autre version.
 """
 
@@ -54,6 +55,9 @@ def serveur():
             ".*cache",
         ),
     )
+    # la version d'origine ne crée pas le dossier des PDF au démarrage (corrigé depuis) : on le prépare pour pouvoir
+    # rejouer les mêmes tests sur elle
+    (code / "uploads").mkdir(exist_ok=True)
     port = port_libre()
     env = {**os.environ, "CGRS_BACKUP_INTERVAL_HOURS": "0"}
     proc = subprocess.Popen(
@@ -115,7 +119,8 @@ def page(contexte, serveur):
     p.set_default_timeout(8000)
     yield p
     assert not p.erreurs_js, f"Erreurs JavaScript dans la page : {p.erreurs_js}"
-    assert not contexte.externes, f"Requêtes vers des sites externes : {contexte.externes}"
+    if not os.environ.get("CGRS_UI_TOLERER_EXTERNE"):  # utile seulement pour rejouer les tests sur la version d'origine
+        assert not contexte.externes, f"Requêtes vers des sites externes : {contexte.externes}"
 
 
 class Api:
