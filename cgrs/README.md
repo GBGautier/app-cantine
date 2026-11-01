@@ -27,7 +27,7 @@ se contente d'importer l'application assemblée ici.
 | `routes/settings.py`, `convives.py`, `grammages.py`, `commitments.py`, `meta.py` | Paramètres, effectifs par défaut, grammages, engagements, métadonnées du frontend |
 | `routes/backup.py`, `export.py`, `files.py`, `action_log.py` | Sauvegarde / restauration ; exports Dolibarr ; fichiers ; journal |
 
-À la racine : `app.py` (`uvicorn app:app`), `main.py` (application de bureau), `static/` (interface). Scripts Windows dans `windows/`, dépendances dans `requirements/` (sauf `requirements.txt`, à la racine).
+À la racine : `app.py` (`uvicorn app:app`), `main.py` (application de bureau), `static/` (interface, organisation dans `static/README.md`). Scripts Windows dans `windows/`, dépendances dans `requirements/` (sauf `requirements.txt`, à la racine).
 
 Ajouts du durcissement : `errors.py` (erreurs de base de données → réponses claires, erreurs internes avec référence),
 `journal.py` (journal fichier), `autobackup.py` (sauvegardes automatiques). Voir `docs/DEPLOIEMENT.md`.

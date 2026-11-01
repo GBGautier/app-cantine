@@ -66,6 +66,10 @@ async def security_headers(request: Request, call_next):
         resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
     if request.url.path.startswith("/api/"):
         resp.headers["Cache-Control"] = "no-store"
+    elif request.url.path == "/" or request.url.path.startswith("/static/"):
+        # l'interface est répartie en plusieurs fichiers : le navigateur doit les revalider à chaque ouverture (réponse 304
+        # si rien n'a changé) pour ne jamais mélanger d'anciens et de nouveaux fichiers après une mise à jour
+        resp.headers["Cache-Control"] = "no-cache"
     return resp
 
 
