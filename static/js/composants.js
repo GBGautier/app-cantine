@@ -48,6 +48,22 @@ function modal(title, body, onSave, opts = {}) {
   document.body.append(m);
   return m;
 }
+// Télécharge un fichier produit par l'API (le message d'erreur du serveur est lisible, au lieu d'une page JSON brute)
+async function downloadFile(path, fallbackName) {
+  const r = await fetch('/api' + path, {headers: {'X-Requested-With': 'cgrs'}, credentials: 'same-origin'});
+  if (!r.ok) {
+    let m = 'Erreur serveur ' + r.status;
+    try { const j = await r.json(); m = Array.isArray(j.detail) ? j.detail.map(d => d.msg).join(' ; ') : (j.detail || m); } catch {}
+    throw new Error(m);
+  }
+  const mt = (r.headers.get('Content-Disposition') || '').match(/filename="?([^";]+)"?/i);
+  const url = URL.createObjectURL(await r.blob());
+  const a = document.createElement('a');
+  a.href = url; a.download = mt ? mt[1] : fallbackName;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+  return r;
+}
 function bars(items) {
   if (!items.length) return h('div', {class: 'empty'}, 'Pas de données');
   const max = Math.max(...items.map(i => i.pct), 1);

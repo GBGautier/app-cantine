@@ -71,6 +71,17 @@ Les montants lus par OCR sont à vérifier ; l'application avertit si la somme d
 Fournisseur au format particulier : renseignez une expression régulière (groupes `code`, `label`, `qty`, `unit`,
 `unit_price`, `total`) sur sa fiche.
 
+## Export d'une période
+
+Réceptions > **Exporter…** : choisissez les dates (par défaut le mois précédent) et le type (factures, bons de livraison
+ou les deux), puis téléchargez :
+
+- **le CSV des lignes** : une ligne par produit reçu, avec la réception (date, type, référence, fournisseur), le produit
+  (catégorie, gamme), la quantité, le prix et le montant HT, et les indicateurs : label Egalim, provenance, et
+  oui/non pour bio, Egalim, local, direct producteur, commerce équitable (mêmes définitions que les statistiques). Séparateur
+  « ; », virgule décimale : il s'ouvre directement dans Excel ;
+- **l'archive des PDF** : les PDF d'origine, un fichier par document, nommés `date_fournisseur_référence.pdf`.
+
 ## Pour les développeurs
 
 ```
