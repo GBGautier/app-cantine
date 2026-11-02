@@ -110,17 +110,15 @@ MONTHS = {
 # ---------------------------------------------------------------- lecture du PDF
 
 
-def ocr_page(page):
-    """OCR d'une page-image. Renvoie '' si tesseract n'est pas installé."""
-    if not shutil.which("tesseract"):
-        return ""
+def _tesseract(page, resolution, psm):
+    """Une passe d'OCR ; '' si elle échoue."""
     with tempfile.TemporaryDirectory() as td:
         png = Path(td) / "page.png"
-        page.to_image(resolution=250).save(str(png))
+        page.to_image(resolution=resolution).save(str(png))
         for lang in ("fra+eng", "eng"):
             try:
                 r = subprocess.run(
-                    ["tesseract", str(png), "stdout", "-l", lang, "--psm", "6"],
+                    ["tesseract", str(png), "stdout", "-l", lang, "--psm", str(psm)],
                     capture_output=True,
                     text=True,
                     timeout=120,
@@ -130,6 +128,26 @@ def ocr_page(page):
             if r.returncode == 0 and r.stdout.strip():
                 return r.stdout
     return ""
+
+
+def ocr_page(page):
+    """OCR d'une page-image. Renvoie '' si tesseract n'est pas installé.
+
+    Première passe : 250 dpi, page lue ligne à ligne (psm 6). Si elle ne donne aucune ligne d'article,
+    seconde passe : 300 dpi, texte en colonnes (psm 4), qui lit mieux certains tableaux ; on garde la meilleure.
+    """
+    if not shutil.which("tesseract"):
+        return ""
+    texte = _tesseract(page, 250, 6)
+
+    def nb_lignes(t):
+        return len(parse_lines(re.sub(r"[|\[\]()]", " ", t)))
+
+    if nb_lignes(texte) == 0:
+        autre = _tesseract(page, 300, 4)
+        if nb_lignes(autre) > 0:
+            return autre
+    return texte
 
 
 HEAD_FIELDS = (
@@ -320,6 +338,15 @@ PROFILES = [
             r"(?P<unit_price>\d+[.,]\d+)\s*€?\s*/?\s*(?P<unit>[Kk]g|[Ll])\b"
         ),
     ),
+    # Viande (TEBA, facture sans « €/Kg ») : 7377 SAUCISSES DE BOEUF BIO 120126237002 11,000 25,250 12,500 315,630 5.5%
+    # (code, libellé, lot, pièces, poids, prix au kg, montant, TVA)
+    (
+        "teba_poids",
+        re.compile(
+            r"^(?P<code>\d{4,})\s+(?P<label>.+?)\s+(?P<lot>\d{9,})\s+(?P<pieces>\d+[.,]\d{3})\s+(?P<weight>\d+[.,]\d{3})\s+"
+            r"(?P<unit_price>\d+[.,]\d{2,3})\s+(?P<total>-?\d+[.,]\d{2,3})\s+\d+[.,]?\d*\s*%"
+        ),
+    ),
     # Grossiste (Passionfroid / Pomona) : 40/ 267328 Emmental rapé BIO 1KGx10 6,000COL 66,000SAC 9,360 F 1 617,76
     (
         "pomona",
@@ -426,7 +453,7 @@ def parse_lines(text, custom_regex=None):
                     "ref": (g.get("code") or None),
                     "label": label,
                     "qty": qty,
-                    "unit": unit_norm(g.get("unit")),
+                    "unit": unit_norm(g.get("unit")) or ("kg" if name == "teba_poids" else None),
                     "unit_price": pu,
                     "total_ht": total,
                 }
@@ -438,6 +465,7 @@ def parse_lines(text, custom_regex=None):
 # ---------------------------------------------------------------- en-tête du document
 
 DATE_RE = re.compile(r"(\d{2})[/.-](\d{2})[/.-](\d{4})")
+PIECE_DATE_RE = re.compile(r"date\s+de\s+la\s+pi[eèéê]ce\s*:?\s*(\d{2})[/.-](\d{2})[/.-](\d{4})", re.I)
 LONG_DATE_RE = re.compile(
     r"(\d{1,2})\s*(janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre)\s+(\d{4})",
     re.I,
@@ -742,6 +770,9 @@ def parse_document(text, table_lines, warnings, ocr_used, filename, suppliers, p
             a_, b_ = f"{m2.group(3)}-{m2.group(2)}-{m2.group(1)}", f"{m2.group(6)}-{m2.group(5)}-{m2.group(4)}"
             date = min(a_, b_)
             d = None
+    pm = PIECE_DATE_RE.search(text)
+    if pm and not date:  # « Date de la pièce : 31/08/2026 » (et non la date de la commande citée plus haut)
+        d = pm
     if fn_date:
         date = fn_date
     elif date:
