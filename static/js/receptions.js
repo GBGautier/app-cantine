@@ -204,13 +204,21 @@ async function orderForm(o, notice, warnings = [], mopts = {}) {
     }
   };
   pdfInput.onchange = renderPdfStatus;
+  // Consultation : le PDF lié s'affiche en lecture seule ; « Modifier » le remplace par les boutons Joindre / Supprimer
+  // (les deux versions existent dès l'ouverture : un bouton créé après coup n'existerait pas dans la fiche déverrouillée)
+  const pdfView = h('p', {class: 'mute', style: 'margin:10px 0 0'}, 'Fichier source : ',
+    currentPdf ? fileLink(currentPdf) : h('span', {}, 'aucun'));
+  const pdfEdit = h('div', {style: 'margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap'},
+    h('label', {class: 'btn s', style: 'cursor:pointer', title: 'Joindre un PDF (BL ou facture)'}, '📎 PDF', pdfInput),
+    pdfStatus, pdfDelBtn);
+  if (mopts.viewOnly) {
+    pdfEdit.style.display = 'none';
+    pdfEdit.setAttribute('data-viewhidden', 'flex');
+    const suite = mopts.onSwitch;
+    mopts.onSwitch = () => { pdfView.style.display = 'none'; if (suite) suite(); };
+  }
   const pdfBox = canWrite()
-    ? (mopts.viewOnly
-        ? h('p', {class: 'mute', style: 'margin:10px 0 0'}, 'Fichier source : ',
-            currentPdf ? fileLink(currentPdf) : h('span', {}, 'aucun'))   // en consultation : le PDF lié reste visible
-        : h('div', {style: 'margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap'},
-            h('label', {class: 'btn s', style: 'cursor:pointer', title: 'Joindre un PDF (BL ou facture)'}, '📎 PDF', pdfInput),
-            pdfStatus, pdfDelBtn))
+    ? h('div', {}, mopts.viewOnly ? pdfView : null, pdfEdit)
     : (currentPdf ? h('p', {class: 'mute'}, 'Fichier source : ', fileLink(currentPdf)) : null);
 
   const body = h('div', {},
@@ -247,11 +255,16 @@ async function orderForm(o, notice, warnings = [], mopts = {}) {
       source_file: currentPdf, notes: o.notes || null,
       replaces: kind === 'facture' ? [...picked].filter(([, on]) => on).map(([id]) => id) : [], lines};
     const res = await api(o.id ? '/orders/' + o.id : '/orders', {method: o.id ? 'PUT' : 'POST', body: data});
-    // Upload du PDF si un fichier a été sélectionné
+    if (!o.id) o.id = res.id;   // si l'envoi du PDF échoue, un nouvel « Enregistrer » met à jour au lieu de créer un doublon
+    // Upload du PDF si un fichier a été sélectionné (à la modification, la réponse ne contient pas l'identifiant)
     if (pdfInput.files && pdfInput.files[0]) {
       const fd = new FormData();
       fd.append('file', pdfInput.files[0]);
-      await fetch('/api/orders/' + res.id + '/upload-pdf', {method: 'POST', headers: {'x-requested-with': 'cgrs'}, body: fd});
+      const up = await fetch('/api/orders/' + (o.id || res.id) + '/upload-pdf', {method: 'POST', headers: {'x-requested-with': 'cgrs'}, body: fd});
+      if (!up.ok) {
+        let msg = ''; try { msg = (await up.json()).detail || ''; } catch (e) { /* réponse sans détail */ }
+        throw new Error('La réception est enregistrée, mais le PDF n\'a pas pu être joint' + (msg ? ' : ' + msg : '') + '.');
+      }
     }
     const c = res.created || {};
     const msgs = [];
