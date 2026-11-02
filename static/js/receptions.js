@@ -3,6 +3,32 @@ const KINDS = [['livraison', 'Bon de livraison (provisoire)'], ['facture', 'Fact
 const kindPill = k => k === 'facture' ? h('span', {class: 'pill'}, 'Facture') : h('span', {class: 'pill w', title: 'Provisoire : sera remplacé par la facture'}, 'Bon de livraison');
 const ordView = {q: '', kind: '', sup: ''};
 let importQueue = [];
+// Export d'une période : CSV des lignes (avec les indicateurs des produits) et archive des PDF d'origine
+function exportReceptions() {
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const now = new Date();   // par défaut : le mois précédent (période habituelle des factures)
+  const from = h('input', {type: 'date', value: iso(new Date(now.getFullYear(), now.getMonth() - 1, 1))});
+  const to = h('input', {type: 'date', value: iso(new Date(now.getFullYear(), now.getMonth(), 0))});
+  const kind = select([['facture', 'Factures'], ['livraison', 'Bons de livraison'], ['tous', 'Factures et bons de livraison']], 'facture');
+  const err = h('div', {class: 'err', style: 'display:none'});
+  const query = () => {
+    if (!from.value || !to.value) throw new Error('Indiquez les deux dates');
+    return `?date_from=${from.value}&date_to=${to.value}&kind=${kind.value}`;
+  };
+  const zipBtn = h('button', {onclick: async () => {
+    err.style.display = 'none'; zipBtn.disabled = true; busy(true);
+    try { const r = await downloadFile('/export/receptions/pdf.zip' + query(), 'pdf.zip');
+      const sans = Number(r.headers.get('X-Documents-Sans-Fichier') || 0);
+      toast('PDF téléchargés' + (sans ? ` (${sans} document(s) sans PDF conservé)` : '')); }
+    catch (e) { err.textContent = e.message; err.style.display = 'block'; }
+    finally { zipBtn.disabled = false; busy(false); }
+  }}, '⬇ Télécharger les PDF (archive zip)');
+  modal('Exporter des réceptions', h('div', {}, h('div', {class: 'f'}, field('Du', from), field('Au', to), field('Type', kind)),
+    h('p', {class: 'mute'}, 'Période selon la date de la réception. Le CSV contient une ligne par produit reçu, avec son label, sa provenance, sa gamme et les indicateurs bio, Egalim, local, direct producteur ; il s\'ouvre directement dans Excel.'),
+    h('div', {style: 'margin-top:8px'}, zipBtn), err),
+  async () => { await downloadFile('/export/receptions/lignes.csv' + query(), 'lignes.csv'); toast('CSV téléchargé'); },
+  {saveLabel: '⬇ Télécharger le CSV des lignes'});
+}
 async function pageOrders() {
   const [list, sups] = await Promise.all([api('/orders'), api('/suppliers')]);
   const q = h('input', {placeholder: 'Rechercher (réf., fournisseur)…', value: ordView.q, style: 'min-width:200px'});
@@ -32,9 +58,10 @@ async function pageOrders() {
   draw();
   return h('div', {},
     h('div', {class: 'tools'}, h('h2', {}, 'Bons de livraison & factures'),
-      canWrite() ? h('div', {class: 'ctl'},
-        h('label', {class: 'btn p'}, '⬆ Importer des PDF', h('input', {type: 'file', accept: '.pdf', multiple: true, style: 'display:none', onchange: importFiles})),
-        h('button', {onclick: () => orderForm({lines: [{}], kind: 'livraison'})}, '+ Saisie manuelle')) : null),
+      h('div', {class: 'ctl'},
+        canWrite() ? h('label', {class: 'btn p'}, '⬆ Importer des PDF', h('input', {type: 'file', accept: '.pdf', multiple: true, style: 'display:none', onchange: importFiles})) : null,
+        canWrite() ? h('button', {onclick: () => orderForm({lines: [{}], kind: 'livraison'})}, '+ Saisie manuelle') : null,
+        h('button', {onclick: exportReceptions}, '⬇ Exporter…'))),
     h('div', {class: 'card row'}, field('Recherche', q), field('Type', fk), field('Fournisseur', fs)),
     h('div', {class: 'card tablewrap'}, list.length ? h('table', {},
       h('thead', {}, h('tr', {}, ['Date', 'Type', 'Réf.', 'Fournisseur', 'Lignes', 'Total HT', 'Fichier source', ''].map((x, k) => h('th', {class: k === 4 || k === 5 ? 'n' : ''}, x)))), tb)
