@@ -27,7 +27,7 @@ def test_nom_et_sous_titre_partout(admin):
     aller(page, "Paramètres")
     champ_carte(page, "Nom").fill("Cantine du Port")
     champ_carte(page, "Sous-titre (facultatif)").fill("Ville de Test")
-    carte(page).get_by_role("button", name="Enregistrer").click()
+    carte(page).get_by_role("button", name="Enregistrer le nom et le sous-titre").click()
     # on attend le résultat lui-même (et non un message « Enregistré », qui figure aussi dans d'autres textes de la page)
     expect(page.locator("header .brand")).to_have_text("Cantine du Port")
     expect(page).to_have_title("Cantine du Port")
