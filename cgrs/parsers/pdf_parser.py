@@ -357,6 +357,17 @@ PROFILES = [
             re.I,
         ),
     ),
+    # Facture de commerce avec colonnes HT et TTC :
+    # CODE LIBELLÉ (BL N°… du …) QTÉ PU_HT PU_TTC REMISE% TVA% TOTAL_HT TOTAL_TTC
+    # Sans ce profil, la TVA était lue comme quantité et le total TTC comme total HT.
+    (
+        "ht_ttc",
+        re.compile(
+            r"^(?P<code>(?=[0-9A-Z]*\d)[0-9A-Z]{6,})\s+(?P<label>.+?)\s+(?P<qty>\d+[.,]\d{1,3})\s+"
+            r"(?P<unit_price>\d+[.,]\d{2,4})\s+\d+[.,]\d{2,4}\s+\d+[.,]\d{1,2}\s+\d+[.,]\d{1,2}\s+"
+            r"(?P<total>-?\d+[.,]\d{2})\s+-?\d+[.,]\d{2}\s*$"
+        ),
+    ),
     # Générique : libellé quantité unité PU total
     (
         "generic",
@@ -398,6 +409,8 @@ def parse_lines(text, custom_regex=None):
                     if prev and not DELIVERY_REF.match(prev) and not prev.lower().startswith(SKIP_LINE):
                         label = re.sub(r"^PROFESSIONNELS\s+", "", prev, flags=re.I).strip(" .-")
                         break
+            if name == "ht_ttc":  # « (BL N°6920 du 22/09/26 ) » rappelle le bon de livraison : ce n'est pas le libellé
+                label = re.sub(r"\s*\(\s*BL\b[^)]*\)", "", label).strip(" .-")
             if name == "capmaree":
                 label = re.sub(r"\s+[A-Z]{2,4}\s+-\s+.*$", "", label)
             label = label.lstrip("#").strip()
