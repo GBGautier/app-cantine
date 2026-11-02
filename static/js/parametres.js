@@ -16,11 +16,11 @@ function brandingCard() {
   removeBtn.addEventListener('click', () => run(() => api('/branding/logo', {method: 'DELETE'})));
   return h('div', {class: 'card'}, h('h3', {}, 'Personnalisation'),
     h('p', {class: 'mute', style: 'margin-top:0'}, "Nom, sous-titre et logo de votre cantine : ils s'affichent dans l'en-tête, sur l'écran de connexion, dans l'onglet du navigateur et sur les PDF."),
-    h('div', {class: 'f'}, field('Nom', name), field('Sous-titre (facultatif)', sub)),
-    h('div', {style: 'margin-top:10px'}, h('button', {class: 'p', onclick: () => run(() => api('/branding', {method: 'PUT', body: {name: name.value, subtitle: sub.value}}))}, 'Enregistrer')),
-    h('div', {style: 'display:flex;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap'}, preview,
+    h('div', {style: 'display:flex;align-items:center;gap:12px;flex-wrap:wrap'}, preview,
       h('label', {class: 'btn', style: 'margin:0;cursor:pointer'}, 'Choisir un logo…', file), removeBtn,
-      h('span', {class: 'mute'}, 'PNG, JPEG ou WebP, 512 Ko maximum.')));
+      h('span', {class: 'mute'}, 'PNG, JPEG ou WebP, 512 Ko maximum. Le logo est enregistré dès qu\'il est choisi.')),
+    h('div', {class: 'f', style: 'margin-top:16px'}, field('Nom', name), field('Sous-titre (facultatif)', sub)),
+    h('div', {style: 'margin-top:10px'}, h('button', {class: 'p', onclick: () => run(() => api('/branding', {method: 'PUT', body: {name: name.value, subtitle: sub.value}}))}, 'Enregistrer le nom et le sous-titre')));
 }
 
 async function pageSettings() {
