@@ -65,7 +65,7 @@ function exportStatsPdf(s, f) {
   const kpis = [];
   if (!hid) kpis.push(['Achats HT', pdfEur(s.total_ht)]);
   if (!hid) kpis.push(['Prix / repas (HT)', s.price_per_meal == null ? '—' : pdfEur(s.price_per_meal)]);
-  kpis.push(['Repas', String(s.meals)]);
+  kpis.push(['Repas valorisés', String(s.meals)]);
   kpis.push(['Convives', String(s.guests)]);
   kpis.push(['% bio', pdfPct(s.pct_bio)]);
   kpis.push(['% EGalim', pdfPct(s.pct_egalim)]);

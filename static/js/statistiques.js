@@ -18,8 +18,8 @@ async function pageStats() {
       h('button', {class: 'p', onclick: apply}, 'Appliquer')),
     h('div', {class: 'grid', style: 'margin-bottom:16px'},
       hid ? null : kpi('Achats HT', eur(s.total_ht)),
-      hid ? null : kpi('Prix / repas (HT)', s.price_per_meal == null ? '—' : eur(s.price_per_meal), `coûts matières ÷ convives · ${s.meals_priced} repas valorisés sur ${s.meals}`),
-      kpi('Repas', String(s.meals), `${s.guests} convives`),
+      hid ? null : kpi('Prix / repas (HT)', s.price_per_meal == null ? '—' : eur(s.price_per_meal), `coûts matières ÷ convives · ${s.meals} repas valorisés`),
+      kpi('Repas valorisés', String(s.meals), `${s.guests} convives`),
       kpi('% bio', pctf(s.pct_bio)),
       kpi('% EGalim', pctf(s.pct_egalim)),
       kpi('% local', pctf(s.pct_local), 'CC Nozay, 44, Pays de la Loire'),
@@ -36,6 +36,6 @@ async function pageStats() {
       s.daily.length ? h('div', {class: 'tablewrap'}, h('table', {},
         h('tr', {}, ['Date', 'Convives', 'Coût matières', '€ / convive', '% bio', '% local'].map((x, k) => h('th', {class: k ? 'n' : ''}, x))),
         [...s.daily].reverse().map(d => h('tr', {}, h('td', {}, dfr(d.date)), h('td', {class: 'n'}, d.guests), h('td', {class: 'n'}, eur(d.cost)), h('td', {class: 'n'}, eur(d.per_guest)), h('td', {class: 'n'}, pctf(d.pct_bio)), h('td', {class: 'n'}, pctf(d.pct_local))))))
-        : h('div', {class: 'empty'}, 'Aucun repas saisi sur la période'),
+        : h('div', {class: 'empty'}, 'Aucun repas valorisé sur la période (repas sans convive ou sans coût ignorés)'),
       h('p', {class: 'mute'}, 'Les quantités sorties sont valorisées au prix du produit à la date du repas (historique des prix des réceptions).')));
 }
