@@ -64,6 +64,11 @@ def stats(date_from: Optional[str] = None, date_to: Optional[str] = None, user: 
                 "per_guest": m["per_guest"],
                 "pct_bio": m["pct_bio"],
                 "pct_local": m["pct_local"],
+                "entree": m["entree"],
+                "plat": m["plat"],
+                "accompagnement": m["accompagnement"],
+                "laitage": m["laitage"],
+                "dessert": m["dessert"],
             }
             for m in mm
         ),

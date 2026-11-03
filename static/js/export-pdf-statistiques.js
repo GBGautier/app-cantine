@@ -132,82 +132,91 @@ function exportStatsPdf(s, f) {
     y = doc.lastAutoTable.finalY + 6;
   }
 
-  // Répartitions (barres)
+  // Répartitions (barres) : deux colonnes ; une rangée de deux sections n'est jamais coupée par un saut de page
   const barSections = [
     {title: 'Label EGalim', data: s.by_label},
     {title: 'Provenance', data: s.by_provenance},
     {title: 'Gamme des produits', data: s.by_gamme},
     {title: 'Catégorie', data: s.by_category},
     {title: 'Fournisseur', data: s.by_supplier},
-  ];
+  ].filter(sec => sec.data && sec.data.length);
 
-  // On regroupe les barSections en 2 colonnes sur la page
-  const secW = (pageW - 2 * margin - 8) / 2;
-  let colIdx = 0;
-  let rowY = y;
-  let maxYInRow = y;
-
-  for (const sec of barSections) {
-    if (!sec.data || !sec.data.length) continue;
-    const cx = margin + colIdx * (secW + 8);
-    let sy = rowY;
-
-    if (sy > 250) { doc.addPage(); sy = margin; rowY = margin; maxYInRow = margin; colIdx = 0; }
-
+  const pageH = doc.internal.pageSize.getHeight();
+  const bottom = pageH - 16;            // au-dessus du pied de page
+  const gap = 8;
+  const secW = (pageW - 2 * margin - gap) / 2;
+  const LABEL_W = 38, PCT_W = 12, BAR_H = 4, STEP = 7, MAX_ITEMS = 10;
+  const fitText = (text, maxW) => {     // raccourcit avec « ... » pour tenir dans maxW (police courante)
+    let t = String(text || '');
+    if (doc.getTextWidth(t) <= maxW) return t;
+    while (t.length > 1 && doc.getTextWidth(t + '...') > maxW) t = t.slice(0, -1);
+    return t.trimEnd() + '...';
+  };
+  const secHeight = sec => 5 + (Math.min(sec.data.length, MAX_ITEMS) + (sec.data.length > MAX_ITEMS ? 1 : 0)) * STEP + 3;
+  const drawBars = (sec, cx, top) => {
+    let sy = top;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(...INK);
     doc.text(sec.title, cx, sy);
     sy += 4;
-
-    const barH = 4;
-    const barMaxW = secW - 32;
+    const barX = cx + LABEL_W;
+    const barW = secW - LABEL_W - PCT_W;
     const maxPct = Math.max(...sec.data.map(i => i.pct), 1);
-    for (const item of sec.data.slice(0, 10)) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    for (const item of sec.data.slice(0, MAX_ITEMS)) {
       doc.setTextColor(...INK);
-      const lbl = String(item.label || '').substring(0, 22);
-      doc.text(lbl, cx, sy + barH - 0.5);
-      const bx = cx + 30;
-      const bw = barMaxW * item.pct / maxPct;
+      doc.text(fitText(item.label, LABEL_W - 2), cx, sy + BAR_H - 0.5);
       doc.setFillColor(233, 242, 236);
-      doc.rect(bx, sy, barMaxW, barH, 'F');
+      doc.rect(barX, sy, barW, BAR_H, 'F');
       doc.setFillColor(111, 165, 133);
-      if (bw > 0) doc.rect(bx, sy, bw, barH, 'F');
+      if (item.pct > 0) doc.rect(barX, sy, barW * item.pct / maxPct, BAR_H, 'F');
       doc.setTextColor(...MUTE);
-      doc.text(item.pct + ' %', bx + barMaxW + 2, sy + barH - 0.5);
-      sy += barH + 3;
+      doc.text(pdfNum(item.pct) + ' %', cx + secW, sy + BAR_H - 0.5, {align: 'right'});
+      sy += STEP;
     }
-    maxYInRow = Math.max(maxYInRow, sy + 4);
-
-    colIdx++;
-    if (colIdx >= 2) {
-      colIdx = 0;
-      rowY = maxYInRow + 2;
-      maxYInRow = rowY;
+    if (sec.data.length > MAX_ITEMS) {
+      doc.setTextColor(...MUTE);
+      doc.text('+ ' + (sec.data.length - MAX_ITEMS) + ' autre(s)', cx, sy + BAR_H - 0.5);
     }
+  };
+  for (let i = 0; i < barSections.length; i += 2) {
+    const pair = barSections.slice(i, i + 2);
+    const rowH = Math.max(...pair.map(secHeight));
+    if (y + rowH > bottom) { doc.addPage(); y = margin; }
+    pair.forEach((sec, k) => drawBars(sec, margin + k * (secW + gap), y));
+    y += rowH + 2;
   }
-  y = Math.max(maxYInRow, rowY) + 4;
+  y += 2;
 
-  // Tableau coût matières / repas (seulement si non masqué)
+  // Tableau des repas passés et valorisés : date, menu, convives, coût, € / convive, % bio, % local (seulement si non masqué)
   if (!hid && s.daily && s.daily.length) {
-    if (y > 220) { doc.addPage(); y = margin; }
+    if (y > bottom - 40) { doc.addPage(); y = margin; }
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(...INK);
     doc.text('Coût matières par repas', margin, y);
     y += 3;
     const dailyData = [...s.daily].reverse().filter(d => d.guests || d.cost || d.per_guest);
+    const menu = d => [d.entree, d.plat, d.accompagnement, d.laitage, d.dessert].filter(Boolean).join(' · ');
+    const right = {halign: 'right'};
     doc.autoTable({
       startY: y,
-      margin: {left: margin, right: margin},
-      styles: {fontSize: 8, cellPadding: 2, textColor: INK},
+      margin: {left: margin, right: margin, bottom: 18},
+      rowPageBreak: 'avoid',   // une ligne de repas n'est jamais coupée entre deux pages
+      styles: {fontSize: 8, cellPadding: 2, textColor: INK, overflow: 'linebreak', valign: 'middle'},
       headStyles: {fillColor: GREEN, textColor: [255,255,255], fontStyle: 'bold', fontSize: 8},
       alternateRowStyles: {fillColor: [240, 245, 242]},
-      columnStyles: {1: {halign: 'right'}, 2: {halign: 'right'}, 3: {halign: 'right'}},
-      head: [['Date', 'Convives', 'Coût matières', '€ / convive']],
-      body: dailyData.map(d => [dfr(d.date), d.guests ?? '—', pdfEur(d.cost), pdfEur(d.per_guest)]),
+      columnStyles: {
+        0: {cellWidth: 19},
+        1: {cellWidth: 'auto', fontSize: 7},
+        2: {...right, cellWidth: 19}, 3: {...right, cellWidth: 22}, 4: {...right, cellWidth: 20},
+        5: {...right, cellWidth: 13}, 6: {...right, cellWidth: 14},
+      },
+      didParseCell(data) { if (data.section === 'head' && data.column.index >= 2) data.cell.styles.halign = 'right'; },
+      head: [['Date', 'Menu', 'Convives', 'Coût matières', '€ / convive', '% bio', '% local']],
+      body: dailyData.map(d => [dfr(d.date), menu(d) || '—', d.guests ?? '—', pdfEur(d.cost), pdfEur(d.per_guest), pdfPct(d.pct_bio), pdfPct(d.pct_local)]),
     });
     y = doc.lastAutoTable.finalY + 6;
   }
