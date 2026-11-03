@@ -140,7 +140,7 @@ def test_export_des_receptions_d_une_periode(admin, api, tmp_path):
     assert zipfile.ZipFile(dl.value.path()).namelist() == ["2030-03-05_Ferme-Export_F-2030-1.pdf"]
 
     with page.expect_download() as dl:
-        page.locator(".modal").get_by_role("button", name="Télécharger le CSV des lignes").click()
+        page.locator(".modal").get_by_role("button", name="Télécharger les lignes").click()
     lignes = list(csv.DictReader(io.StringIO(open(dl.value.path(), encoding="utf-8-sig").read()), delimiter=";"))
     assert [(l["reference_reception"], l["produit"], l["quantite"], l["bio"]) for l in lignes] == [
         ("F-2030-1", "Carottes", "10", "oui")
@@ -156,5 +156,32 @@ def test_export_d_une_periode_sans_document_affiche_le_message(admin):
     page.get_by_role("button", name="Télécharger les PDF (archive zip)").click()
     page.get_by_text("Aucun document (factures)").wait_for()  # message lisible, la fenêtre reste ouverte
     champ(page, "Au").fill("2029-01-01")
-    page.locator(".modal").get_by_role("button", name="Télécharger le CSV des lignes").click()
+    page.locator(".modal").get_by_role("button", name="Télécharger les lignes").click()
     page.get_by_text("La date de début est après la date de fin").wait_for()
+
+
+def test_export_des_lignes_au_format_excel(admin, api):
+    import zipfile
+
+    page = admin
+    fid = api.post("/api/suppliers", {"name": "Ferme Excel"})["id"]
+    api.post(
+        "/api/orders",
+        {
+            "supplier_id": fid,
+            "ref": "F-XL-1",
+            "kind": "facture",
+            "date": "2030-03-05",
+            "lines": [{"label": "Carottes", "qty": 2, "unit": "kg", "unit_price": 1.5}],
+        },
+    )
+    aller(page, "Réceptions")
+    page.get_by_role("button", name="Exporter…").click()
+    champ(page, "Du").fill("2030-03-01")
+    champ(page, "Au").fill("2030-03-31")
+    champ(page, "Format").select_option("xlsx")
+    with page.expect_download() as dl:
+        page.locator(".modal").get_by_role("button", name="Télécharger les lignes").click()
+    assert dl.value.suggested_filename == "lignes_factures_2030-03-01_2030-03-31.xlsx"
+    z = zipfile.ZipFile(dl.value.path())
+    assert b"F-XL-1" in z.read("xl/worksheets/sheet1.xml")
