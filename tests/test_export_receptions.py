@@ -201,7 +201,7 @@ def test_zip_sans_document_ou_sans_pdf(client, jeu):
     assert r.status_code == 404 and "Aucun PDF conservé" in r.json()["detail"]
 
 
-@pytest.mark.parametrize("chemin", ["lignes.csv", "pdf.zip"])
+@pytest.mark.parametrize("chemin", ["lignes.csv", "lignes.xlsx", "pdf.zip"])
 def test_periode_invalide_refusee(client, chemin):
     r = client.get(f"/api/export/receptions/{chemin}", params={"date_from": "2031-04-01", "date_to": "2031-03-01"})
     assert r.status_code == 400 and "après la date de fin" in r.json()["detail"]
@@ -214,6 +214,60 @@ def test_acces_reserve_aux_utilisateurs_connectes(client):
     from cgrs.application import app
 
     anonyme = TestClient(app, headers={"X-Requested-With": "cgrs"})
-    for chemin in ("lignes.csv", "pdf.zip"):
+    for chemin in ("lignes.csv", "lignes.xlsx", "pdf.zip"):
         r = anonyme.get(f"/api/export/receptions/{chemin}", params={"date_from": "2031-03-01", "date_to": "2031-03-31"})
         assert r.status_code == 401
+
+
+def lire_xlsx(contenu):
+    """Relit un .xlsx écrit par l'application : liste de dictionnaires (valeurs typées) et feuille XML brute."""
+    import re
+    import zipfile
+    from xml.etree import ElementTree as ET
+
+    ns = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+    z = zipfile.ZipFile(io.BytesIO(contenu))
+    assert z.testzip() is None
+    racine = ET.fromstring(z.read("xl/worksheets/sheet1.xml"))
+    lignes = []
+    for row in racine.find("m:sheetData", ns):
+        valeurs = {}
+        for c in row:
+            col = re.match(r"[A-Z]+", c.get("r")).group()
+            if c.get("t") == "inlineStr":
+                valeurs[col] = "".join(t.text or "" for t in c.iter("{%s}t" % ns["m"]))
+            else:
+                valeurs[col] = float(c.find("m:v", ns).text)
+        lignes.append(valeurs)
+    return lignes
+
+
+def test_classeur_excel_des_factures_de_la_periode(client, jeu):
+    r = client.get("/api/export/receptions/lignes.xlsx", params={"date_from": "2031-03-01", "date_to": "2031-03-31"})
+    assert r.status_code == 200 and r.headers["content-disposition"].endswith('.xlsx"')
+    assert r.headers["content-type"].startswith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    lignes = lire_xlsx(r.content)
+    assert len(lignes) == 1 + 3  # en-tête + les 3 factures de mars (comme le CSV)
+    col = {nom: chr(65 + i) for i, nom in enumerate(CSV_HEADER)}
+    ent, premiere = lignes[0], lignes[1]
+    assert [ent[col[n]] for n in CSV_HEADER] == CSV_HEADER
+    assert premiere[col["reference_reception"]] == "F-EXP-1" and premiere[col["produit"]] == "Carottes export"
+    # vrais nombres et vraie date (numéro de série Excel), pas des textes
+    assert (premiere[col["quantite"]], premiere[col["prix_unitaire_ht"]], premiere[col["montant_ht"]]) == (
+        10.0,
+        1.5,
+        15.0,
+    )
+    assert premiere[col["date"]] == 47912.0  # 2031-03-05 : jours depuis 1899-12-30
+    assert premiere[col["bio"]] == "oui"
+
+
+def test_xlsx_dates_nombres_et_caracteres_speciaux():
+    from cgrs.services.xlsx import xlsx_bytes
+
+    contenu = xlsx_bytes(
+        ["d", "n", "t"], [["2000-01-01", "1,25", "a & <b> \x01é"], ["pas une date", "x", ""]], ("d",), ("n",)
+    )
+    _, a, b = lire_xlsx(contenu)
+    assert a == {"A": 36526.0, "B": 1.25, "C": "a & <b> é"}  # 2000-01-01 = 36526 ; caractère interdit retiré
+    assert b == {"A": "pas une date", "B": "x"}  # valeur illisible gardée en texte, cellule vide omise

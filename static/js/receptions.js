@@ -10,6 +10,7 @@ function exportReceptions() {
   const from = h('input', {type: 'date', value: iso(new Date(now.getFullYear(), now.getMonth() - 1, 1))});
   const to = h('input', {type: 'date', value: iso(new Date(now.getFullYear(), now.getMonth(), 0))});
   const kind = select([['facture', 'Factures'], ['livraison', 'Bons de livraison'], ['tous', 'Factures et bons de livraison']], 'facture');
+  const format = select([['csv', 'CSV (séparateur « ; »)'], ['xlsx', 'Excel (.xlsx)']], 'csv');
   const err = h('div', {class: 'err', style: 'display:none'});
   const query = () => {
     if (!from.value || !to.value) throw new Error('Indiquez les deux dates');
@@ -23,11 +24,11 @@ function exportReceptions() {
     catch (e) { err.textContent = e.message; err.style.display = 'block'; }
     finally { zipBtn.disabled = false; busy(false); }
   }}, '⬇ Télécharger les PDF (archive zip)');
-  modal('Exporter des réceptions', h('div', {}, h('div', {class: 'f'}, field('Du', from), field('Au', to), field('Type', kind)),
-    h('p', {class: 'mute'}, 'Période selon la date de la réception. Le CSV contient une ligne par produit reçu, avec son label, sa provenance, sa gamme et les indicateurs bio, Egalim, local, direct producteur ; il s\'ouvre directement dans Excel.'),
+  modal('Exporter des réceptions', h('div', {}, h('div', {class: 'f'}, field('Du', from), field('Au', to), field('Type', kind), field('Format', format)),
+    h('p', {class: 'mute'}, 'Période selon la date de la réception. Le fichier des lignes (CSV ou Excel) contient une ligne par produit reçu, avec son label, sa provenance, sa gamme et les indicateurs bio, Egalim, local, direct producteur.'),
     h('div', {style: 'margin-top:8px'}, zipBtn), err),
-  async () => { await downloadFile('/export/receptions/lignes.csv' + query(), 'lignes.csv'); toast('CSV téléchargé'); },
-  {saveLabel: '⬇ Télécharger le CSV des lignes'});
+  async () => { const ext = format.value; await downloadFile('/export/receptions/lignes.' + ext + query(), 'lignes.' + ext); toast((ext === 'xlsx' ? 'Fichier Excel' : 'CSV') + ' téléchargé'); },
+  {saveLabel: '⬇ Télécharger les lignes'});
 }
 async function pageOrders() {
   const [list, sups] = await Promise.all([api('/orders'), api('/suppliers')]);

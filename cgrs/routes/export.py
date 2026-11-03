@@ -13,7 +13,7 @@ from cgrs import db
 from cgrs.config import UPLOADS
 from cgrs.parsers import dolibarr
 from cgrs.security import READ
-from cgrs.services.exports import KINDS, check_period, csv_text, line_row, zip_member_name
+from cgrs.services.exports import KINDS, check_period, csv_text, line_row, xlsx_lines, zip_member_name
 
 
 router = APIRouter()
@@ -55,8 +55,7 @@ def _kind_filter(kind):
     return ("", ()) if kind == "tous" else (" AND o.kind=?", (kind,))
 
 
-@router.get("/api/export/receptions/lignes.csv")
-def export_reception_lines(date_from: str, date_to: str, kind: str = "facture", user: dict = READ):
+def _reception_lines(date_from, date_to, kind):
     """Une ligne par produit reçu sur la période, avec le produit et ses indicateurs (bio, Egalim, local, direct…)."""
     date_from, date_to, kind = _period(date_from, date_to, kind)
     extra, args = _kind_filter(kind)
@@ -72,10 +71,29 @@ def export_reception_lines(date_from: str, date_to: str, kind: str = "facture", 
     )
     for l in lines:
         l["source_file_name"] = re.sub(r"^[0-9a-f]{12}_", "", l["source_file"]) if l["source_file"] else ""
-    body = "\ufeff" + csv_text(line_row(l) for l in lines)  # BOM : Excel reconnaît l'UTF-8
-    name = f"lignes_{KINDS_FILE[kind]}_{date_from}_{date_to}.csv"
+    return [line_row(l) for l in lines], f"lignes_{KINDS_FILE[kind]}_{date_from}_{date_to}"
+
+
+@router.get("/api/export/receptions/lignes.csv")
+def export_reception_lines(date_from: str, date_to: str, kind: str = "facture", user: dict = READ):
+    """CSV des lignes de la période (séparateur « ; », virgule décimale)."""
+    rows, name = _reception_lines(date_from, date_to, kind)
+    body = "\ufeff" + csv_text(rows)  # BOM : Excel reconnaît l'UTF-8
     return Response(
-        body, media_type="text/csv; charset=utf-8", headers={"Content-Disposition": f'attachment; filename="{name}"'}
+        body,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{name}.csv"'},
+    )
+
+
+@router.get("/api/export/receptions/lignes.xlsx")
+def export_reception_lines_xlsx(date_from: str, date_to: str, kind: str = "facture", user: dict = READ):
+    """Les mêmes lignes dans un classeur Excel (vraies dates et vrais nombres, filtres sur l'en-tête)."""
+    rows, name = _reception_lines(date_from, date_to, kind)
+    return Response(
+        xlsx_lines(rows),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{name}.xlsx"'},
     )
 
 

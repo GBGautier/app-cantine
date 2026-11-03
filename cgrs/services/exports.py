@@ -11,6 +11,7 @@ from datetime import date
 
 from cgrs.constants import LOCAL, PROVENANCES
 from cgrs.services.orders import line_total
+from cgrs.services.xlsx import xlsx_bytes
 
 KINDS = {"facture": "factures", "livraison": "bons de livraison", "tous": "factures et bons de livraison"}
 
@@ -103,6 +104,16 @@ def csv_text(rows):
     w.writerow(CSV_HEADER)
     w.writerows(rows)
     return buf.getvalue()
+
+
+# colonnes du classeur Excel : vraies dates et vrais nombres (le CSV, lui, écrit des textes avec virgule décimale)
+DATE_COLUMNS = ("date",)
+NUMBER_COLUMNS = ("quantite", "prix_unitaire_ht", "montant_ht")
+
+
+def xlsx_lines(rows):
+    """Classeur Excel (octets) des mêmes lignes que le CSV."""
+    return xlsx_bytes(CSV_HEADER, rows, DATE_COLUMNS, NUMBER_COLUMNS, "Lignes de réception")
 
 
 def safe_name(text, limit=40):
