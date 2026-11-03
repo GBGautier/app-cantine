@@ -54,6 +54,7 @@ def stats(date_from: Optional[str] = None, date_to: Optional[str] = None, user: 
 
     mm = meals_metrics(date_from, date_to)
     priced, cost_total, guests_priced, price_per_meal = compute_price_per_meal(mm)
+    mm = priced  # les statistiques ne comptent que les repas valorisés (coût > 0 et au moins un convive)
     daily = sorted(
         (
             {
@@ -88,7 +89,7 @@ def stats(date_from: Optional[str] = None, date_to: Optional[str] = None, user: 
         "total_ht": total,
         "nb_lines": len(lines),
         "meals": len(mm),
-        "meals_priced": len(priced),
+        "meals_priced": len(priced),  # = « meals » (repas non valorisés exclus) ; gardé pour compatibilité
         "guests": sum(m["guests"] for m in mm),
         "cost_total": cost_total,
         "price_per_meal": price_per_meal,
