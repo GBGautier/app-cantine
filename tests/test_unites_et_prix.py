@@ -51,3 +51,12 @@ def test_price_at(jour, attendu):
 def test_price_at_sans_historique_prend_le_prix_courant():
     assert price_at(HIST, 8, "2026-01-01", 1.25) == 1.25
     assert price_at({}, 8, "2026-01-01", None) is None
+
+
+def test_ecritures_courantes_des_unites():
+    from cgrs.services.units import convert
+
+    assert convert(2, "pce", "pièce") == 2 and convert(2, "Piece", "u") == 2
+    assert convert(500, "gr", "kg") == 0.5 and convert(2, "kgs", "kg") == 2 and convert(2, "Kilo", "g") == 2000
+    assert convert(2, "pc.", "unité") == 2
+    assert convert(2, "kg", "pce") is None  # masse et pièces restent incompatibles

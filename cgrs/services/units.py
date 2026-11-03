@@ -21,12 +21,36 @@ UNITS = {
     "bidon": ("bidon", 1),
     "boite": ("boite", 1),
 }
+# Écritures courantes d'une même unité (saisies à la main ou lues dans un PDF) : sans cela, « 2 pce » sur un produit
+# en « pièce » était suivi à part, et le stock du produit ne diminuait pas.
+ALIASES = {
+    "kilo": "kg",
+    "kilos": "kg",
+    "kgs": "kg",
+    "gr": "g",
+    "grs": "g",
+    "gramme": "g",
+    "grammes": "g",
+    "lt": "l",
+    "ltr": "l",
+    "pce": "pc",
+    "pces": "pc",
+    "pcs": "pc",
+    "piece": "pièce",
+    "pieces": "pièces",
+    "unite": "unité",
+    "unites": "unités",
+    "boîte": "boite",
+    "boîtes": "boite",
+    "boites": "boite",
+}
 
 
 def unit_info(u):
-    u = (u or "").strip().lower()
+    u = (u or "").strip().lower().rstrip(".").strip()
     if not u:
         return None
+    u = ALIASES.get(u, u)
     return UNITS.get(u) or ("x:" + u, 1)
 
 
