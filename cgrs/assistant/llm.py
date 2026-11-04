@@ -4,6 +4,7 @@ Aucune bibliothèque ajoutée : requêtes HTTPS avec la bibliothèque standard. 
 """
 
 import json
+import os
 import urllib.error
 import urllib.request
 
@@ -68,8 +69,9 @@ def appeler(messages, outils=None):
             for o in outils
         ]
         corps["tool_choice"] = "auto"
+    # CGRS_ASSISTANT_URL : adresse d'un serveur compatible « OpenAI » de votre choix (modèle local, passerelle, tests)
     req = urllib.request.Request(
-        p["url"],
+        os.environ.get("CGRS_ASSISTANT_URL") or p["url"],
         data=json.dumps(corps).encode(),
         headers={
             "Content-Type": "application/json",
@@ -89,6 +91,10 @@ def appeler(messages, outils=None):
         if e.code in (401, 403):
             raise ErreurModele(
                 f"Clé API refusée par {p['nom']} : vérifiez-la dans Paramètres > Assistant IA."
+            ) from None
+        if e.code == 404:
+            raise ErreurModele(
+                f"Modèle « {corps['model']} » introuvable chez {p['nom']} : indiquez un autre modèle dans Paramètres > Assistant IA."
             ) from None
         if e.code == 429:
             raise ErreurModele(f"Quota gratuit de {p['nom']} atteint : réessayez dans quelques instants.") from None

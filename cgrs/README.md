@@ -16,6 +16,7 @@ se contente d'importer l'application assemblée ici.
 | `constants.py` | Provenances, gammes, catégories, jours, profils |
 | `security.py` | Mots de passe, sessions, profils et droits (`READ`, `EDIT`, `ADMIN`, `ANY`), limitation des tentatives |
 | `utils.py` | Horodatage, journal d'actions, conversion d'unités, lecture/écriture SQL générique |
+| `assistant/` | Assistant IA : catalogue d'outils unique (`outils.py`, appelle les routes existantes), serveur MCP (`mcp.py`), client du modèle par clé API gratuite (`llm.py`), conversation avec validation des écritures (`chat.py`) ; routes dans `routes/assistant.py` |
 | `uploads.py` | Enregistrement des fichiers envoyés (PDF, fiches techniques) |
 | `pricing.py` | Historique des prix des produits |
 | `services/` | **Règles de calcul sans base ni serveur** (fonctions pures, testées à part) : `stats` (répartitions, indicateurs Egalim, engagements), `meals` (coût des repas, liste de courses), `stock`, `recipes` (coût d'une recette), `orders` (références, doublons, prix, rapprochement), `units`, `prices` |

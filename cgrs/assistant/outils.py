@@ -438,6 +438,10 @@ def _obj(props, requis=()):
     return {"type": "object", "properties": props, "required": list(requis)}
 
 
+def _n(n, mot):
+    return f"{n} {mot}{'s' if n > 1 else ''}"
+
+
 def _liste(items):
     return ", ".join(items)
 
@@ -579,7 +583,7 @@ OUTILS = [
         ),
         _creer_recette,
         True,
-        lambda a: f"Créer la recette « {a.get('nom')} » ({len(a.get('ingredients') or [])} ingrédients)",
+        lambda a: f"Créer la recette « {a.get('nom')} » ({_n(len(a.get('ingredients') or []), 'ingrédient')})",
     ),
     Outil(
         "creer_repas",
@@ -619,7 +623,7 @@ OUTILS = [
         ),
         _sorties,
         True,
-        lambda a: f"Sortir {len(a.get('sorties') or [])} produit(s) pour le repas n° {a.get('repas_id')}",
+        lambda a: f"Sortir {_n(len(a.get('sorties') or []), 'produit')} pour le repas n° {a.get('repas_id')}",
     ),
     Outil(
         "creer_reception",

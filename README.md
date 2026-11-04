@@ -71,6 +71,25 @@ Les montants lus par OCR sont à vérifier ; l'application avertit si la somme d
 Fournisseur au format particulier : renseignez une expression régulière (groupes `code`, `label`, `qty`, `unit`,
 `unit_price`, `total`) sur sa fiche.
 
+## Assistant IA
+
+Le bouton **💬 Assistant** (en bas à droite) ouvre un chat qui comprend vos demandes : « crée une recette de gratin de
+courgettes pour 120 convives », « quel est le stock de carottes ? », « quel est le prix par repas ce mois-ci ? ». Il
+consulte les produits, fournisseurs, stocks, recettes, repas, réceptions et statistiques, et peut créer des recettes, des
+repas, des sorties de produits, des produits, des fournisseurs et des réceptions. **Chaque création demande votre
+validation** dans le chat, et l'assistant n'a jamais plus de droits que vous (un profil « lecture seule » ne peut rien créer).
+
+**Branchement (administrateur)** : Paramètres > **Assistant IA** : choisissez Google Gemini, Mistral ou Groq, collez une
+clé API gratuite (le lien est dans la page) et enregistrez. Les quotas gratuits sont limités : l'assistant l'indique s'ils
+sont dépassés. Le nom du modèle peut être changé si un fournisseur retire le sien. La clé est enregistrée sur le serveur
+(donc dans les sauvegardes : ne publiez jamais une sauvegarde) et n'est jamais affichée ni journalisée. Les données
+envoyées au fournisseur sont celles que l'assistant consulte pour répondre.
+
+**Serveur MCP** : les mêmes outils sont proposés à un client MCP externe (par exemple Claude Desktop) à l'adresse
+`http://localhost:8000/mcp` (Streamable HTTP). Créez un jeton dans Paramètres > Assistant IA (lecture seule, ou lecture et
+écriture) : il n'est affiché qu'une fois, avec un exemple de configuration. Le jeton est une clé d'accès : un jeton « lecture
+et écriture » donne le droit de créer des données. Un connecteur qui n'accepte que OAuth n'est pas pris en charge.
+
 ## Export d'une période
 
 Réceptions > **Exporter…** : choisissez les dates (par défaut le mois précédent) et le type (factures, bons de livraison

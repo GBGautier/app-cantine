@@ -14,6 +14,7 @@ const allowedPages = () => Object.entries(PAGES).filter(([, p]) => p[2].includes
 
 function renderShell() {
   $('#auth').hidden = true;
+  initAssistant();
   $('#shell').hidden = false;
   $('#me').replaceChildren(
     h('span', {}, `${state.user.username} · ${(state.meta.roles[state.user.role] || '').split(' (')[0]}`),

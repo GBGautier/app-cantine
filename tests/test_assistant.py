@@ -382,8 +382,16 @@ def test_client_modele_erreurs_lisibles_sans_cle(client, monkeypatch):
         llm.appeler([{"role": "user", "content": "x"}])
     assert "Clé API refusée" in str(e.value) and "AIza-cle" not in str(e.value)
 
+    def introuvable(req, timeout=None):
+        raise urllib.error.HTTPError(req.full_url, 404, "Not Found", {}, None)
+
     def quota(req, timeout=None):
         raise urllib.error.HTTPError(req.full_url, 429, "Too Many", {}, None)
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", introuvable)
+    with pytest.raises(llm.ErreurModele) as e:
+        llm.appeler([{"role": "user", "content": "x"}])
+    assert "introuvable" in str(e.value) and "gemini-2.5-flash" in str(e.value)  # modèle par défaut cité
 
     monkeypatch.setattr(llm.urllib.request, "urlopen", quota)
     with pytest.raises(llm.ErreurModele) as e:

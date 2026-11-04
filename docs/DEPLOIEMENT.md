@@ -57,6 +57,10 @@ Variables d'environnement (toutes facultatives ; sans elles, comportement d'orig
 | `CGRS_BACKUP_INTERVAL_HOURS` | `24` | Intervalle des sauvegardes automatiques ; `0` les désactive |
 | `CGRS_BACKUP_KEEP` | `14` | Nombre de sauvegardes automatiques conservées |
 
+Assistant IA (facultatif) : `CGRS_ASSISTANT_URL` remplace l'adresse du fournisseur de modèle par celle d'un serveur compatible
+« OpenAI » de votre choix (modèle local, passerelle). Sur Internet, `/mcp` n'est protégé que par ses jetons : ne créez que
+les jetons nécessaires, en lecture seule si possible, et supprimez ceux qui ne servent plus.
+
 Recommandation Internet : `CGRS_DOCS=0 CGRS_HSTS=1 CGRS_SECURE_COOKIES=1`, mot de passe administrateur long,
 un seul processus uvicorn (base SQLite).
 

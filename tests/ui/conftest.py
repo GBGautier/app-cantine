@@ -136,6 +136,11 @@ class Api:
         assert r.ok, f"POST {chemin} -> {r.status} {r.text()}"
         return r.json()
 
+    def put(self, chemin, corps=None):
+        r = self.req.put(self.base + chemin, data=corps, headers=self.h)
+        assert r.ok, f"PUT {chemin} -> {r.status} {r.text()}"
+        return r.json()
+
 
 @pytest.fixture()
 def api(page):

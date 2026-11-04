@@ -26,11 +26,13 @@ function brandingCard() {
 async function pageSettings() {
   const [list, st, users, actionLog] = await Promise.all([api('/commitments'), api('/settings'), api('/users'), api('/action-log')]);
   const labels = Object.fromEntries(state.meta.metrics);
+  const assist = await assistantCard();
   const cn = h('input', {value: st.client_names, placeholder: 'ex. Restaurant scolaire ; Cantine municipale'});
   let dMat, dElem, dAdu;
   return h('div', {},
     h('h2', {}, 'Paramètres'),
     brandingCard(),
+    assist,
     h('div', {class: 'card'}, h('h3', {}, 'Utilisateurs'),
       h('p', {class: 'mute', style: 'margin-top:0'}, 'Administrateur : tous les droits. Lecture seule : consulte tout sans rien modifier. Statistiques : accès à la seule page Statistiques, sans aucun prix (achats HT, prix par repas, coûts matières).'),
       h('div', {class: 'tablewrap'}, h('table', {},
