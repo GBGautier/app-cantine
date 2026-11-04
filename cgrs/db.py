@@ -178,6 +178,14 @@ CREATE TABLE IF NOT EXISTS action_log (
     description TEXT               -- résumé lisible
 );
 CREATE INDEX IF NOT EXISTS ix_action_log_ts ON action_log(ts DESC);
+CREATE TABLE IF NOT EXISTS assistant_tokens (   -- jetons d'accès au serveur MCP (seule l'empreinte est conservée)
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    role TEXT NOT NULL,            -- reader (lecture seule) | editor (lecture et écriture)
+    created TEXT,
+    last_used TEXT
+);
 """
 
 

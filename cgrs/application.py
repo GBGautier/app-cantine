@@ -29,6 +29,7 @@ from cgrs.routes import stock
 from cgrs.routes import stats
 from cgrs.routes import backup
 from cgrs.routes import action_log
+from cgrs.routes import assistant
 
 
 journal.setup(LOGS)
@@ -97,6 +98,7 @@ app.include_router(stock.router)
 app.include_router(stats.router)
 app.include_router(backup.router)
 app.include_router(action_log.router)
+app.include_router(assistant.router)
 
 
 # Amorçage des données par défaut
