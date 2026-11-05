@@ -663,3 +663,27 @@ def test_modele_sans_appels_d_outils_repli_ou_message_clair(client, monkeypatch)
     assert "ne gère pas les appels d'outils" in str(e.value)
     client.delete("/api/assistant/config/cle")
     llm.oublier_modele_auto()
+
+
+def test_appel_d_outil_invente_reessaye_puis_repli(client, monkeypatch):
+    client.put("/api/assistant/config", json={"fournisseur": "groq", "modele": "", "cle": "gsk-cle-test-outil"})
+    llm.oublier_modele_auto()
+    monkeypatch.setattr(llm, "lister_modeles", lambda f, c: ["llama-a", "llama-b"])
+    corps400 = (
+        b'{"error":{"message":"Tool call validation failed: attempted to call tool \'chercher_produits\' '
+        b'which was not in request.tools"}}'
+    )
+    essais = []
+
+    def ouvre(req, timeout=None):
+        d = json.loads(req.data)
+        essais.append((d["model"], d["temperature"]))
+        if d["model"] == "llama-a" or d["temperature"] != 0:
+            raise _http(req, 400, corps400)
+        return _Reponse({"choices": [{"message": {"content": "ok"}}]})
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", ouvre)
+    assert llm.appeler([{"role": "user", "content": "x"}])["content"] == "ok"
+    assert essais == [("llama-a", 0.3), ("llama-a", 0), ("llama-b", 0.3), ("llama-b", 0)]
+    client.delete("/api/assistant/config/cle")
+    llm.oublier_modele_auto()

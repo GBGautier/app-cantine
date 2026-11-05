@@ -38,10 +38,11 @@ TIMEOUT = 90
 class ErreurModele(Exception):
     """Erreur lisible renvoyée par le fournisseur du modèle (clé refusée, quota atteint, …)."""
 
-    def __init__(self, message, code=None, sans_outils=False):
+    def __init__(self, message, code=None, sans_outils=False, appel_invalide=False):
         super().__init__(message)
         self.code = code  # code HTTP du fournisseur, s'il y en a un
         self.sans_outils = sans_outils  # le modèle ne gère pas les appels d'outils
+        self.appel_invalide = appel_invalide  # le modèle a inventé un outil ou des arguments invalides
 
 
 def _setting(cle):
@@ -125,6 +126,15 @@ def _requete(req, p, modele=""):
                     f"{p['nom']} est surchargé en ce moment ({detail or 'erreur ' + str(e.code)}). Réessayez dans un instant, "
                     "ou choisissez un autre modèle (Paramètres > Assistant IA).",
                     e.code,
+                ) from None
+            if e.code == 400 and re.search(
+                r"tool call validation|not in request\.tools|failed_generation", detail, re.I
+            ):
+                raise ErreurModele(
+                    f"Le modèle « {modele} » a mal formulé un appel d'outil. Reformulez votre demande, "
+                    "ou choisissez un autre modèle (Paramètres > Assistant IA).",
+                    400,
+                    appel_invalide=True,
                 ) from None
             if (
                 e.code == 400
@@ -244,6 +254,7 @@ def appeler(messages, outils=None):
     data = None
     for rang, modele in enumerate(candidats):
         corps["model"] = modele
+        corps["temperature"] = 0.3
         req = urllib.request.Request(
             _url_chat(p),
             data=json.dumps(corps).encode(),
@@ -254,9 +265,21 @@ def appeler(messages, outils=None):
             },
         )
         try:
-            data = _requete(req, p, modele)
+            try:
+                data = _requete(req, p, modele)
+            except ErreurModele as e:
+                if not e.appel_invalide:
+                    raise
+                # le modèle a inventé un outil : un second essai, plus déterministe, suffit le plus souvent
+                corps["temperature"] = 0
+                req.data = json.dumps(corps).encode()
+                data = _requete(req, p, modele)
         except ErreurModele as e:
-            if auto and rang + 1 < len(candidats) and (e.code in (404, *PASSAGERES) or e.sans_outils):
+            if (
+                auto
+                and rang + 1 < len(candidats)
+                and (e.code in (404, *PASSAGERES) or e.sans_outils or e.appel_invalide)
+            ):
                 continue
             raise
         if auto and rang:
