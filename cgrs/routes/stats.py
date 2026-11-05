@@ -52,9 +52,9 @@ def stats(date_from: Optional[str] = None, date_to: Optional[str] = None, user: 
     def pct(pred):
         return share_of_spend(lines, pred, total)
 
-    mm = meals_metrics(date_from, date_to)
+    mm = [m for m in meals_metrics(date_from, date_to) if m["statut"] == "passe"]  # repas passés (finalisés) seulement
     priced, cost_total, guests_priced, price_per_meal = compute_price_per_meal(mm)
-    mm = priced  # les statistiques ne comptent que les repas valorisés (coût > 0 et au moins un convive)
+    mm = priced  # et valorisés : coût > 0 et au moins un convive
     daily = sorted(
         (
             {
