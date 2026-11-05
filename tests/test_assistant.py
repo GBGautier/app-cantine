@@ -720,3 +720,48 @@ def test_quota_attend_si_court_et_affiche_le_detail(client, monkeypatch):
         llm.appeler([{"role": "user", "content": "x"}])
     assert "TPD" in str(e.value) and "Quota" in str(e.value) and pauses == []
     client.delete("/api/assistant/config/cle")
+
+
+def test_reponse_vide_du_modele_et_message_vide_renvoye(client, monkeypatch):
+    from cgrs.assistant import chat
+
+    client.put("/api/assistant/config", json={"fournisseur": "mistral", "modele": "m", "cle": "cle-de-test-12345"})
+    monkeypatch.setattr(
+        llm.urllib.request, "urlopen", lambda req, timeout=None: _Reponse({"choices": [{"message": {"content": ""}}]})
+    )
+    r = llm.appeler([{"role": "user", "content": "x"}])
+    assert r["content"].strip() and "tool_calls" not in r  # jamais de message d'assistant vide
+    vide = [{"role": "user", "content": "x"}, {"role": "assistant", "content": ""}, {"role": "user", "content": "y"}]
+    assert [m["role"] for m in chat._nettoyer(vide)] == ["user", "user"]
+    client.delete("/api/assistant/config/cle")
+
+
+def test_ollama_sans_cle(client, monkeypatch):
+    client.put("/api/assistant/config", json={"fournisseur": "ollama", "modele": ""})
+    cfg = client.get("/api/assistant/config").json()
+    assert cfg["fournisseur"] == "ollama" and cfg["sans_cle"] and cfg["fournisseurs"]["ollama"]["sans_cle"]
+    assert client.get("/api/assistant/etat").json()["configure"]
+    vus = []
+
+    def ouvre(req, timeout=None):
+        vus.append((req.full_url, timeout))
+        if req.data is None:
+            return _Reponse({"data": [{"id": "nomic-embed-text:latest"}, {"id": "llama3.1:8b"}, {"id": "qwen2.5:7b"}]})
+        return _Reponse({"choices": [{"message": {"content": "ok"}}]})
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", ouvre)
+    m = client.post("/api/assistant/modeles", json={"fournisseur": "ollama"}).json()
+    assert m["modeles"][0] == "qwen2.5:7b" and "nomic-embed-text:latest" not in m["modeles"]
+    llm.oublier_modele_auto()
+    assert llm.appeler([{"role": "user", "content": "x"}])["content"] == "ok"
+    assert vus[0][0].startswith("http://localhost:11434/v1/models") and vus[-1][1] == 300
+
+    def arret(req, timeout=None):
+        raise urllib.error.URLError("Connection refused")
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", arret)
+    with pytest.raises(llm.ErreurModele) as e:
+        llm.appeler([{"role": "user", "content": "x"}])
+    assert "ollama serve" in str(e.value)
+    client.put("/api/assistant/config", json={"fournisseur": "mistral", "modele": ""})
+    llm.oublier_modele_auto()

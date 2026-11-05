@@ -85,6 +85,15 @@ sont dépassés. La page cherche les modèles disponibles avec votre clé (bouto
 (donc dans les sauvegardes : ne publiez jamais une sauvegarde) et n'est jamais affichée ni journalisée. Les données
 envoyées au fournisseur sont celles que l'assistant consulte pour répondre.
 
+**Modèle local avec Ollama (gratuit, sans clé, hors ligne)** : installez [Ollama](https://ollama.com/download) sur la machine
+qui fait tourner l'application, puis téléchargez un modèle qui sait appeler des outils, par exemple
+`ollama pull qwen2.5:7b` (ou `llama3.1`). Dans Paramètres > Assistant IA, choisissez **Ollama (local)** : aucune clé à saisir,
+le bouton « ↻ Chercher » liste vos modèles. Les données ne quittent pas la machine. Un modèle local est plus lent et moins
+fiable que les modèles en ligne (prévoir 8 Go de mémoire ou plus ; sans carte graphique, une réponse peut prendre
+une minute). Si Ollama tourne sur une autre machine, indiquez son adresse au lancement de l'application :
+`CGRS_ASSISTANT_URL=http://adresse:11434/v1/chat/completions`. Attention : « local » est vu depuis le serveur de l'application, pas
+depuis votre navigateur.
+
 **Serveur MCP** : les mêmes outils sont proposés à un client MCP externe (par exemple Claude Desktop) à l'adresse
 `http://localhost:8000/mcp` (Streamable HTTP). Créez un jeton dans Paramètres > Assistant IA (lecture seule, ou lecture et
 écriture) : il n'est affiché qu'une fois, avec un exemple de configuration. Le jeton est une clé d'accès : un jeton « lecture

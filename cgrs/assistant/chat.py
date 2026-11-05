@@ -72,7 +72,8 @@ def _nettoyer(messages):
                     appels.append(appel)
             if appels:
                 msg["tool_calls"] = appels
-            out.append(msg)
+            if appels or contenu.strip():  # un message d'assistant vide est refusé par certains fournisseurs
+                out.append(msg)
         elif role == "tool" and isinstance(m.get("tool_call_id"), str):
             out.append({"role": "tool", "tool_call_id": m["tool_call_id"][:64], "content": contenu[: MAX_TEXTE * 2]})
     return out

@@ -25,6 +25,14 @@ PROVIDERS = {
         "modele": "mistral-small-latest",
         "cle": "https://console.mistral.ai/api-keys",
     },
+    "ollama": {
+        "nom": "Ollama (local)",
+        "url": "http://localhost:11434/v1/chat/completions",
+        "modele": "llama3.1",
+        "cle": "https://ollama.com/download",
+        "sans_cle": True,  # modèle sur votre propre machine : aucune clé API
+        "timeout": 300,  # un modèle local est plus lent
+    },
     "groq": {
         "nom": "Groq",
         "url": "https://api.groq.com/openai/v1/chat/completions",
@@ -52,11 +60,11 @@ def _setting(cle):
 
 def lire_config():
     """Réglages enregistrés : {fournisseur, modele, cle} (chaînes vides si non renseignés)."""
-    return {
-        "fournisseur": _setting("assistant_provider"),
-        "modele": _setting("assistant_model"),
-        "cle": _setting("assistant_key"),
-    }
+    fournisseur = _setting("assistant_provider")
+    cle = _setting("assistant_key")
+    if PROVIDERS.get(fournisseur, {}).get("sans_cle"):
+        cle = cle or "local"  # Ollama n'a pas de clé : une valeur quelconque suffit
+    return {"fournisseur": fournisseur, "modele": _setting("assistant_model"), "cle": cle}
 
 
 def est_configure():
@@ -109,7 +117,7 @@ def _requete(req, p, modele=""):
     """Envoie la requête ; rend le JSON de la réponse ou lève ErreurModele (messages lisibles, sans la clé)."""
     for essai in range(len(PAUSES) + 1):
         try:
-            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+            with urllib.request.urlopen(req, timeout=p.get("timeout", TIMEOUT)) as r:
                 return json.loads(r.read().decode())
         except urllib.error.HTTPError as e:
             detail = ""
@@ -156,7 +164,7 @@ def _requete(req, p, modele=""):
                 ) from None
             if (
                 e.code == 400
-                and re.search(r"tool.?(calling|use)|function.?call", detail, re.I)
+                and re.search(r"tool.?(calling|use)|function.?call|does not support tools", detail, re.I)
                 and "thought_signature" not in detail
             ):
                 raise ErreurModele(
@@ -166,7 +174,8 @@ def _requete(req, p, modele=""):
                 ) from None
             raise ErreurModele(f"{p['nom']} a répondu une erreur {e.code} : {detail}".strip(" :"), e.code) from None
         except (urllib.error.URLError, TimeoutError, OSError) as e:
-            raise ErreurModele(f"{p['nom']} est injoignable ({getattr(e, 'reason', e)}).") from None
+            aide = " Vérifiez qu'Ollama est lancé (ollama serve)." if p.get("sans_cle") else ""
+            raise ErreurModele(f"{p['nom']} est injoignable ({getattr(e, 'reason', e)}).{aide}") from None
         except ValueError:
             raise ErreurModele(f"Réponse illisible de {p['nom']}.") from None
 
@@ -194,6 +203,12 @@ def recommander(fournisseur, ids):
             return max(flash)[2]
         autres = [i for i in ids if "flash" in i and "lite" not in i]
         return sorted(autres)[-1] if autres else ids[0]
+    if fournisseur == "ollama":  # modèles locaux qui gèrent les appels d'outils, du plus fiable au moins fiable
+        for pref in ("qwen2.5", "llama3.1", "llama3.3", "mistral-nemo", "mistral", "qwen3", "llama3.2"):
+            tr = next((i for i in ids if i.startswith(pref)), None)
+            if tr:
+                return tr
+        return ids[0]
     if fournisseur == "mistral":
         return next((i for i in ("mistral-small-latest", "mistral-medium-latest") if i in ids), ids[0])
     return next((i for i in ("llama-3.3-70b-versatile",) if i in ids), next((i for i in ids if "70b" in i), ids[0]))
@@ -318,7 +333,10 @@ def appeler(messages, outils=None):
         if isinstance(tc.get("extra_content"), dict):  # Gemini 3 : signature de réflexion à renvoyer telle quelle
             appel["extra_content"] = tc["extra_content"]
         appels.append(appel)
-    out = {"role": "assistant", "content": msg.get("content") if isinstance(msg.get("content"), str) else ""}
+    texte = msg.get("content") if isinstance(msg.get("content"), str) else ""
+    if not texte.strip() and not appels:  # un message vide serait refusé au tour suivant (Mistral)
+        texte = "(Le modèle n'a rien répondu : reformulez ou relancez votre demande.)"
+    out = {"role": "assistant", "content": texte}
     if appels:
         out["tool_calls"] = appels
     return out

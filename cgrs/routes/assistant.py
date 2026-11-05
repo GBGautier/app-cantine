@@ -41,11 +41,15 @@ class Config(BaseModel):
 def get_config(user: dict = ADMIN):
     c = llm.lire_config()
     return {
-        "fournisseurs": {k: {"nom": v["nom"], "modele": v["modele"], "cle": v["cle"]} for k, v in PROVIDERS.items()},
+        "fournisseurs": {
+            k: {"nom": v["nom"], "modele": v["modele"], "cle": v["cle"], "sans_cle": bool(v.get("sans_cle"))}
+            for k, v in PROVIDERS.items()
+        },
         "fournisseur": c["fournisseur"],
         "modele": c["modele"],
         "cle_definie": bool(c["cle"]),
         "cle_fin": ("…" + c["cle"][-4:]) if len(c["cle"]) >= 8 else "",
+        "sans_cle": bool(PROVIDERS.get(c["fournisseur"], {}).get("sans_cle")),
     }
 
 
@@ -89,6 +93,8 @@ def modeles(d: DemandeModeles, user: dict = ADMIN):
     cle = (d.cle or "").strip() or (c["cle"] if c["fournisseur"] == d.fournisseur else "")
     if d.fournisseur not in PROVIDERS:
         raise HTTPException(400, "Fournisseur inconnu")
+    if not cle and PROVIDERS[d.fournisseur].get("sans_cle"):
+        cle = "local"
     if not cle:
         raise HTTPException(400, "Collez d'abord la clé API de ce fournisseur.")
     try:

@@ -101,6 +101,7 @@ async function assistantCard() {
   // Ni type « password » ni champ texte juste avant : sinon le gestionnaire de mots de passe du navigateur y met les identifiants de l'application
   const cle = h('input', {type: 'text', name: 'assistant-cle-api', autocomplete: 'off', spellcheck: false, autocapitalize: 'off', 'data-lpignore': 'true', 'data-1p-ignore': 'true',
     style: '-webkit-text-security:disc;text-security:disc', placeholder: cfg.cle_definie ? `Clé enregistrée (${cfg.cle_fin}) : laisser vide pour la conserver` : 'Collez votre clé API'});
+  const cleChamp = field('Clé API', cle);
   const modele = h('select', {name: 'assistant-modele', autocomplete: 'off', style: 'flex:1;min-width:0'});
   const etat = h('div', {class: 'mute', style: 'margin-top:4px;min-height:1.2em'});
   const lien = h('a', {target: '_blank', rel: 'noopener'}, 'Obtenir une clé gratuite');
@@ -119,8 +120,12 @@ async function assistantCard() {
       etat.textContent = r.modeles.length ? `${r.modeles.length} modèle(s) disponible(s) avec cette clé.` : 'Aucun modèle de conversation trouvé avec cette clé.';
     } catch (e) { etat.style.color = 'var(--warn)'; etat.textContent = e.message; }
   };
-  const maj = () => { const p = cfg.fournisseurs[prov.value]; lien.href = p.cle; lien.textContent = 'Obtenir une clé gratuite ' + p.nom; };
-  prov.addEventListener('change', () => { maj(); modele.value = ''; cfg.modele = ''; remplir([], ''); etat.textContent = ''; if (cle.value || (cfg.cle_definie && prov.value === cfg.fournisseur)) chercher(); else { etat.textContent = 'Collez la clé de ce fournisseur : les modèles disponibles s\'afficheront.'; } });
+  const maj = () => {
+    const p = cfg.fournisseurs[prov.value]; lien.href = p.cle;
+    lien.textContent = p.sans_cle ? 'Installer Ollama (aucune clé nécessaire)' : 'Obtenir une clé gratuite ' + p.nom;
+    cleChamp.style.display = p.sans_cle ? 'none' : '';
+  };
+  prov.addEventListener('change', () => { maj(); modele.value = ''; cfg.modele = ''; remplir([], ''); etat.textContent = ''; if (cle.value || cfg.fournisseurs[prov.value].sans_cle || (cfg.cle_definie && prov.value === cfg.fournisseur)) chercher(); else { etat.textContent = 'Collez la clé de ce fournisseur : les modèles disponibles s\'afficheront.'; } });
   cle.addEventListener('change', () => { if (cle.value.trim()) chercher(); });
   maj();
   if (cfg.cle_definie && cfg.fournisseur) setTimeout(chercher, 0);
@@ -137,13 +142,13 @@ async function assistantCard() {
   });
   return h('div', {class: 'card'}, h('h3', {}, 'Assistant IA'),
     h('p', {class: 'mute', style: 'margin-top:0'}, 'Le bouton « 💬 Assistant » (en bas à droite) ouvre un chat qui consulte l\'application et crée des recettes, repas, produits ou réceptions après validation. Il utilise une clé API gratuite : elle est enregistrée sur ce serveur et jamais affichée.'),
-    h('div', {class: 'f'}, field('Fournisseur du modèle', prov), field('Clé API', cle),
+    h('div', {class: 'f'}, field('Fournisseur du modèle', prov), cleChamp,
       field('Modèle', h('div', {style: 'display:flex;gap:6px'}, modele, h('button', {class: 's', title: 'Chercher les modèles disponibles avec cette clé', onclick: chercher}, '↻ Chercher')), 'full')),
     etat,
     h('div', {style: 'margin:6px 0 10px'}, lien, h('span', {class: 'mute'}, ' — les quotas gratuits sont limités ; en cas de dépassement, l\'assistant l\'indique.')),
     h('div', {style: 'display:flex;gap:8px;flex-wrap:wrap'}, h('button', {class: 'p', onclick: enregistrer}, 'Enregistrer'),
       cfg.cle_definie ? h('button', {onclick: tester}, 'Tester la connexion') : null,
-      cfg.cle_definie ? h('button', {class: 'd', onclick: supprimerCle}, 'Supprimer la clé') : null),
+      cfg.cle_definie && !cfg.sans_cle ? h('button', {class: 'd', onclick: supprimerCle}, 'Supprimer la clé') : null),
     h('h3', {style: 'margin-top:20px'}, 'Serveur MCP (autres assistants)'),
     h('p', {class: 'mute', style: 'margin-top:0'}, 'Les mêmes outils sont proposés à un client MCP externe (Claude Desktop, etc.) à l\'adresse ci-dessous, avec un jeton d\'accès. Le jeton « lecture seule » ne peut rien modifier.'),
     h('div', {style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px'}, h('code', {}, url), h('button', {class: 's', onclick: () => copier(url)}, 'Copier')),
