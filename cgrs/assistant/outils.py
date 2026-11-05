@@ -510,7 +510,8 @@ OUTILS = [
     Outil(
         "statistiques",
         "Statistiques",
-        "Indicateurs d'une période : achats, repas valorisés, prix par repas, % bio / Egalim / local, engagements.",
+        "Indicateurs d'une période (un mois : premier et dernier jour) : achats, repas valorisés, prix par repas, "
+        "% bio (pct_bio), Egalim (pct_egalim), local (pct_local), direct producteur (pct_direct), engagements.",
         _obj({"date_debut": _DATE, "date_fin": _DATE}),
         _statistiques,
     ),

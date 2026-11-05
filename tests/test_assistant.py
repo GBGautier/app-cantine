@@ -765,3 +765,23 @@ def test_ollama_sans_cle(client, monkeypatch):
     assert "ollama serve" in str(e.value)
     client.put("/api/assistant/config", json={"fournisseur": "mistral", "modele": ""})
     llm.oublier_modele_auto()
+
+
+def test_rappel_si_le_modele_pretend_ne_pas_avoir_d_outils(client, monkeypatch, assistant_configure):
+    modele = Modele(
+        {
+            "role": "assistant",
+            "content": "Je suis désolé, mais je n'ai pas accès aux outils nécessaires pour répondre.",
+        },
+        {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [_appel("s1", "statistiques", date_debut="2026-11-01", date_fin="2026-11-05")],
+        },
+        {"role": "assistant", "content": "Voici les chiffres de novembre."},
+    )
+    monkeypatch.setattr(llm, "appeler", modele)
+    r = client.post("/api/assistant/chat", json={"messages": [{"role": "user", "content": "et en novembre ?"}]}).json()
+    assert [m["role"] for m in r["messages"]] == ["user", "assistant", "tool", "assistant"]
+    assert "pas accès" not in json.dumps(r["messages"])  # la réponse de refus n'est pas conservée
+    assert "Rappel" in json.dumps(modele.recus[1]) and "Rappel" not in json.dumps(modele.recus[2])
