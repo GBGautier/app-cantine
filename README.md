@@ -81,7 +81,7 @@ validation** dans le chat, et l'assistant n'a jamais plus de droits que vous (un
 
 **Branchement (administrateur)** : Paramètres > **Assistant IA** : choisissez Google Gemini, Mistral ou Groq, collez une
 clé API gratuite (le lien est dans la page) et enregistrez. Les quotas gratuits sont limités : l'assistant l'indique s'ils
-sont dépassés. Le nom du modèle peut être changé si un fournisseur retire le sien. La clé est enregistrée sur le serveur
+sont dépassés. La page cherche les modèles disponibles avec votre clé (bouton « ↻ Chercher ») et propose le plus adapté ; en mode « Automatique », l'assistant prend le recommandé, et un fournisseur qui retire un modèle ne le casse donc pas. La clé est enregistrée sur le serveur
 (donc dans les sauvegardes : ne publiez jamais une sauvegarde) et n'est jamais affichée ni journalisée. Les données
 envoyées au fournisseur sont celles que l'assistant consulte pour répondre.
 

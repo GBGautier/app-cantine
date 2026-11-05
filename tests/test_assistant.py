@@ -453,3 +453,106 @@ def test_client_modele_normalise_les_appels_d_outils(client, monkeypatch):
         and rep["tool_calls"][0]["function"]["arguments"] == "{}"
     )
     client.delete("/api/assistant/config/cle")
+
+
+# ---------------------------------------------------------------- liste des modèles et choix automatique
+
+
+class _Reponse:
+    def __init__(self, data):
+        self.data = data
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def read(self):
+        return json.dumps(self.data).encode()
+
+
+GEMINI = {
+    "data": [
+        {"id": "models/gemini-2.0-flash"},
+        {"id": "models/gemini-3-flash"},
+        {"id": "models/gemini-3-flash-lite"},
+        {"id": "models/gemini-3-pro"},
+        {"id": "models/text-embedding-004"},
+        {"id": "models/gemini-2.0-flash-live-001"},
+        {"id": "models/imagen-4"},
+        {"id": "models/gemma-3-27b"},
+    ]
+}
+
+
+def test_liste_des_modeles_filtree_et_recommandation(monkeypatch):
+    monkeypatch.setattr(llm.urllib.request, "urlopen", lambda req, timeout=None: _Reponse(GEMINI))
+    liste = llm.lister_modeles("gemini", "cle-test-12345")
+    assert liste[0] == "gemini-3-flash"  # recommandé : le plus récent « flash » (ni lite, ni aperçu)
+    assert set(liste) == {
+        "gemini-3-flash",
+        "gemini-2.0-flash",
+        "gemini-3-flash-lite",
+        "gemini-3-pro",
+    }  # ni vectorisation, ni voix, ni image, ni gemma
+    assert llm.recommander("mistral", ["codestral-latest", "mistral-small-latest"]) == "mistral-small-latest"
+    assert llm.recommander("groq", ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"]) == "llama-3.3-70b-versatile"
+    assert llm.recommander("groq", []) == ""
+
+
+def test_route_modeles_avec_la_cle_enregistree_ou_saisie(client, monkeypatch):
+    vus = []
+
+    def ouvre(req, timeout=None):
+        vus.append((req.full_url, req.get_header("Authorization")))
+        return _Reponse(GEMINI)
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", ouvre)
+    client.delete("/api/assistant/config/cle")
+    r = client.post("/api/assistant/modeles", json={"fournisseur": "gemini"})
+    assert r.status_code == 400 and "clé" in r.json()["detail"]  # aucune clé : message clair
+    r = client.post("/api/assistant/modeles", json={"fournisseur": "gemini", "cle": "cle-saisie-1234"}).json()
+    assert r["recommande"] == "gemini-3-flash" and vus[-1] == (
+        "https://generativelanguage.googleapis.com/v1beta/openai/models",
+        "Bearer cle-saisie-1234",
+    )
+    assert (
+        client.get("/api/assistant/etat").json()["configure"] is False
+    )  # la clé saisie n'est pas enregistrée par cette recherche
+    client.put("/api/assistant/config", json={"fournisseur": "gemini", "modele": "", "cle": "cle-enregistree-9"})
+    assert client.post("/api/assistant/modeles", json={"fournisseur": "gemini"}).status_code == 200  # clé enregistrée
+    assert vus[-1][1] == "Bearer cle-enregistree-9"
+    assert (
+        client.post("/api/assistant/modeles", json={"fournisseur": "groq"}).status_code == 400
+    )  # clé d'un autre fournisseur : refusée
+    assert client.post("/api/assistant/modeles", json={"fournisseur": "inconnu", "cle": "x" * 10}).status_code == 400
+
+    def refusee(req, timeout=None):
+        raise urllib.error.HTTPError(req.full_url, 403, "Forbidden", {}, None)
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", refusee)
+    r = client.post("/api/assistant/modeles", json={"fournisseur": "gemini"})
+    assert r.status_code == 502 and "Clé API refusée" in r.json()["detail"] and "cle-enregistree" not in r.text
+    client.delete("/api/assistant/config/cle")
+
+
+def test_modele_automatique_si_aucun_choisi(client, monkeypatch):
+    """Sans modèle choisi, l'assistant prend le recommandé parmi ceux que la clé permet d'utiliser (et non un nom figé)."""
+    client.put("/api/assistant/config", json={"fournisseur": "gemini", "modele": "", "cle": "cle-auto-12345"})
+    envoyes = []
+
+    def ouvre(req, timeout=None):
+        if req.full_url.endswith("/models"):
+            return _Reponse(GEMINI)
+        envoyes.append(json.loads(req.data)["model"])
+        return _Reponse({"choices": [{"message": {"content": "ok"}}]})
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", ouvre)
+    llm.appeler([{"role": "user", "content": "x"}])
+    assert envoyes == ["gemini-3-flash"]
+    # un modèle choisi explicitement est respecté
+    client.put("/api/assistant/config", json={"fournisseur": "gemini", "modele": "gemini-3-pro", "cle": ""})
+    llm.appeler([{"role": "user", "content": "x"}])
+    assert envoyes[-1] == "gemini-3-pro"
+    client.delete("/api/assistant/config/cle")

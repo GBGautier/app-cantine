@@ -65,6 +65,16 @@ def faux_modele(monkeypatch):
             self.end_headers()
             self.wfile.write(data)
 
+        def do_GET(self):  # liste des modèles
+            data = json.dumps(
+                {"data": [{"id": "models/gemini-9-flash"}, {"id": "models/gemini-8-pro"}, {"id": "models/embed-texte"}]}
+            ).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
         def log_message(self, *a):
             pass
 
@@ -128,6 +138,31 @@ def test_refuser_une_ecriture(faux_modele, admin, api):
     assert not [
         s for s in page.context.request.get(page.base + "/api/suppliers").json() if s["name"] == "Fournisseur Refuse"
     ]
+
+
+def test_reglages_modeles_disponibles_et_champs_sans_identifiants(faux_modele, admin):
+    page = admin
+    aller(page, "Paramètres")
+    carte = page.locator(".card", has=page.get_by_role("heading", name="Assistant IA"))
+    # aucun champ « mot de passe » dans la carte : le navigateur n'y remet pas les identifiants de l'application
+    assert carte.locator("input[type=password]").count() == 0
+    assert carte.get_by_placeholder("Collez votre clé API").get_attribute("autocomplete") == "off"
+    carte.get_by_placeholder("Collez votre clé API").fill("cle-de-test-12345")
+    carte.get_by_placeholder("Collez votre clé API").dispatch_event("change")
+    carte.get_by_text("2 modèle(s) disponible(s)").wait_for()  # « embed-texte » est écarté
+    options = carte.locator("select[name=assistant-modele] option").all_inner_texts()
+    assert options == ["Automatique (gemini-9-flash)", "gemini-9-flash", "gemini-8-pro"]
+    carte.locator("select[name=assistant-modele]").select_option("gemini-8-pro")
+    carte.get_by_role("button", name="Enregistrer").click()
+    page.get_by_text("Assistant enregistré").wait_for()
+    cfg = page.context.request.get(page.base + "/api/assistant/config").json()
+    assert (cfg["fournisseur"], cfg["modele"], cfg["cle_definie"]) == ("gemini", "gemini-8-pro", True)
+    # à la réouverture, la liste est rechargée avec la clé enregistrée et le choix est conservé
+    aller(page, "Statistiques")
+    aller(page, "Paramètres")
+    carte = page.locator(".card", has=page.get_by_role("heading", name="Assistant IA"))
+    carte.get_by_text("2 modèle(s) disponible(s)").wait_for()
+    assert carte.locator("select[name=assistant-modele]").input_value() == "gemini-8-pro"
 
 
 def test_reglages_et_jeton_mcp(admin):

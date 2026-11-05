@@ -72,8 +72,30 @@ def put_config(c: Config, user: dict = ADMIN):
 @router.delete("/api/assistant/config/cle")
 def delete_cle(user: dict = ADMIN):
     _save("assistant_key", "")
+    llm.oublier_modele_auto()
     log_action(user, "update", "settings", None, "Assistant IA : clé API supprimée")
     return {"ok": True}
+
+
+class DemandeModeles(BaseModel):
+    fournisseur: str
+    cle: Optional[str] = None  # vide : clé enregistrée (si c'est celle du même fournisseur)
+
+
+@router.post("/api/assistant/modeles")
+def modeles(d: DemandeModeles, user: dict = ADMIN):
+    """Modèles de conversation disponibles avec cette clé (la clé saisie n'est pas enregistrée par cet appel)."""
+    c = llm.lire_config()
+    cle = (d.cle or "").strip() or (c["cle"] if c["fournisseur"] == d.fournisseur else "")
+    if d.fournisseur not in PROVIDERS:
+        raise HTTPException(400, "Fournisseur inconnu")
+    if not cle:
+        raise HTTPException(400, "Collez d'abord la clé API de ce fournisseur.")
+    try:
+        liste = llm.lister_modeles(d.fournisseur, cle)
+    except ErreurModele as e:
+        raise HTTPException(502, str(e)) from e
+    return {"modeles": liste, "recommande": liste[0] if liste else ""}
 
 
 @router.post("/api/assistant/test")

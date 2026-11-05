@@ -96,14 +96,35 @@ const ASSIST_OUTILS = {
 async function assistantCard() {
   const [cfg, jetons] = await Promise.all([api('/assistant/config'), api('/assistant/jetons')]);
   const fournisseurs = Object.entries(cfg.fournisseurs);
-  const prov = select(fournisseurs.map(([k, v]) => [k, v.nom]), cfg.fournisseur || fournisseurs[0][0]);
-  const modele = h('input', {value: cfg.modele || '', maxlength: 80});
-  const cle = h('input', {type: 'password', autocomplete: 'off', placeholder: cfg.cle_definie ? `Clé enregistrée (${cfg.cle_fin}) : laisser vide pour la conserver` : 'Collez votre clé API'});
-  const lien = h('a', {target: '_blank', rel: 'noopener'}, 'Obtenir une clé gratuite');
-  const maj = () => { const p = cfg.fournisseurs[prov.value]; modele.placeholder = p.modele; lien.href = p.cle; lien.textContent = 'Obtenir une clé gratuite ' + p.nom; };
-  prov.addEventListener('change', maj); maj();
   const run = async (fn, ok) => { try { await fn(); if (ok) toast(ok); } catch (e) { alert(e.message); } };
-  const enregistrer = () => run(async () => { await api('/assistant/config', {method: 'PUT', body: {fournisseur: prov.value, modele: modele.value.trim(), cle: cle.value}}); render(); }, 'Assistant enregistré');
+  const prov = select(fournisseurs.map(([k, v]) => [k, v.nom]), cfg.fournisseur || fournisseurs[0][0]);
+  // Ni type « password » ni champ texte juste avant : sinon le gestionnaire de mots de passe du navigateur y met les identifiants de l'application
+  const cle = h('input', {type: 'text', name: 'assistant-cle-api', autocomplete: 'off', spellcheck: false, autocapitalize: 'off', 'data-lpignore': 'true', 'data-1p-ignore': 'true',
+    style: '-webkit-text-security:disc;text-security:disc', placeholder: cfg.cle_definie ? `Clé enregistrée (${cfg.cle_fin}) : laisser vide pour la conserver` : 'Collez votre clé API'});
+  const modele = h('select', {name: 'assistant-modele', autocomplete: 'off', style: 'flex:1;min-width:0'});
+  const etat = h('div', {class: 'mute', style: 'margin-top:4px;min-height:1.2em'});
+  const lien = h('a', {target: '_blank', rel: 'noopener'}, 'Obtenir une clé gratuite');
+  const remplir = (liste, recommande) => {
+    const actuel = modele.value || cfg.modele || '';
+    const ids = liste.includes(actuel) || !actuel ? liste : [actuel, ...liste];
+    modele.replaceChildren(h('option', {value: ''}, recommande ? `Automatique (${recommande})` : 'Automatique'), ...ids.map(i => h('option', {value: i}, i)));
+    modele.value = actuel;
+  };
+  remplir([], '');
+  const chercher = async () => {
+    etat.style.color = ''; etat.textContent = 'Recherche des modèles disponibles…';
+    try {
+      const r = await api('/assistant/modeles', {method: 'POST', body: {fournisseur: prov.value, cle: cle.value}});
+      remplir(r.modeles, r.recommande);
+      etat.textContent = r.modeles.length ? `${r.modeles.length} modèle(s) disponible(s) avec cette clé.` : 'Aucun modèle de conversation trouvé avec cette clé.';
+    } catch (e) { etat.style.color = 'var(--warn)'; etat.textContent = e.message; }
+  };
+  const maj = () => { const p = cfg.fournisseurs[prov.value]; lien.href = p.cle; lien.textContent = 'Obtenir une clé gratuite ' + p.nom; };
+  prov.addEventListener('change', () => { maj(); modele.value = ''; cfg.modele = ''; remplir([], ''); etat.textContent = ''; if (cle.value || (cfg.cle_definie && prov.value === cfg.fournisseur)) chercher(); else { etat.textContent = 'Collez la clé de ce fournisseur : les modèles disponibles s\'afficheront.'; } });
+  cle.addEventListener('change', () => { if (cle.value.trim()) chercher(); });
+  maj();
+  if (cfg.cle_definie && cfg.fournisseur) setTimeout(chercher, 0);
+  const enregistrer = () => run(async () => { await api('/assistant/config', {method: 'PUT', body: {fournisseur: prov.value, modele: modele.value, cle: cle.value}}); render(); }, 'Assistant enregistré');
   const tester = () => run(async () => { const r = await api('/assistant/test', {method: 'POST'}); toast('Connexion réussie : ' + r.reponse); });
   const supprimerCle = () => run(async () => { await api('/assistant/config/cle', {method: 'DELETE'}); render(); }, 'Clé supprimée');
   const url = location.origin + '/mcp';
@@ -116,7 +137,9 @@ async function assistantCard() {
   });
   return h('div', {class: 'card'}, h('h3', {}, 'Assistant IA'),
     h('p', {class: 'mute', style: 'margin-top:0'}, 'Le bouton « 💬 Assistant » (en bas à droite) ouvre un chat qui consulte l\'application et crée des recettes, repas, produits ou réceptions après validation. Il utilise une clé API gratuite : elle est enregistrée sur ce serveur et jamais affichée.'),
-    h('div', {class: 'f'}, field('Fournisseur du modèle', prov), field('Modèle (facultatif)', modele), field('Clé API', cle, 'full')),
+    h('div', {class: 'f'}, field('Fournisseur du modèle', prov), field('Clé API', cle),
+      field('Modèle', h('div', {style: 'display:flex;gap:6px'}, modele, h('button', {class: 's', title: 'Chercher les modèles disponibles avec cette clé', onclick: chercher}, '↻ Chercher')), 'full')),
+    etat,
     h('div', {style: 'margin:6px 0 10px'}, lien, h('span', {class: 'mute'}, ' — les quotas gratuits sont limités ; en cas de dépassement, l\'assistant l\'indique.')),
     h('div', {style: 'display:flex;gap:8px;flex-wrap:wrap'}, h('button', {class: 'p', onclick: enregistrer}, 'Enregistrer'),
       cfg.cle_definie ? h('button', {onclick: tester}, 'Tester la connexion') : null,
