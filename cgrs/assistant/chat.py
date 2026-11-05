@@ -42,7 +42,7 @@ def instructions():
 
 
 _REFUS_OUTILS = re.compile(
-    r"(pas|plus)\s+(accès|d'accès)[^.]{0,40}outil|(ne\s+peux|impossible)[^.]{0,40}accéder[^.]{0,40}outil|outils?[^.]{0,30}(pas|non)\s+disponible",
+    r"(pas|plus)\s+(accès|d'accès)[^.]{0,40}outil|(don't|do not|no)\s+(have\s+)?access[^.]{0,40}tools?|(ne\s+peux|impossible)[^.]{0,40}accéder[^.]{0,40}outil|outils?[^.]{0,30}(pas|non)\s+disponible",
     re.I,
 )
 

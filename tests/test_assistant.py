@@ -785,3 +785,48 @@ def test_rappel_si_le_modele_pretend_ne_pas_avoir_d_outils(client, monkeypatch, 
     assert [m["role"] for m in r["messages"]] == ["user", "assistant", "tool", "assistant"]
     assert "pas accès" not in json.dumps(r["messages"])  # la réponse de refus n'est pas conservée
     assert "Rappel" in json.dumps(modele.recus[1]) and "Rappel" not in json.dumps(modele.recus[2])
+
+
+def test_achats_par_fournisseur_comparaison_de_periodes(mcp_client, client):
+    f1 = client.post("/api/suppliers", json={"name": "Ferme Directe Achats", "direct_producteur": 1}).json()["id"]
+    f2 = client.post("/api/suppliers", json={"name": "Grossiste Achats"}).json()["id"]
+    p1 = client.post(
+        "/api/products", json={"name": "Poireaux Achats", "supplier_id": f1, "unit": "kg", "unit_price": 2}
+    ).json()["id"]
+    p2 = client.post(
+        "/api/products", json={"name": "Riz Achats", "supplier_id": f2, "unit": "kg", "unit_price": 1}
+    ).json()["id"]
+    for jour, f, p, q in (("2031-09-10", f1, p1, 100), ("2031-10-10", f1, p1, 40), ("2031-10-11", f2, p2, 50)):
+        erreur, res = appel(
+            mcp_client["ecriture"],
+            "creer_reception",
+            type="facture",
+            date=jour,
+            fournisseur_id=f,
+            lignes=[{"produit_id": p, "quantite": q, "unite": "kg", "prix_unitaire_ht": 2 if f == f1 else 1}],
+        )
+        assert not erreur, res
+    _, sept = appel(mcp_client["lecture"], "achats_par_fournisseur", date_debut="2031-09-01", date_fin="2031-09-30")
+    _, octo = appel(mcp_client["lecture"], "achats_par_fournisseur", date_debut="2031-10-01", date_fin="2031-10-31")
+    assert (
+        sept["fournisseurs"][0]["fournisseur"] == "Ferme Directe Achats"
+        and sept["fournisseurs"][0]["montant_ht"] == 200
+    )
+    assert {x["fournisseur"]: x["montant_ht"] for x in octo["fournisseurs"]} == {
+        "Ferme Directe Achats": 80,
+        "Grossiste Achats": 50,
+    }
+    _, directs = appel(
+        mcp_client["lecture"],
+        "achats_par_fournisseur",
+        date_debut="2031-10-01",
+        date_fin="2031-10-31",
+        direct_producteur_seulement=True,
+    )
+    assert [x["fournisseur"] for x in directs["fournisseurs"]] == ["Ferme Directe Achats"] and directs["total_ht"] == 80
+
+
+def test_refus_en_anglais_aussi_detecte():
+    from cgrs.assistant import chat
+
+    assert chat._REFUS_OUTILS.search("I'm sorry, but I don't have access to the necessary tools to provide an answer.")

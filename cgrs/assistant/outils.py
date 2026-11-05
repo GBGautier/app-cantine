@@ -24,6 +24,7 @@ from cgrs.routes import recipes as r_recipes
 from cgrs.routes import stats as r_stats
 from cgrs.routes import stock as r_stock
 from cgrs.routes import suppliers as r_suppliers
+from cgrs.services.stats import breakdown, fill_spend
 from cgrs.utils import log_action
 
 MAX_RESULTAT = (
@@ -236,6 +237,78 @@ def _statistiques(user, a):
         for c in s["commitments"]
     ]
     return out
+
+
+def _comparer_fournisseurs(user, a):
+    """Achats par fournisseur sur deux périodes, du plus en baisse au plus en hausse."""
+    p1 = (_date(a.get("date_debut_a"), "date_debut_a"), _date(a.get("date_fin_a"), "date_fin_a"))
+    p2 = (_date(a.get("date_debut_b"), "date_debut_b"), _date(a.get("date_fin_b"), "date_fin_b"))
+    if not all(p1) or not all(p2):
+        raise ErreurOutil("Les deux périodes (date_debut_a, date_fin_a, date_debut_b, date_fin_b) sont obligatoires.")
+    directs = {r["name"] for r in db.rows("SELECT name FROM suppliers WHERE direct_producteur=1")}
+    seulement = bool(a.get("direct_producteur_seulement"))
+    cle = "amount"
+    stats = [_appel(r_stats.stats, d1, d2, user) for d1, d2 in (p1, p2)]
+    if stats[0].get("prices_hidden"):
+        cle = "pct"  # profil sans accès aux prix : parts des achats seulement
+    val = [{r["key"]: r.get(cle, 0) for r in s["by_supplier"]} for s in stats]
+    noms = set(val[0]) | set(val[1])
+    if seulement:
+        noms &= directs
+    lignes = [
+        {
+            "fournisseur": n,
+            "direct_producteur": n in directs,
+            "periode_a": val[0].get(n, 0),
+            "periode_b": val[1].get(n, 0),
+            "ecart": round(val[1].get(n, 0) - val[0].get(n, 0), 2),
+        }
+        for n in noms
+    ]
+    lignes.sort(key=lambda x: (x["ecart"], x["fournisseur"]))
+    return {
+        "unite": "€ HT" if cle == "amount" else "% des achats",
+        "periode_a": {"du": p1[0], "au": p1[1]},
+        "periode_b": {"du": p2[0], "au": p2[1]},
+        "fournisseurs": lignes[: _lim(a.get("limite"), 30, 100)],
+        "note": "ecart = periode_b - periode_a : négatif = on a moins acheté en période B.",
+    }
+
+
+def _achats_par_fournisseur(user, a):
+    """Dépenses de la période par fournisseur (mêmes règles que les statistiques), éventuellement limitées au direct producteur."""
+    if user.get("role") == "stats":
+        raise ErreurOutil("Les montants d'achat ne sont pas accessibles avec ce profil.")
+    d1, d2 = _date(a.get("date_debut"), "date_debut"), _date(a.get("date_fin"), "date_fin")
+    where, args = ["1=1"], []
+    if d1:
+        where.append("o.date >= ?")
+        args.append(d1)
+    if d2:
+        where.append("o.date <= ?")
+        args.append(d2)
+    lignes = db.rows(
+        "SELECT l.order_id, o.total_ht AS order_total, l.qty, COALESCE(l.total_ht, l.qty*l.unit_price) AS spend, "
+        "p.direct_producteur, s.name AS supplier, s.direct_producteur AS supplier_direct "
+        "FROM order_lines l JOIN orders o ON o.id=l.order_id "
+        "LEFT JOIN products p ON p.id=l.product_id LEFT JOIN suppliers s ON s.id=o.supplier_id "
+        f"WHERE {' AND '.join(where)}",
+        args,
+    )
+    fill_spend(lignes)
+    direct = bool(a.get("direct_producteur_seulement"))
+    if direct:
+        lignes = [r for r in lignes if r["direct_producteur"] or r["supplier_direct"]]
+    total = round(sum(r["spend"] for r in lignes), 2)
+    parts = breakdown(lignes, "supplier")
+    return {
+        "periode": [d1, d2],
+        "direct_producteur_seulement": direct,
+        "total_ht": total,
+        "fournisseurs": [
+            {"fournisseur": x["label"], "montant_ht": x["amount"], "part_pct": x["pct"]} for x in parts[:30]
+        ],
+    }
 
 
 # ------------------------------------------------------------------ écriture
@@ -514,6 +587,33 @@ OUTILS = [
         "% bio (pct_bio), Egalim (pct_egalim), local (pct_local), direct producteur (pct_direct), engagements.",
         _obj({"date_debut": _DATE, "date_fin": _DATE}),
         _statistiques,
+    ),
+    Outil(
+        "comparer_fournisseurs",
+        "Comparer les fournisseurs",
+        "Compare les achats par fournisseur entre deux périodes (période A puis B) : montants, écart, et indique les fournisseurs "
+        "en direct producteur. Sert à savoir chez qui on a moins ou plus commandé (direct_producteur_seulement pour les directs).",
+        _obj(
+            {
+                "date_debut_a": _DATE,
+                "date_fin_a": _DATE,
+                "date_debut_b": _DATE,
+                "date_fin_b": _DATE,
+                "direct_producteur_seulement": {"type": "boolean"},
+                "limite": _INT,
+            },
+            ["date_debut_a", "date_fin_a", "date_debut_b", "date_fin_b"],
+        ),
+        _comparer_fournisseurs,
+    ),
+    Outil(
+        "achats_par_fournisseur",
+        "Achats par fournisseur",
+        "Montant acheté (HT) à chaque fournisseur sur une période, du plus gros au plus petit ; direct_producteur_seulement "
+        "limite aux achats en direct producteur. Pour comparer deux périodes (« chez qui a-t-on moins commandé ? »), "
+        "appelez-le une fois par période puis comparez les montants.",
+        _obj({"date_debut": _DATE, "date_fin": _DATE, "direct_producteur_seulement": {"type": "boolean"}}),
+        _achats_par_fournisseur,
     ),
     Outil(
         "creer_fournisseur",
