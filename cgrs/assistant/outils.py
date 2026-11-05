@@ -301,7 +301,8 @@ def _creer_recette(user, a):
         g = ing.get("grammes_par_convive")
         if not isinstance(g, (int, float)) or g <= 0:
             raise ErreurOutil("ingredients : grammes_par_convive (nombre > 0) obligatoire pour chaque ingrédient")
-        pid, texte = ing.get("produit_id"), (ing.get("produit") or ing.get("libelle") or "").strip()
+        pid, libelle = ing.get("produit_id"), (ing.get("libelle") or "").strip()
+        texte = (ing.get("produit") or libelle).strip()
         prod = None
         if pid is not None:
             prod = next((p for p in _produits() if p["id"] == pid), None)
@@ -318,7 +319,7 @@ def _creer_recette(user, a):
         items.append(
             r_recipes.RecipeItem(
                 product_id=prod["id"] if prod else None,
-                label=prod["name"] if prod else texte,  # l'éditeur de recettes n'affiche que le libellé
+                label=libelle or (prod["name"] if prod else texte),  # libellé général ; l'éditeur n'affiche que lui
                 qty_maternelle=g,
                 qty_elementaire=g,
                 qty_adulte=g,
@@ -561,7 +562,7 @@ OUTILS = [
         "Créer une recette",
         "Crée une recette avec ses ingrédients. Chaque ingrédient est relié à un produit existant (produit_id, ou nom du produit "
         "retrouvé automatiquement) avec son grammage en g par convive ; sans produit il reste en libellé libre et n'entre pas dans "
-        "le coût. Cherchez d'abord les produits avec rechercher_produits.",
+        "le coût. Donnez toujours à chaque ingrédient un libellé général (« Courgettes », pas « COURGETTE FRANCE PAYS DE LOIRE »). Cherchez d'abord les produits avec rechercher_produits.",
         _obj(
             {
                 "nom": _STR,
@@ -574,7 +575,11 @@ OUTILS = [
                         {
                             "produit_id": _INT,
                             "produit": {"type": "string", "description": "Nom du produit du catalogue"},
-                            "libelle": {"type": "string", "description": "Libellé libre si aucun produit"},
+                            "libelle": {
+                                "type": "string",
+                                "description": "Libellé GÉNÉRAL de l'ingrédient, sans marque ni origine ni label "
+                                "(ex. « Courgettes », « Emmental râpé », « Crème fraîche »), jamais le nom commercial du produit",
+                            },
                             "grammes_par_convive": _NUM,
                             "principal": {"type": "boolean"},
                         },
