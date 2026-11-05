@@ -93,6 +93,18 @@ PASSAGERES = (500, 502, 503, 504)  # erreurs temporaires du fournisseur : on ré
 PAUSES = (1.5, 4)  # secondes d'attente avant chaque nouvelle tentative
 
 
+def _attente_quota(e, detail):
+    """Secondes à attendre avant de réessayer après un 429, si c'est court (≤ 10 s) ; sinon None."""
+    try:
+        v = float(e.headers.get("retry-after")) if e.headers and e.headers.get("retry-after") else None
+    except (TypeError, ValueError):
+        v = None
+    if v is None:
+        m = re.search(r"try again in (?:(\d+)m)?(\d+(?:\.\d+)?)s", detail or "", re.I)
+        v = (int(m.group(1) or 0) * 60 + float(m.group(2))) if m else None
+    return min(v + 0.5, 10) if v is not None and v <= 10 else None
+
+
 def _requete(req, p, modele=""):
     """Envoie la requête ; rend le JSON de la réponse ou lève ErreurModele (messages lisibles, sans la clé)."""
     for essai in range(len(PAUSES) + 1):
@@ -118,8 +130,14 @@ def _requete(req, p, modele=""):
                     404,
                 ) from None
             if e.code == 429:
+                attente = _attente_quota(e, detail)
+                if attente is not None and essai < len(PAUSES):
+                    time.sleep(attente)  # limite par minute : une courte attente suffit
+                    continue
                 raise ErreurModele(
-                    f"Quota gratuit de {p['nom']} atteint : réessayez dans quelques instants.", 429
+                    f"Quota gratuit de {p['nom']} atteint ({detail or 'trop de requêtes'}). "
+                    "Réessayez dans une minute, ou choisissez un autre modèle (Paramètres > Assistant IA).",
+                    429,
                 ) from None
             if e.code in PASSAGERES:
                 raise ErreurModele(

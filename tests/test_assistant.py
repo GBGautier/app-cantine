@@ -687,3 +687,34 @@ def test_appel_d_outil_invente_reessaye_puis_repli(client, monkeypatch):
     assert essais == [("llama-a", 0.3), ("llama-a", 0), ("llama-b", 0.3), ("llama-b", 0)]
     client.delete("/api/assistant/config/cle")
     llm.oublier_modele_auto()
+
+
+def test_quota_attend_si_court_et_affiche_le_detail(client, monkeypatch):
+    client.put("/api/assistant/config", json={"fournisseur": "groq", "modele": "llama-x", "cle": "gsk-cle-test-quota"})
+    pauses, n = [], []
+    monkeypatch.setattr(llm.time, "sleep", pauses.append)
+    court = b'{"error":{"message":"Rate limit reached ... tokens per minute (TPM): Limit 12000. Please try again in 3.2s."}}'
+
+    def ouvre(req, timeout=None):
+        n.append(1)
+        if len(n) == 1:
+            raise _http(req, 429, court)
+        return _Reponse({"choices": [{"message": {"content": "ok"}}]})
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", ouvre)
+    assert llm.appeler([{"role": "user", "content": "x"}])["content"] == "ok"
+    assert pauses == [3.7]
+
+    long_ = (
+        b'{"error":{"message":"Rate limit reached for tokens per day (TPD): Limit 100000. Please try again in 2m10s."}}'
+    )
+
+    def refuse(req, timeout=None):
+        raise _http(req, 429, long_)
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", refuse)
+    pauses.clear()
+    with pytest.raises(llm.ErreurModele) as e:
+        llm.appeler([{"role": "user", "content": "x"}])
+    assert "TPD" in str(e.value) and "Quota" in str(e.value) and pauses == []
+    client.delete("/api/assistant/config/cle")

@@ -26,7 +26,9 @@ from cgrs.routes import stock as r_stock
 from cgrs.routes import suppliers as r_suppliers
 from cgrs.utils import log_action
 
-MAX_RESULTAT = 12000  # caractères renvoyés au modèle par outil (le reste est coupé)
+MAX_RESULTAT = (
+    4000  # caractères renvoyés au modèle par outil (le reste est coupé) : les quotas gratuits comptent les jetons
+)
 CATEGORIES_RECETTE = ["entree", "plat", "accompagnement", "laitage", "dessert"]
 STATUTS_REPAS = ["prevu", "en_cours", "passe"]
 
