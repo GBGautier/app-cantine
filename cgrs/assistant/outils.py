@@ -313,16 +313,17 @@ def _creer_recette(user, a):
                 ambigus.append({"ingredient": texte, "candidats": [c["name"] for c in cands]})
         if not prod and not texte:
             raise ErreurOutil("ingredients : chaque ingrédient doit avoir un produit ou un libellé")
-        total = (g * nb_m + g * nb_e + g * nb_a) / 1000
-        unite = prod["unit"] if prod and prod["unit"] in ("kg", "l") else None
+        total = round((g * nb_m + g * nb_e + g * nb_a) / 1000, 3)  # quantité totale à servir, en kg (g × convives)
+        unite = "l" if prod and prod["unit"] == "l" else "kg"
         items.append(
             r_recipes.RecipeItem(
                 product_id=prod["id"] if prod else None,
-                label=None if prod else texte,
+                label=prod["name"] if prod else texte,  # l'éditeur de recettes n'affiche que le libellé
                 qty_maternelle=g,
                 qty_elementaire=g,
                 qty_adulte=g,
-                qty_servi=round(total, 3) if total and unite else None,
+                qty_servi=total or None,
+                qty_commander=total or None,
                 unit=unite,
                 principal=bool(ing.get("principal")),
             )

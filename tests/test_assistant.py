@@ -122,6 +122,8 @@ def test_mcp_creer_une_recette_reliee_aux_produits(mcp_client, client, jeu):
         "kg",
         1,
     )  # 150 g × 24 convives
+    # l'éditeur de recettes affiche le libellé : il porte le nom du produit ; quantité à commander renseignée
+    assert (lie["label"], lie["qty_commander"]) == ("Courgettes Assistant", 3.6)
     assert any(i["product_id"] is None and i["label"] == "Crème légère" for i in r["items"])
     # le coût de la recette tient compte du produit relié
     assert client.get(f"/api/recipes/{res['id']}/cost", params={"nb_adultes": 10}).status_code == 200

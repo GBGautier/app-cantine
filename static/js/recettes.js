@@ -175,7 +175,7 @@ async function recipeForm(r, onSavedCb = null) {
     const gramWrap = h('div', {style: isPrincipal ? '' : 'display:none'}, gramSel, gramHint);
 
     // Label input (shown when NOT principal)
-    const labelInp = h('input', {value: it.label || '', placeholder: 'Libellé libre', style: 'width:160px'});
+    const labelInp = h('input', {value: it.label || it.product_name || '', placeholder: 'Libellé libre', style: 'width:160px'});
 
     // Quantities: qServi (total to serve) and qCommander (total to order)
     const qServiInp    = h('input', {type: 'number', step: 'any', min: 0, value: it.qty_servi    ?? '', placeholder: '—', style: 'width:72px', title: 'Quantité totale à servir'});
@@ -309,7 +309,7 @@ async function recipeForm(r, onSavedCb = null) {
       if (it.principalCb.checked && principalGrams) {
         // Per-person grams come from CGRS grammage table
         return {
-          product_id: null,
+          product_id: it.origIt?.product_id ?? null,
           label,
           qty_maternelle:  principalGrams.gMat,
           qty_elementaire: principalGrams.gElem,
@@ -333,7 +333,7 @@ async function recipeForm(r, onSavedCb = null) {
           if (nbAdu  > 0 && qAdu  != null) qAdu  = qAdu  / nbAdu  * 1000;
         }
         return {
-          product_id: null,
+          product_id: it.origIt?.product_id ?? null,
           label,
           qty_maternelle:  qMat  != null ? Math.round(qMat  * 10) / 10 : null,
           qty_elementaire: qElem != null ? Math.round(qElem * 10) / 10 : null,

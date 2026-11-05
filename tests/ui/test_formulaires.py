@@ -185,3 +185,27 @@ def test_export_des_lignes_au_format_excel(admin, api):
     assert dl.value.suggested_filename == "lignes_factures_2030-03-01_2030-03-31.xlsx"
     z = zipfile.ZipFile(dl.value.path())
     assert b"F-XL-1" in z.read("xl/worksheets/sheet1.xml")
+
+
+def test_recette_conserve_le_produit_lie_a_l_enregistrement(admin, api):
+    """Un ingrédient relié à un produit (créé par l'assistant) s'affiche avec son libellé et reste relié après enregistrement."""
+    page = admin
+    pid = api.post("/api/products", {"name": "Courgette test", "unit": "kg"})["id"]
+    api.post(
+        "/api/recipes",
+        {
+            "name": "Gratin relié",
+            "nb_elementaires": 10,
+            "items": [
+                {"product_id": pid, "label": "Courgette test", "qty_servi": 1.5, "qty_commander": 1.5, "unit": "kg"}
+            ],
+        },
+    )
+    aller(page, "Recettes")
+    page.get_by_text("Gratin relié").click()
+    assert page.locator(".modal input[placeholder='Libellé libre']").first.input_value() == "Courgette test"
+    modal_enregistrer(page)
+    recettes = page.context.request.get(page.base + "/api/recipes").json()
+    recettes = recettes if isinstance(recettes, list) else recettes["items"]
+    rec = page.context.request.get(page.base + f"/api/recipes/{recettes[0]['id']}").json()
+    assert [(i["product_id"], i["label"]) for i in rec["items"]] == [(pid, "Courgette test")]
