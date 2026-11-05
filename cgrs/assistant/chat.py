@@ -59,13 +59,17 @@ def _nettoyer(messages):
             for tc in m.get("tool_calls") or []:
                 f = (tc or {}).get("function") or {}
                 if isinstance(tc.get("id"), str) and isinstance(f.get("name"), str):
-                    appels.append(
-                        {
-                            "id": tc["id"][:64],
-                            "type": "function",
-                            "function": {"name": f["name"], "arguments": str(f.get("arguments") or "{}")[:MAX_TEXTE]},
-                        }
-                    )
+                    appel = {
+                        "id": tc["id"][:64],
+                        "type": "function",
+                        "function": {"name": f["name"], "arguments": str(f.get("arguments") or "{}")[:MAX_TEXTE]},
+                    }
+                    extra = tc.get(
+                        "extra_content"
+                    )  # signature de réflexion (Gemini 3), à renvoyer telle quelle au modèle
+                    if isinstance(extra, dict) and set(extra) == {"google"} and len(json.dumps(extra)) < 20000:
+                        appel["extra_content"] = extra
+                    appels.append(appel)
             if appels:
                 msg["tool_calls"] = appels
             out.append(msg)

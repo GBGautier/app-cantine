@@ -556,3 +556,110 @@ def test_modele_automatique_si_aucun_choisi(client, monkeypatch):
     llm.appeler([{"role": "user", "content": "x"}])
     assert envoyes[-1] == "gemini-3-pro"
     client.delete("/api/assistant/config/cle")
+
+
+def _http(req, code, corps=b""):
+    import io
+
+    return urllib.error.HTTPError(req.full_url, code, "x", {}, io.BytesIO(corps))
+
+
+def test_erreur_passagere_reessayee_puis_reponse(client, monkeypatch):
+    client.put(
+        "/api/assistant/config", json={"fournisseur": "gemini", "modele": "mon-modele", "cle": "AIza-cle-tres-secrete"}
+    )
+    pauses, appels = [], []
+    monkeypatch.setattr(llm.time, "sleep", pauses.append)
+
+    def ouvre(req, timeout=None):
+        appels.append(1)
+        if len(appels) < 3:
+            raise _http(req, 503, b'[{"error": {"message": "The model is overloaded"}}]')
+        return _Reponse({"choices": [{"message": {"content": "ok"}}]})
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", ouvre)
+    assert llm.appeler([{"role": "user", "content": "x"}])["content"] == "ok"
+    assert len(appels) == 3 and pauses == list(llm.PAUSES)
+
+    def toujours(req, timeout=None):
+        raise _http(req, 503, b'[{"error": {"message": "high demand"}}]')
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", toujours)
+    with pytest.raises(llm.ErreurModele) as e:
+        llm.appeler([{"role": "user", "content": "x"}])
+    assert "surchargé" in str(e.value) and "high demand" in str(e.value)
+    client.delete("/api/assistant/config/cle")
+
+
+def test_modele_automatique_passe_au_suivant_si_introuvable_ou_surcharge(client, monkeypatch):
+    client.put("/api/assistant/config", json={"fournisseur": "gemini", "modele": "", "cle": "AIza-cle-repli-auto"})
+    llm.oublier_modele_auto()
+    monkeypatch.setattr(llm.time, "sleep", lambda s: None)
+    monkeypatch.setattr(llm, "lister_modeles", lambda f, c: ["gemini-a", "gemini-b", "gemini-c"])
+    essayes = []
+
+    def ouvre(req, timeout=None):
+        m = json.loads(req.data)["model"]
+        essayes.append(m)
+        if m == "gemini-a":
+            raise _http(req, 404)
+        if m == "gemini-b":
+            raise _http(req, 503)
+        return _Reponse({"choices": [{"message": {"content": "via " + m}}]})
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", ouvre)
+    assert llm.appeler([{"role": "user", "content": "x"}])["content"] == "via gemini-c"
+    essayes.clear()
+    assert llm.appeler([{"role": "user", "content": "x"}])["content"] == "via gemini-c"
+    assert essayes == ["gemini-c"]  # le modèle qui marche passe en tête
+    llm.oublier_modele_auto()
+    client.delete("/api/assistant/config/cle")
+
+
+def test_signature_de_reflexion_gemini_conservee(client, monkeypatch, assistant_configure):
+    from cgrs.assistant import chat
+
+    sig = {"google": {"thought_signature": "abc123"}}
+    recu = []
+
+    def ouvre(req, timeout=None):
+        if req.data is None:  # liste des modèles (mode automatique)
+            return _Reponse({"data": [{"id": "mistral-small-latest"}]})
+        recu.append(json.loads(req.data))
+        if len(recu) == 1:
+            tc = {"id": "c1", "function": {"name": "consulter_stock", "arguments": "{}"}, "extra_content": sig}
+            return _Reponse({"choices": [{"message": {"content": None, "tool_calls": [tc]}}]})
+        return _Reponse({"choices": [{"message": {"content": "fini"}}]})
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", ouvre)
+    msg = llm.appeler([{"role": "user", "content": "x"}])
+    assert msg["tool_calls"][0]["extra_content"] == sig
+    nettoyes = chat._nettoyer([{"role": "user", "content": "x"}, msg])
+    assert nettoyes[1]["tool_calls"][0]["extra_content"] == sig
+    faux = dict(msg, tool_calls=[dict(msg["tool_calls"][0], extra_content={"autre": 1})])
+    assert "extra_content" not in chat._nettoyer([faux])[0]["tool_calls"][0]
+
+
+def test_modele_sans_appels_d_outils_repli_ou_message_clair(client, monkeypatch):
+    client.put("/api/assistant/config", json={"fournisseur": "groq", "modele": "", "cle": "gsk-cle-test-groq"})
+    llm.oublier_modele_auto()
+    monkeypatch.setattr(llm, "lister_modeles", lambda f, c: ["sans-outils", "llama-ok"])
+    corps400 = b'{"error":{"message":"`tool calling` is not supported with this model","type":"invalid_request_error"}}'
+
+    def ouvre(req, timeout=None):
+        m = json.loads(req.data)["model"]
+        if m == "sans-outils":
+            raise _http(req, 400, corps400)
+        return _Reponse({"choices": [{"message": {"content": "via " + m}}]})
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", ouvre)
+    assert llm.appeler([{"role": "user", "content": "x"}])["content"] == "via llama-ok"
+    llm.oublier_modele_auto()
+    client.put(
+        "/api/assistant/config", json={"fournisseur": "groq", "modele": "sans-outils", "cle": "gsk-cle-test-groq"}
+    )
+    with pytest.raises(llm.ErreurModele) as e:
+        llm.appeler([{"role": "user", "content": "x"}])
+    assert "ne gère pas les appels d'outils" in str(e.value)
+    client.delete("/api/assistant/config/cle")
+    llm.oublier_modele_auto()
