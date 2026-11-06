@@ -845,3 +845,245 @@ def test_modifier_reference_d_un_produit(mcp_client, client):
     assert (p["ref"], p["name"], p["unit"], p["unit_price"], p["gamme"]) == ("89HBIN58", "Huile réf", "l", 4, "1")
     assert appel(mcp_client["ecriture"], "modifier_produit", produit_id=a, reference="89HBIN58")[0]  # rien à changer
     assert appel(mcp_client["ecriture"], "modifier_produit", produit_id=999999, reference="X")[0]
+
+
+# ---------------------------------------------------------------- outils de suivi et de correction
+
+
+def _ecr(c, outil, **args):
+    erreur, res = appel(c["ecriture"], outil, **args)
+    assert not erreur, res
+    return res
+
+
+def _lec(c, outil, **args):
+    erreur, res = appel(c["lecture"], outil, **args)
+    assert not erreur, res
+    return res
+
+
+@pytest.fixture(scope="module")
+def suivi(client, mcp_client):
+    f = client.post(
+        "/api/suppliers", json={"name": "Ferme Suivi", "franco": 100, "delivery_days": ["lun", "jeu"]}
+    ).json()["id"]
+    p = client.post(
+        "/api/products", json={"name": "Carottes Suivi", "supplier_id": f, "unit": "kg", "unit_price": 2}
+    ).json()["id"]
+    q = client.post("/api/products", json={"name": "Pommes Suivi", "supplier_id": f, "unit": "kg"}).json()["id"]
+    r1 = _ecr(
+        mcp_client,
+        "creer_reception",
+        type="facture",
+        date="2033-03-01",
+        reference="FS-1",
+        fournisseur_id=f,
+        lignes=[{"produit_id": p, "quantite": 10, "unite": "kg", "prix_unitaire_ht": 2}],
+    )["id"]
+    _ecr(
+        mcp_client,
+        "creer_reception",
+        type="facture",
+        date="2033-04-01",
+        reference="FS-2",
+        fournisseur_id=f,
+        lignes=[{"produit_id": p, "quantite": 5, "unite": "kg", "prix_unitaire_ht": 3}],
+    )
+    return {"f": f, "p": p, "q": q, "r1": r1}
+
+
+def test_voir_reception_et_repas(mcp_client, suivi, client):
+    r = _lec(mcp_client, "voir_reception", id=suivi["r1"])
+    assert (r["reference"], r["fournisseur"], r["total_ht"], r["pdf_joint"]) == ("FS-1", "Ferme Suivi", 20, False)
+    assert r["lignes"][0]["produit"] == "Carottes Suivi" and r["lignes"][0]["quantite"] == 10
+    mid = _ecr(mcp_client, "creer_repas", date="2033-03-02", convives={"elementaires": 30}, plat="Carottes")["id"]
+    _ecr(mcp_client, "saisir_sorties_repas", repas_id=mid, sorties=[{"produit_id": suivi["p"], "quantite": 4}])
+    m = _lec(mcp_client, "voir_repas", id=mid)
+    assert m["convives"]["elementaires"] == 30 and m["menu"] == {"plat": "Carottes"}
+    assert m["sorties"][0]["produit"] == "Carottes Suivi" and m["sorties"][0]["quantite"] == 4
+    assert appel(mcp_client["lecture"], "voir_reception", id=999999)[0]
+
+
+def test_historique_prix(mcp_client, suivi):
+    h = _lec(mcp_client, "historique_prix", produit="Carottes Suivi")
+    assert (h["premier_prix"]["prix"], h["dernier_prix"]["prix"], h["variation_pct"]) == (2, 3, 50.0)
+    assert (h["minimum"], h["maximum"], h["nombre_de_prix"]) == (2, 3, 2)
+    h2 = _lec(mcp_client, "historique_prix", produit_id=suivi["p"], date_debut="2033-04-01")
+    assert h2["nombre_de_prix"] == 1 and h2["variation_pct"] == 0.0
+    assert appel(mcp_client["lecture"], "historique_prix", produit="introuvable xyz")[0]
+
+
+def test_modifier_reception(mcp_client, suivi, client):
+    r = _lec(mcp_client, "voir_reception", id=suivi["r1"])
+    lid = r["lignes"][0]["ligne_id"]
+    res = _ecr(
+        mcp_client,
+        "modifier_reception",
+        id=suivi["r1"],
+        reference="FS-1B",
+        lignes=[{"ligne_id": lid, "quantite": 12, "prix_unitaire_ht": 2.5}],
+    )
+    assert len(res["modifications"]) == 2
+    r = _lec(mcp_client, "voir_reception", id=suivi["r1"])
+    assert (r["reference"], r["total_ht"], r["lignes"][0]["quantite"], r["lignes"][0]["total_ht"]) == (
+        "FS-1B",
+        30,
+        12,
+        30,
+    )
+    assert appel(
+        mcp_client["ecriture"], "modifier_reception", id=suivi["r1"], lignes=[{"ligne_id": 424242, "quantite": 1}]
+    )[0]
+    assert appel(mcp_client["ecriture"], "modifier_reception", id=suivi["r1"], reference="FS-1B")[0]  # rien à changer
+    assert appel(
+        mcp_client["ecriture"], "modifier_reception", id=suivi["r1"], lignes=[{"ligne_id": lid, "supprimer": True}]
+    )[0]
+
+
+def test_modifier_repas(mcp_client, suivi, client):
+    mid = _ecr(mcp_client, "creer_repas", date="2033-05-02", convives={"elementaires": 30})["id"]
+    _ecr(mcp_client, "saisir_sorties_repas", repas_id=mid, sorties=[{"produit_id": suivi["p"], "quantite": 4}])
+    res = _ecr(
+        mcp_client, "modifier_repas", id=mid, convives={"elementaires": 45, "adultes": 5}, statut="passe", plat="Gratin"
+    )
+    assert len(res["modifications"]) == 4
+    m = _lec(mcp_client, "voir_repas", id=mid)
+    assert (m["convives"]["elementaires"], m["convives"]["adultes"], m["statut"], m["menu"]["plat"]) == (
+        45,
+        5,
+        "passe",
+        "Gratin",
+    )
+    assert len(m["sorties"]) == 1  # les sorties sont conservées
+    assert appel(mcp_client["ecriture"], "modifier_repas", id=mid, statut="bidon")[0]
+    autre = _ecr(mcp_client, "creer_repas", date="2033-05-03")["id"]
+    assert appel(mcp_client["ecriture"], "modifier_repas", id=autre, date="2033-05-02")[0]  # date déjà prise
+
+
+def test_modifier_recette(mcp_client, suivi, client):
+    rid = _ecr(
+        mcp_client,
+        "creer_recette",
+        nom="Recette Suivi",
+        convives={"elementaires": 100},
+        ingredients=[
+            {"produit_id": suivi["p"], "libelle": "Carottes", "grammes_par_convive": 100, "principal": True},
+            {"libelle": "Sel", "grammes_par_convive": 1},
+        ],
+    )["id"]
+    res = _ecr(
+        mcp_client,
+        "modifier_recette",
+        id=rid,
+        convives={"elementaires": 200},
+        modifier=[{"ingredient": "Carottes", "grammes_par_convive": 150}],
+        retirer=["Sel"],
+        ajouter=[{"produit_id": suivi["q"], "libelle": "Pommes", "grammes_par_convive": 50}],
+    )
+    assert len(res["modifications"]) == 4
+    r = client.get(f"/api/recipes/{rid}").json()
+    par = {i["label"]: i for i in r["items"]}
+    assert set(par) == {"Carottes", "Pommes"} and r["nb_elementaires"] == 200
+    assert (par["Carottes"]["qty_elementaire"], par["Carottes"]["qty_servi"], par["Carottes"]["principal"]) == (
+        150,
+        30,
+        1,
+    )
+    assert par["Pommes"]["product_id"] == suivi["q"] and par["Pommes"]["qty_servi"] == 10
+    assert appel(mcp_client["ecriture"], "modifier_recette", id=rid, retirer=["Inconnu"])[0]
+    assert appel(mcp_client["ecriture"], "modifier_recette", id=rid)[0]  # rien à changer
+
+
+def test_ajuster_stock(mcp_client, suivi):
+    avant = next(
+        s
+        for s in _lec(mcp_client, "consulter_stock", requete="carottes suivi")["stock"]
+        if s["produit_id"] == suivi["p"]
+    )
+    res = _ecr(mcp_client, "ajuster_stock", produit="Carottes Suivi", quantite_reelle=1, motif="casse")
+    assert res["ecart"] == round(1 - avant["stock"], 3) and res["stock_apres"] == 1
+    apres = next(
+        s
+        for s in _lec(mcp_client, "consulter_stock", requete="carottes suivi")["stock"]
+        if s["produit_id"] == suivi["p"]
+    )
+    assert apres["stock"] == 1
+    assert appel(mcp_client["ecriture"], "ajuster_stock", produit="Carottes Suivi", quantite_reelle=-2)[0]
+
+
+def test_engagements_et_besoins(mcp_client, suivi, client):
+    e = _lec(mcp_client, "engagements_egalim", date_debut="2033-01-01", date_fin="2033-12-31")
+    assert "/" in e["atteints"] and isinstance(e["engagements"], list)
+    mid = _ecr(mcp_client, "creer_repas", date="2033-06-10", convives={"elementaires": 20}, statut="prevu")["id"]
+    client.put(
+        f"/api/meals/{mid}",
+        json={
+            "date": "2033-06-10",
+            "nb_elementaires": 20,
+            "statut": "prevu",
+            "items": [
+                {"product_id": suivi["p"], "qty": 30, "unit": "kg"},
+                {"product_id": suivi["q"], "qty": 8, "unit": "kg"},
+            ],
+        },
+    )
+    b = _lec(mcp_client, "prevoir_besoins", date_debut="2033-06-01", date_fin="2033-06-30")
+    assert b["repas_prevus"] == 1
+    f = next(x for x in b["a_commander"] if x["fournisseur"] == "Ferme Suivi")
+    produits = {p["produit"]: p for p in f["produits"]}
+    # carottes : 30 kg prévus, 1 kg en stock (ajustement du test précédent) -> 29 kg à 3 €
+    assert produits["Carottes Suivi"]["a_commander"] == 29 and produits["Carottes Suivi"]["cout_estime_ht"] == 87
+    assert produits["Pommes Suivi"]["a_commander"] == 8 and produits["Pommes Suivi"]["cout_estime_ht"] is None
+    assert f["franco"] == 100 and f["franco_atteint"] is False and f["jours_livraison"] == ["lun", "jeu"]
+    assert appel(mcp_client["lecture"], "prevoir_besoins", date_debut="2033-06-01")[0]
+
+
+def test_anomalies(mcp_client, suivi, client):
+    client.post(
+        "/api/products", json={"name": "Carottes Suivi", "supplier_id": suivi["f"], "unit": "kg"}
+    )  # doublon de nom
+    a = _lec(mcp_client, "reperer_anomalies")
+    assert (
+        any("Pommes Suivi" in x for x in a["produits_sans_prix"]["exemples"]) or a["produits_sans_prix"]["nombre"] >= 1
+    )
+    assert any("Carottes Suivi" in " ".join(g) for g in a["doublons_probables_de_produits"]["groupes"])
+    assert a["receptions_sans_pdf"]["nombre"] >= 2
+    mid = _ecr(mcp_client, "creer_repas", date="2033-07-01", convives={"elementaires": 10}, statut="passe")["id"]
+    assert any(f"#{mid} " in x for x in a_ids(_lec(mcp_client, "reperer_anomalies")["repas_passes_sans_sorties"]))
+
+
+def a_ids(bloc):
+    return bloc["exemples"]
+
+
+def test_modifier_fournisseur(mcp_client, suivi, client):
+    res = _ecr(
+        mcp_client,
+        "modifier_fournisseur",
+        id=suivi["f"],
+        contact="Mme Martin",
+        franco=150,
+        jours_livraison=["mar"],
+        direct_producteur=True,
+    )
+    assert len(res["modifications"]) == 4
+    s = next(x for x in client.get("/api/suppliers").json() if x["id"] == suivi["f"])
+    assert (s["contact"], s["franco"], s["delivery_days"], s["direct_producteur"]) == ("Mme Martin", 150, ["mar"], 1)
+    assert s["name"] == "Ferme Suivi"  # le reste de la fiche est conservé
+    p = next(x for x in client.get("/api/products").json() if x["id"] == suivi["p"])
+    assert p["direct_producteur"] == 1  # les produits d'un fournisseur direct le deviennent
+    assert (
+        appel(mcp_client["ecriture"], "modifier_fournisseur", id=suivi["f"], nom="ferme suivi")[0] is False
+    )  # même nom : simple casse
+    autre = client.post("/api/suppliers", json={"name": "Autre Suivi"}).json()["id"]
+    assert appel(mcp_client["ecriture"], "modifier_fournisseur", id=autre, nom="Ferme Suivi")[0]  # nom déjà pris
+
+
+def test_journal_reserve_aux_admins(mcp_client, client):
+    # les jetons MCP ne sont jamais administrateurs : refus ; l'assistant du chat (admin) peut lire le journal
+    assert appel(mcp_client["lecture"], "journal_actions")[0]
+    from cgrs.assistant import outils
+
+    admin = {"username": "admin", "role": "admin"}
+    r = outils.executer(admin, "journal_actions", {"entite": "product", "limite": 5})
+    assert r["nombre"] >= 1 and set(r["actions"][0]) == {"quand", "qui", "action", "objet", "detail"}

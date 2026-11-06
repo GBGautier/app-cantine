@@ -387,6 +387,40 @@ def _modifier_produit(user, a):
     return {"id": pid, "nom": donnees["name"], "modifications": modifs}
 
 
+def construire_ingredient(ing, nb_m, nb_e, nb_a):
+    """Ingrédient de recette décrit par le modèle -> (RecipeItem, produit relié ou None, texte, ambiguïté ou None)."""
+    g = ing.get("grammes_par_convive")
+    if not isinstance(g, (int, float)) or g <= 0:
+        raise ErreurOutil("ingredients : grammes_par_convive (nombre > 0) obligatoire pour chaque ingrédient")
+    pid, libelle = ing.get("produit_id"), (ing.get("libelle") or "").strip()
+    texte = (ing.get("produit") or libelle).strip()
+    prod, ambigu = None, None
+    if pid is not None:
+        prod = next((p for p in _produits() if p["id"] == pid), None)
+        if not prod:
+            raise ErreurOutil(f"produit_id {pid} introuvable (voir rechercher_produits).")
+    elif texte:
+        prod, cands = trouver_produit(texte)
+        if not prod and cands:
+            ambigu = {"ingredient": texte, "candidats": [c["name"] for c in cands]}
+    if not prod and not texte:
+        raise ErreurOutil("ingredients : chaque ingrédient doit avoir un produit ou un libellé")
+    total = round((g * nb_m + g * nb_e + g * nb_a) / 1000, 3)  # quantité totale à servir, en kg (g × convives)
+    unite = "l" if prod and prod["unit"] == "l" else "kg"
+    item = r_recipes.RecipeItem(
+        product_id=prod["id"] if prod else None,
+        label=libelle or (prod["name"] if prod else texte),  # libellé général ; l'éditeur n'affiche que lui
+        qty_maternelle=g,
+        qty_elementaire=g,
+        qty_adulte=g,
+        qty_servi=total or None,
+        qty_commander=total or None,
+        unit=unite,
+        principal=bool(ing.get("principal")),
+    )
+    return item, prod, texte, ambigu
+
+
 def _creer_recette(user, a):
     nom = (a.get("nom") or "").strip()
     if not nom:
@@ -397,37 +431,10 @@ def _creer_recette(user, a):
     nb_m, nb_e, nb_a = (int(cv.get(k) or 0) for k in ("maternelles", "elementaires", "adultes"))
     items, reliés, non_reliés, ambigus = [], [], [], []
     for ing in a.get("ingredients") or []:
-        g = ing.get("grammes_par_convive")
-        if not isinstance(g, (int, float)) or g <= 0:
-            raise ErreurOutil("ingredients : grammes_par_convive (nombre > 0) obligatoire pour chaque ingrédient")
-        pid, libelle = ing.get("produit_id"), (ing.get("libelle") or "").strip()
-        texte = (ing.get("produit") or libelle).strip()
-        prod = None
-        if pid is not None:
-            prod = next((p for p in _produits() if p["id"] == pid), None)
-            if not prod:
-                raise ErreurOutil(f"produit_id {pid} introuvable (voir rechercher_produits).")
-        elif texte:
-            prod, cands = trouver_produit(texte)
-            if not prod and cands:
-                ambigus.append({"ingredient": texte, "candidats": [c["name"] for c in cands]})
-        if not prod and not texte:
-            raise ErreurOutil("ingredients : chaque ingrédient doit avoir un produit ou un libellé")
-        total = round((g * nb_m + g * nb_e + g * nb_a) / 1000, 3)  # quantité totale à servir, en kg (g × convives)
-        unite = "l" if prod and prod["unit"] == "l" else "kg"
-        items.append(
-            r_recipes.RecipeItem(
-                product_id=prod["id"] if prod else None,
-                label=libelle or (prod["name"] if prod else texte),  # libellé général ; l'éditeur n'affiche que lui
-                qty_maternelle=g,
-                qty_elementaire=g,
-                qty_adulte=g,
-                qty_servi=total or None,
-                qty_commander=total or None,
-                unit=unite,
-                principal=bool(ing.get("principal")),
-            )
-        )
+        item, prod, texte, ambigu = construire_ingredient(ing, nb_m, nb_e, nb_a)
+        if ambigu:
+            ambigus.append(ambigu)
+        items.append(item)
         (reliés if prod else non_reliés).append(prod["name"] if prod else texte)
     rec = r_recipes.Recipe(
         name=nom,
@@ -825,6 +832,9 @@ OUTILS = [
         ),
     ),
 ]
+from cgrs.assistant.outils_gestion import OUTILS_GESTION  # noqa: E402  (importe ce module : défini plus bas)
+
+OUTILS.extend(OUTILS_GESTION)
 PAR_NOM = {o.nom: o for o in OUTILS}
 
 
