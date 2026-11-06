@@ -313,6 +313,8 @@ def _achats_par_fournisseur(user, a):
 
 # ------------------------------------------------------------------ écriture
 
+CHAMPS_PRODUIT = tuple(r_products.Product.model_fields)
+
 
 def _entier(a, cle):
     try:
@@ -359,6 +361,30 @@ def _creer_produit(user, a):
         provenance=a.get("provenance"),
     )
     return {"id": _appel(r_products.create_product, p, user)["id"], "nom": nom}
+
+
+def _modifier_produit(user, a):
+    pid = a.get("produit_id")
+    p = db.one("SELECT * FROM products WHERE id=?", (pid,)) if isinstance(pid, int) else None
+    if not p:
+        raise ErreurOutil(f"Produit {pid} introuvable (voir rechercher_produits).")
+    champs = {"reference": "ref", "nom": "name", "categorie": "category", "gamme": "gamme", "label_egalim": "label_egalim",
+              "provenance": "provenance"}  # fmt: skip
+    donnees = {k: p[k] for k in CHAMPS_PRODUIT}
+    modifs = []
+    for arg, col in champs.items():
+        if arg in a and a[arg] is not None:
+            v = str(a[arg]).strip()
+            if col == "name" and not v:
+                raise ErreurOutil("nom : ne peut pas être vide")
+            if v != (p[col] or ""):
+                donnees[col] = v or None
+                modifs.append(f"{arg} : « {p[col] or ''} » → « {v} »")
+    if not modifs:
+        raise ErreurOutil("Aucune modification : les valeurs demandées sont déjà celles du produit.")
+    _appel(r_products.edit_product, pid, r_products.Product(**donnees), user)
+    log_action(user, "update", "product", pid, "Produit modifié par l'assistant : " + " ; ".join(modifs))
+    return {"id": pid, "nom": donnees["name"], "modifications": modifs}
 
 
 def _creer_recette(user, a):
@@ -656,6 +682,34 @@ OUTILS = [
         lambda a: (
             f"Créer le produit « {a.get('nom')} »"
             + (f" à {a['prix_unitaire_ht']} €/{a.get('unite') or 'kg'}" if a.get("prix_unitaire_ht") else "")
+        ),
+    ),
+    Outil(
+        "modifier_produit",
+        "Modifier un produit",
+        "Corrige la fiche d'un produit existant : référence fournisseur, nom, catégorie, gamme, label Egalim, provenance. "
+        "Les autres champs et tout l'historique (achats, prix, recettes, stock) sont conservés. Pour corriger plusieurs "
+        "produits, appelez l'outil une fois par produit. Cherchez d'abord les produits avec rechercher_produits "
+        "(la recherche accepte une référence).",
+        _obj(
+            {
+                "produit_id": _INT,
+                "reference": {"type": "string", "description": "Nouvelle référence fournisseur"},
+                "nom": _STR,
+                "categorie": _STR,
+                "gamme": _STR,
+                "label_egalim": _STR,
+                "provenance": _STR,
+            },
+            ["produit_id"],
+        ),
+        _modifier_produit,
+        True,
+        lambda a: (
+            "Modifier le produit "
+            + str(a.get("produit_id"))
+            + " : "
+            + ", ".join(f"{k} = « {v} »" for k, v in a.items() if k != "produit_id" and v is not None)
         ),
     ),
     Outil(

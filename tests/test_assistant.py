@@ -830,3 +830,18 @@ def test_refus_en_anglais_aussi_detecte():
     from cgrs.assistant import chat
 
     assert chat._REFUS_OUTILS.search("I'm sorry, but I don't have access to the necessary tools to provide an answer.")
+
+
+def test_modifier_reference_d_un_produit(mcp_client, client):
+    f = client.post("/api/suppliers", json={"name": "Fournisseur Réf"}).json()["id"]
+    a = client.post(
+        "/api/products",
+        json={"name": "Huile réf", "ref": "89HBIN5B", "supplier_id": f, "unit": "l", "unit_price": 4, "gamme": "1"},
+    ).json()["id"]
+    assert "modifier_produit" not in {t["name"] for t in rpc(mcp_client["lecture"], "tools/list")["result"]["tools"]}
+    erreur, res = appel(mcp_client["ecriture"], "modifier_produit", produit_id=a, reference="89HBIN58")
+    assert not erreur and res["modifications"] == ["reference : « 89HBIN5B » → « 89HBIN58 »"]
+    p = next(x for x in client.get("/api/products").json() if x["id"] == a)
+    assert (p["ref"], p["name"], p["unit"], p["unit_price"], p["gamme"]) == ("89HBIN58", "Huile réf", "l", 4, "1")
+    assert appel(mcp_client["ecriture"], "modifier_produit", produit_id=a, reference="89HBIN58")[0]  # rien à changer
+    assert appel(mcp_client["ecriture"], "modifier_produit", produit_id=999999, reference="X")[0]
