@@ -1,5 +1,5 @@
 /* ---------- Export PDF Statistiques ---------- */
-function exportStatsPdf(s, f, bilan) {
+function exportStatsPdf(s, f) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({orientation: 'portrait', unit: 'mm', format: 'a4'});
   const hid = s.prices_hidden;
@@ -29,9 +29,6 @@ function exportStatsPdf(s, f, bilan) {
   const GREEN = [47, 107, 79];
   const MUTE = [107, 118, 111];
   const INK = [31, 42, 36];
-
-  // Bilan mensuel en tête, puis les statistiques de la période
-  if (bilan) { ajouterBilanAuPdf(doc, bilan); doc.addPage(); }
 
   // Titre
   doc.setFont('helvetica', 'bold');
