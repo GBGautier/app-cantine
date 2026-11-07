@@ -47,6 +47,9 @@ def test_export_pdf_des_statistiques_contient_le_bilan(admin, api, tmp_path):
     aller(page, "Statistiques")
     page.evaluate("store.set('cgrs.st', '2031-10-31'); render()")
     page.wait_for_function("document.querySelector('#st')?.value === '2031-10-31'")
+    corps = page.locator("main, body").first.inner_text()
+    assert "Bilan mensuel des approvisionnements" in corps and "Origine par famille de produits — cumul" in corps
+    assert "Produits EGalim par famille" in corps and "Répartition par gamme" in corps
     with page.expect_download() as dl:
         page.get_by_role("button", name="Exporter en PDF").click()
     fichier = tmp_path / "stats.pdf"
@@ -54,6 +57,9 @@ def test_export_pdf_des_statistiques_contient_le_bilan(admin, api, tmp_path):
     with pdfplumber.open(fichier) as pdf:
         texte = "\n".join(p.extract_text() or "" for p in pdf.pages)
     assert "Suivi des approvisionnements" in texte and "Octobre 2031" in texte
+    assert texte.index("Suivi des approvisionnements") < texte.index(
+        "Statistiques des achats"
+    )  # bilan en première page
     assert "Part de bio, toutes denrees" in texte or "Part de bio, toutes denrées" in texte
     assert "Produits bio par famille" in texte and "Origine par famille de produits" in texte
     assert "Repartition par gamme" in texte

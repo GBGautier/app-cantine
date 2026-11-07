@@ -1,6 +1,5 @@
-/* ---------- Bilan mensuel : pages ajoutées à l'export PDF de la page Statistiques ---------- */
+/* ---------- Bilan mensuel : pages placées en tête de l'export PDF de la page Statistiques ---------- */
 function ajouterBilanAuPdf(doc, b) {
-  doc.addPage();
   const masque = b.prix_masques;
   // Helvetica n'a ni l'espace fine insécable ni l'espace insécable de toLocaleString : formats maison
   const n = (v, d = 2) => {

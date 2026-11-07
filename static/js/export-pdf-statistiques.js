@@ -1,5 +1,5 @@
 /* ---------- Export PDF Statistiques ---------- */
-async function exportStatsPdf(s, f) {
+function exportStatsPdf(s, f, bilan) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({orientation: 'portrait', unit: 'mm', format: 'a4'});
   const hid = s.prices_hidden;
@@ -29,6 +29,9 @@ async function exportStatsPdf(s, f) {
   const GREEN = [47, 107, 79];
   const MUTE = [107, 118, 111];
   const INK = [31, 42, 36];
+
+  // Bilan mensuel en tête, puis les statistiques de la période
+  if (bilan) { ajouterBilanAuPdf(doc, bilan); doc.addPage(); }
 
   // Titre
   doc.setFont('helvetica', 'bold');
@@ -220,10 +223,6 @@ async function exportStatsPdf(s, f) {
     });
     y = doc.lastAutoTable.finalY + 6;
   }
-
-  // Bilan mensuel (mois de la fin de période, sinon dernier mois en cours) ajouté à la suite
-  const bilan = await api('/bilan' + (f.to ? '?mois=' + f.to.slice(0, 7) : ''));
-  ajouterBilanAuPdf(doc, bilan);
 
   // Note bas de page sur chaque page
   const totalPages = doc.internal.getNumberOfPages();
