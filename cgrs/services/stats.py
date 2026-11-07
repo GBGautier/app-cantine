@@ -4,6 +4,7 @@ Les « lignes » sont des dictionnaires issus des réceptions, avec au minimum `
 `label_egalim`, `provenance`, `gamme`, `category`, `direct_producteur`, `supplier`.
 """
 
+from cgrs import db
 from cgrs.constants import LOCAL
 
 
@@ -76,6 +77,27 @@ def lines_metric_multi(lines, metrics, categories=None, gammes=None):
     if not preds:
         return None
     return round(100 * sum(r["spend"] for r in subset if any(p(r) for p in preds)) / total, 1)
+
+
+def load_lines(date_from=None, date_to=None):
+    """Lignes d'achat de la période (réceptions datées entre les deux bornes incluses), montants complétés par fill_spend."""
+    where, args = ["1=1"], []
+    if date_from:
+        where.append("o.date >= ?")
+        args.append(date_from)
+    if date_to:
+        where.append("o.date <= ?")
+        args.append(date_to)
+    lines = db.rows(
+        "SELECT l.order_id, o.total_ht AS order_total, l.qty, COALESCE(l.total_ht, l.qty*l.unit_price) AS spend, "
+        "p.label_egalim, p.label_detail, p.provenance, p.gamme, p.category, p.direct_producteur, s.name AS supplier "
+        "FROM order_lines l JOIN orders o ON o.id=l.order_id "
+        "LEFT JOIN products p ON p.id=l.product_id LEFT JOIN suppliers s ON s.id=o.supplier_id "
+        f"WHERE {' AND '.join(where)}",
+        args,
+    )
+    fill_spend(lines)
+    return lines
 
 
 def fill_spend(lines):

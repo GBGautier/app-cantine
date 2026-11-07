@@ -5,6 +5,7 @@ import re
 from .conftest import MOT_DE_PASSE, aller, champ
 
 PAGES = [
+    "Bilan mensuel",
     "Statistiques",
     "Réceptions",
     "Fournisseurs",

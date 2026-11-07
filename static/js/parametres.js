@@ -27,6 +27,7 @@ async function pageSettings() {
   const [list, st, users, actionLog] = await Promise.all([api('/commitments'), api('/settings'), api('/users'), api('/action-log')]);
   const labels = Object.fromEntries(state.meta.metrics);
   const cn = h('input', {value: st.client_names, placeholder: 'ex. Restaurant scolaire ; Cantine municipale'});
+  const tarif = h('input', {type: 'number', step: '0.01', min: '0.01', value: st.tarif_repas, style: 'width:110px'});
   let dMat, dElem, dAdu;
   return h('div', {},
     h('h2', {}, 'Paramètres'),
@@ -65,6 +66,10 @@ async function pageSettings() {
       h('p', {class: 'mute', style: 'margin-top:0'}, "Tels qu'ils apparaissent sur les bons de livraison et factures (plusieurs noms séparés par « ; »). L'import PDF ne les prendra jamais pour un fournisseur. Le nom choisi dans Personnalisation est déjà pris en compte."),
       h('div', {class: 'row', style: 'margin:0'}, h('div', {style: 'flex:1'}, cn),
         h('button', {onclick: async () => { try { await api('/settings', {method: 'PUT', body: {client_names: cn.value}}); toast('Enregistré'); } catch (e) { alert(e.message); } }}, 'Enregistrer'))),
+    h('div', {class: 'card'}, h('h3', {}, 'Tarif de vente d\'un repas'),
+      h('p', {class: 'mute', style: 'margin-top:0'}, "Tarif facturé à la collectivité (€ par repas) : le Bilan mensuel le compare au prix de revient pour calculer le déficit."),
+      h('div', {class: 'row', style: 'margin:0'}, tarif,
+        h('button', {onclick: async () => { try { await api('/settings', {method: 'PUT', body: {client_names: cn.value, tarif_repas: Number(tarif.value)}}); toast('Enregistré'); } catch (e) { alert(e.message); } }}, 'Enregistrer'))),
     h('div', {class: 'card'}, h('h3', {}, 'Export Dolibarr'),
       h('p', {class: 'mute', style: 'margin-top:0'}, 'Fichiers CSV à importer avec l\'assistant d\'import Dolibarr (séparateur « ; », UTF-8). TVA 5,5 %, produits à vendre et à acheter. Importez d\'abord les fournisseurs, puis les produits, puis les réceptions (commandes fournisseurs) et les repas (commandes clients).'),
       h('div', {style: 'display:flex;gap:8px;flex-wrap:wrap'},

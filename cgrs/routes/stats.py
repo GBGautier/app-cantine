@@ -13,9 +13,9 @@ from cgrs.security import ANY
 from cgrs.services.stats import (
     breakdown,
     commitment_status,
-    fill_spend,
     hide_prices,
     lines_metric_multi,
+    load_lines,
     price_per_meal as compute_price_per_meal,
     share_of_spend,
 )
@@ -30,23 +30,7 @@ def stats(date_from: Optional[str] = None, date_to: Optional[str] = None, user: 
 
     Pour le profil « stats », tout ce qui révèle un prix est retiré de la réponse côté serveur.
     """
-    where, args = ["1=1"], []
-    if date_from:
-        where.append("o.date >= ?")
-        args.append(date_from)
-    if date_to:
-        where.append("o.date <= ?")
-        args.append(date_to)
-    w = " AND ".join(where)
-    lines = db.rows(
-        "SELECT l.order_id, o.total_ht AS order_total, l.qty, COALESCE(l.total_ht, l.qty*l.unit_price) AS spend, "
-        "p.label_egalim, p.provenance, p.gamme, p.category, p.direct_producteur, s.name AS supplier "
-        "FROM order_lines l JOIN orders o ON o.id=l.order_id "
-        "LEFT JOIN products p ON p.id=l.product_id LEFT JOIN suppliers s ON s.id=o.supplier_id "
-        f"WHERE {w}",
-        args,
-    )
-    fill_spend(lines)
+    lines = load_lines(date_from, date_to)
     total = round(sum(r["spend"] for r in lines), 2)
 
     def pct(pred):
