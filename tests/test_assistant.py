@@ -1087,3 +1087,46 @@ def test_journal_reserve_aux_admins(mcp_client, client):
     admin = {"username": "admin", "role": "admin"}
     r = outils.executer(admin, "journal_actions", {"entite": "product", "limite": 5})
     assert r["nombre"] >= 1 and set(r["actions"][0]) == {"quand", "qui", "action", "objet", "detail"}
+
+
+def test_bilan_mensuel_par_rubrique(mcp_client, client):
+    f = client.post("/api/suppliers", json={"name": "Ferme Bilan Outil", "direct_producteur": 1}).json()["id"]
+    p = client.post(
+        "/api/products",
+        json={
+            "name": "Poireaux Bilan",
+            "supplier_id": f,
+            "unit": "kg",
+            "unit_price": 2,
+            "category": "Légumes",
+            "label_egalim": "bio",
+            "provenance": "france",
+            "gamme": "1",
+            "direct_producteur": 1,
+        },
+    ).json()["id"]
+    for jour in ("2034-09-05", "2034-10-05"):
+        _ecr(
+            mcp_client,
+            "creer_reception",
+            type="facture",
+            date=jour,
+            fournisseur_id=f,
+            lignes=[{"produit_id": p, "quantite": 50, "unite": "kg", "prix_unitaire_ht": 2}],
+        )
+    r = _lec(mcp_client, "bilan_mensuel", mois="2034-10")
+    assert r["mois"] == "Octobre 2034" and r["cumul"] == "depuis septembre 2034"
+    assert r["synthese"] and r["tendance_mois_vs_cumul"] and "direct" in r["autres_rubriques"]
+    legumes = next(
+        x
+        for x in _lec(mcp_client, "bilan_mensuel", mois="2034-10", rubrique="direct")["direct_producteur_par_famille"]
+        if x["nom"] == "Légumes"
+    )
+    assert (legumes["mois"], legumes["cumul"], legumes["total_ht"]) == (100.0, 100.0, 100)
+    evo = _lec(mcp_client, "bilan_mensuel", mois="2034-10", rubrique="evolution")["evolution"]
+    assert [e["mois"] for e in evo] == ["2034-09", "2034-10"]
+    assert appel(mcp_client["lecture"], "bilan_mensuel", mois="2034-13")[0]
+    assert appel(mcp_client["lecture"], "bilan_mensuel", mois="2034-10", rubrique="x")[0]
+    assert (
+        len(json.dumps(_lec(mcp_client, "bilan_mensuel", mois="2034-10"))) < 3500
+    )  # tient dans la limite d'un résultat d'outil

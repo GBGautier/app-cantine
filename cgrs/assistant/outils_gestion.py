@@ -32,6 +32,7 @@ from cgrs.routes import recipes as r_recipes
 from cgrs.routes import stats as r_stats
 from cgrs.routes import stock as r_stock
 from cgrs.routes import suppliers as r_suppliers
+from cgrs.services import bilan as svc_bilan
 from cgrs.services.units import convert
 from cgrs.utils import log_action
 
@@ -288,6 +289,99 @@ def _besoins(user, a):
         "a_commander": fournisseurs,
         "remarque": "Besoins tirés des produits sortis ou estimés dans les repas prévus ; stock = stock actuel du produit.",
     }
+
+
+def _arr(v, d=1):
+    return None if v is None else round(v, d)
+
+
+def _bilan_mensuel(user, a):
+    """Bilan d'un mois comparé au cumul depuis septembre, par rubrique (résultat court : une rubrique à la fois)."""
+    mois = a.get("mois") or svc_bilan.mois_par_defaut()
+    try:
+        b = svc_bilan.bilan(mois, masquer_prix=user.get("role") == "stats")
+    except svc_bilan.MoisInvalide as e:
+        raise ErreurOutil(str(e)) from None
+    rubrique = (a.get("rubrique") or "resume").lower()
+
+    def lignes(rows, total=False):
+        out = []
+        for r in rows:
+            x = {"nom": r["nom"], "engagement": r.get("engagement"), "mois": _arr(r["mois"]), "cumul": _arr(r["cumul"])}
+            if total and r.get("total_ht") is not None:
+                x["total_ht"] = round(r["total_ht"])
+            out.append(x)
+        return out
+
+    base = {"mois": b["libelle"], "cumul": b["libelle_cumul"]}
+    pm, pc = b["prix"]["mois"], b["prix"]["cumul"]
+    if rubrique == "resume":
+        prix = {"mois": pm, "cumul": pc, "tarif_repas": b["tarif_repas"]} if not b["prix_masques"] else None
+        for k in ("mois", "cumul"):
+            if prix:
+                prix[k] = {
+                    c: prix[k][c]
+                    for c in ("repas", "prix_par_repas", "deficit_par_repas", "deficit_total", "achats_ht")
+                    if c in prix[k]
+                }
+        ko = [e["nom"] for e in b["engagements"] if e["mois"]["statut"] == "ko"]
+        return {
+            **base,
+            "synthese": b["synthese"],
+            "prix": prix,
+            "tendance_mois_vs_cumul": [
+                {
+                    "indicateur": t["indicateur"],
+                    "mois": _arr(t["mois"]),
+                    "cumul": _arr(t["cumul"]),
+                    "ecart_pts": t["ecart_points"],
+                }
+                for t in b["tendance"]
+            ],
+            "engagements_non_atteints_ce_mois": ko,
+            "autres_rubriques": ["labels", "origine", "categories", "direct", "frais", "engagements", "evolution"],
+        }
+    if rubrique == "labels":
+        return {
+            **base,
+            "labels": {
+                k: {"engagement": v["engagement"], "mois": _arr(v["mois"]), "cumul": _arr(v["cumul"])}
+                for k, v in b["labels"].items()
+            },
+        }
+    if rubrique == "origine":
+        o = b["origine"]
+        return {
+            **base,
+            "origine": {
+                k: {"engagement": o[k]["engagement"], "mois": _arr(o[k]["mois"]), "cumul": _arr(o[k]["cumul"])}
+                for k in ("france", "local", "hors_france")
+            },
+            "repartition": lignes(o["repartition"]),
+        }
+    if rubrique == "categories":
+        return {**base, "origine_france_par_categorie": lignes(b["categories_france"])}
+    if rubrique == "direct":
+        return {**base, "direct_producteur_par_famille": lignes(b["direct"], total=True)}
+    if rubrique == "frais":
+        return {**base, "produits_frais_par_categorie": lignes(b["frais"], total=True)}
+    if rubrique == "engagements":
+        return {
+            **base,
+            "engagements": [
+                {"nom": e["nom"], "objectif": e["objectif"], "sens": e["sens"], "mois": e["mois"], "cumul": e["cumul"]}
+                for e in b["engagements"]
+            ],
+        }
+    if rubrique == "evolution":
+        return {
+            **base,
+            "evolution": [
+                {k: _arr(v) if isinstance(v, float) else v for k, v in e.items() if k != "libelle"}
+                for e in b["evolution"]
+            ],
+        }
+    raise ErreurOutil("rubrique : resume | labels | origine | categories | direct | frais | engagements | evolution")
 
 
 def _anomalies(user, a):
@@ -745,6 +839,15 @@ OUTILS_GESTION = [
         "fournisseur avec coût estimé, franco et jours de livraison.",
         _obj({"date_debut": _DATE, "date_fin": _DATE}, ["date_debut", "date_fin"]),
         _besoins,
+    ),
+    Outil(
+        "bilan_mensuel",
+        "Bilan mensuel",
+        "Le point d'un mois (AAAA-MM, par défaut le dernier mois) comparé au cumul depuis septembre : synthèse, prix par repas "
+        "et déficit, tendance. Rubrique « resume » par défaut ; demandez ensuite une rubrique pour le détail : labels, origine, "
+        "categories, direct (par famille), frais (par catégorie), engagements, evolution (mois par mois).",
+        _obj({"mois": {"type": "string", "description": "Mois AAAA-MM"}, "rubrique": _STR}),
+        _bilan_mensuel,
     ),
     Outil(
         "reperer_anomalies",
