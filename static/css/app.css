@@ -109,3 +109,4 @@ small.hint{display:block;color:var(--warn);font-size:12px;margin-top:2px}
 .as-conf pre{max-height:160px;overflow:auto;font-size:11px;margin:4px 0 0;white-space:pre-wrap}
 .as-in{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line);align-items:flex-end}
 .as-in textarea{flex:1;resize:none;font:inherit}
+tr.sel td{background:var(--acc2)}

@@ -27,6 +27,7 @@ from cgrs.routes import recipes
 from cgrs.routes import meals
 from cgrs.routes import stock
 from cgrs.routes import stats
+from cgrs.routes import bilan
 from cgrs.routes import backup
 from cgrs.routes import action_log
 from cgrs.routes import assistant
@@ -96,6 +97,7 @@ app.include_router(recipes.router)
 app.include_router(meals.router)
 app.include_router(stock.router)
 app.include_router(stats.router)
+app.include_router(bilan.router)
 app.include_router(backup.router)
 app.include_router(action_log.router)
 app.include_router(assistant.router)

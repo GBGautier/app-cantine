@@ -131,6 +131,11 @@ class Api:
         self.base = page.base
         self.h = {"X-Requested-With": "cgrs"}
 
+    def get(self, chemin):
+        r = self.req.get(self.base + chemin, headers=self.h)
+        assert r.ok, f"GET {chemin} -> {r.status} {r.text()}"
+        return r.json()
+
     def post(self, chemin, corps=None):
         r = self.req.post(self.base + chemin, data=corps, headers=self.h)
         assert r.ok, f"POST {chemin} -> {r.status} {r.text()}"

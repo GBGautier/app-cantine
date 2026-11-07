@@ -1,6 +1,7 @@
 /* ---------- navigation ---------- */
 const PAGES = {
   stats: ['Statistiques', pageStats, ['admin', 'editor', 'reader', 'stats']],
+  bilan: ['Bilan mensuel', pageBilan, ['admin', 'editor', 'reader', 'stats']],
   orders: ['Réceptions', pageOrders, ['admin', 'editor', 'reader']],
   suppliers: ['Fournisseurs', pageSuppliers, ['admin', 'editor', 'reader']],
   products: ['Produits', pageProducts, ['admin', 'editor', 'reader']],
