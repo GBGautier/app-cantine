@@ -89,8 +89,8 @@ def load_lines(date_from=None, date_to=None):
         where.append("o.date <= ?")
         args.append(date_to)
     lines = db.rows(
-        "SELECT l.order_id, o.date AS date, o.total_ht AS order_total, l.qty, COALESCE(l.total_ht, l.qty*l.unit_price) AS spend, "
-        "p.label_egalim, p.label_detail, p.provenance, p.gamme, p.category, p.direct_producteur, p.saison, s.name AS supplier "
+        "SELECT l.order_id, o.total_ht AS order_total, l.qty, COALESCE(l.total_ht, l.qty*l.unit_price) AS spend, "
+        "p.label_egalim, p.label_detail, p.provenance, p.gamme, p.category, p.direct_producteur, s.name AS supplier "
         "FROM order_lines l JOIN orders o ON o.id=l.order_id "
         "LEFT JOIN products p ON p.id=l.product_id LEFT JOIN suppliers s ON s.id=o.supplier_id "
         f"WHERE {' AND '.join(where)}",

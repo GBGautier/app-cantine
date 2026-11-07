@@ -32,8 +32,5 @@ function sectionsBilan(b) {
     {titre: '10. Répartition par gamme', note: 'Hors épicerie, puis toutes denrées.', lignes: [
       ...b.gammes.map(g => ligne(g.nom + ' (hors épicerie)', g.hors_epicerie, {engagement: null})),
       ...b.gammes.map(g => ligne(g.nom + ' (avec épicerie)', g, {engagement: null}))]},
-    {titre: '11. Saisonnalité des fruits et légumes frais', total: true,
-      note: 'Part des achats frais réalisés dans les mois de saison du produit (à renseigner sur la fiche produit). Les achats de produits sans saison renseignée ne sont pas comptés.',
-      lignes: b.saison.map(s => ligne(s.nom, s, {total_ht: s.total_ht, sans_saison: s.sans_saison}))},
   ];
 }

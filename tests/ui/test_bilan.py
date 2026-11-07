@@ -56,7 +56,7 @@ def test_export_pdf_des_statistiques_contient_le_bilan(admin, api, tmp_path):
     assert "Suivi des approvisionnements" in texte and "Octobre 2031" in texte
     assert "Part de bio, toutes denrees" in texte or "Part de bio, toutes denrées" in texte
     assert "Produits bio par famille" in texte and "Origine par famille de produits" in texte
-    assert "Repartition par gamme" in texte and "Saisonnalite des fruits et legumes" in texte
+    assert "Repartition par gamme" in texte
     assert "Evolution mois par mois" in texte and "Engagements du marche" in texte
 
 

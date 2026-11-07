@@ -2,11 +2,10 @@
 
 from datetime import date as date_cls
 from pathlib import Path
-import re
 from typing import Optional
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel
 
 from cgrs import db
 from cgrs.config import UPLOADS
@@ -34,17 +33,6 @@ class Product(BaseModel):
     unit: Optional[str] = "kg"
     unit_price: Optional[float] = None
     notes: Optional[str] = None
-    saison: Optional[str] = None  # mois de saison d'un fruit ou légume frais : « 5,6,7,8 » (1 = janvier)
-
-    @field_validator("saison")
-    @classmethod
-    def _saison(cls, v):
-        if v is None or not v.strip():
-            return None
-        mois = sorted({int(x) for x in re.findall(r"\d+", v)})
-        if not mois or any(m < 1 or m > 12 for m in mois):
-            raise ValueError("saison : numéros de mois de 1 à 12")
-        return ",".join(str(m) for m in mois)
 
 
 @router.get("/api/products")

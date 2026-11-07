@@ -204,7 +204,6 @@ NEW_COLUMNS = {
         "datasheet": "TEXT",
         "avoid": "INTEGER DEFAULT 0",
         "favorite": "INTEGER DEFAULT 0",
-        "saison": "TEXT",  # mois de saison (fruits et légumes frais) : « 5,6,7,8 »
     },
     "order_lines": {"ref": "TEXT"},
     "orders": {"delivery_date": "TEXT"},

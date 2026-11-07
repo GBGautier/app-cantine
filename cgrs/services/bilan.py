@@ -92,8 +92,6 @@ FAMILLES_ZONES = [
     ("Ovoproduits", ["Ovoproduits"]),
     ("Produits de la pêche", [PECHE]),
 ]
-# Objectif de produits frais de saison (fruits et légumes de gamme 1) : marché de restauration de Saffré, 2025
-OBJECTIF_SAISON = 95
 
 
 class MoisInvalide(ValueError):
@@ -158,39 +156,6 @@ def _engagement(engagements, metrics, categories=None):
         ):
             return c["target"]
     return None
-
-
-def _de_saison(r):
-    """True/False si la date d'achat tombe (ou non) dans les mois de saison du produit ; None si la saison n'est pas renseignée."""
-    if not r.get("saison") or not r.get("date"):
-        return None
-    return int(r["date"][5:7]) in {int(x) for x in r["saison"].split(",") if x.strip().isdigit()}
-
-
-def _saisonnalite(p_mois, p_cumul):
-    """Part (en valeur) de fruits et légumes frais achetés dans leur saison, par famille. Produits sans saison : comptés à part."""
-    out = []
-    for nom, cats in (("Légumes frais", ["Légumes"]), ("Fruits frais", FRUITS)):
-
-        def frais(lignes, cats=cats):
-            return [r for r in lignes if r["category"] in cats and r["gamme"] == "1"]
-
-        def part(lignes, frais=frais):
-            connus = [r for r in frais(lignes) if _de_saison(r) is not None]
-            total = sum(r["spend"] for r in connus)
-            return round(100 * sum(r["spend"] for r in connus if _de_saison(r)) / total, 2) if total else None
-
-        out.append(
-            {
-                "nom": nom,
-                "engagement": OBJECTIF_SAISON,
-                "mois": part(p_mois["lignes"]),
-                "cumul": part(p_cumul["lignes"]),
-                "sans_saison": round(sum(r["spend"] for r in frais(p_mois["lignes"]) if _de_saison(r) is None), 2),
-                "total_ht": _total(frais(p_mois["lignes"])),
-            }
-        )
-    return out
 
 
 def _zones(familles, p_mois, p_cumul):
@@ -445,7 +410,6 @@ def bilan(mois, masquer_prix=False):
     bio_familles = _tableau(FAMILLES_LABELS, p_mois, p_cumul, engagements, ["bio"], metric_pred("bio"))
     egalim_familles = _tableau(FAMILLES_LABELS, p_mois, p_cumul, engagements, ["egalim"], metric_pred("egalim"))
     zones = _zones(FAMILLES_ZONES, p_mois, p_cumul)
-    saison = _saisonnalite(p_mois, p_cumul)
 
     statuts_m, statuts_c = _statut_engagements(engagements, p_mois), _statut_engagements(engagements, p_cumul)
     liste_engagements = [
@@ -507,7 +471,6 @@ def bilan(mois, masquer_prix=False):
         "bio_familles": bio_familles,
         "egalim_familles": egalim_familles,
         "zones": zones,
-        "saison": saison,
         "engagements": liste_engagements,
         "evolution": evolution,
     }
@@ -520,12 +483,8 @@ def bilan(mois, masquer_prix=False):
             "cumul": {"repas": res["prix"]["cumul"]["repas"]},
             "jours": [],
         }
-        for r in (
-            res["direct"] + res["frais"] + res["bio_familles"] + res["egalim_familles"] + res["zones"] + res["saison"]
-        ):
+        for r in res["direct"] + res["frais"] + res["bio_familles"] + res["egalim_familles"] + res["zones"]:
             r["total_ht"] = None
-        for r in res["saison"]:
-            r["sans_saison"] = None
         for e in res["evolution"]:
             e["achats_ht"] = e["prix_par_repas"] = None
         res["engagements"] = [e for e in res["engagements"] if "price_per_meal" not in e["indicateur"]]

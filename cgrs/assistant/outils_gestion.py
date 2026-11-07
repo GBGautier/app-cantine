@@ -349,7 +349,6 @@ def _bilan_mensuel(user, a):
                 "direct",
                 "frais",
                 "gammes",
-                "saison",
                 "engagements",
                 "evolution",
             ],
@@ -409,8 +408,6 @@ def _bilan_mensuel(user, a):
                 for g in b["gammes"]
             ],
         }
-    if rubrique == "saison":
-        return {**base, "saisonnalite_fruits_legumes": lignes(b["saison"], total=True)}
     if rubrique == "engagements":
         return {
             **base,
@@ -428,7 +425,7 @@ def _bilan_mensuel(user, a):
             ],
         }
     raise ErreurOutil(
-        "rubrique : resume | labels | bio_familles | egalim_familles | origine | zones | categories | direct | frais | gammes | saison | engagements | evolution"
+        "rubrique : resume | labels | bio_familles | egalim_familles | origine | zones | categories | direct | frais | gammes | engagements | evolution"
     )
 
 
@@ -893,7 +890,7 @@ OUTILS_GESTION = [
         "Bilan mensuel",
         "Le point d'un mois (AAAA-MM, par défaut le dernier mois) comparé au cumul depuis septembre : synthèse, prix par repas "
         "et déficit, tendance. Rubrique « resume » par défaut ; demandez ensuite une rubrique pour le détail : labels, bio_familles, egalim_familles, origine, zones (origine par famille), "
-        "categories, direct (par famille), frais (par catégorie), gammes, saison (fruits et légumes de saison), engagements, evolution (mois par mois).",
+        "categories, direct (par famille), frais (par catégorie), gammes, engagements, evolution (mois par mois).",
         _obj({"mois": {"type": "string", "description": "Mois AAAA-MM"}, "rubrique": _STR}),
         _bilan_mensuel,
     ),
