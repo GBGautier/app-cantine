@@ -45,9 +45,8 @@ def test_export_pdf_des_statistiques_contient_le_bilan(admin, api, tmp_path):
     page = admin
     _donnees(api)
     aller(page, "Statistiques")
-    page.locator("#st").fill("2031-10-31")
-    page.get_by_role("button", name="Appliquer").click()
-    page.wait_for_timeout(800)
+    page.evaluate("store.set('cgrs.st', '2031-10-31'); render()")
+    page.wait_for_function("document.querySelector('#st')?.value === '2031-10-31'")
     with page.expect_download() as dl:
         page.get_by_role("button", name="Exporter en PDF").click()
     fichier = tmp_path / "stats.pdf"
