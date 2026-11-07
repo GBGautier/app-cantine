@@ -1,7 +1,6 @@
-/* ---------- Export PDF du bilan mensuel ---------- */
-function exportBilanPdf(b) {
-  const {jsPDF} = window.jspdf;
-  const doc = new jsPDF({orientation: 'portrait', unit: 'mm', format: 'a4'});
+/* ---------- Bilan mensuel : pages ajoutées à l'export PDF de la page Statistiques ---------- */
+function ajouterBilanAuPdf(doc, b) {
+  doc.addPage();
   const masque = b.prix_masques;
   // Helvetica n'a ni l'espace fine insécable ni l'espace insécable de toLocaleString : formats maison
   const n = (v, d = 2) => {
@@ -63,8 +62,22 @@ function exportBilanPdf(b) {
   }
   for (const s of sectionsBilan(b)) {
     const total = s.total && !masque;
-    titre(s.titre.replace(/é/g, 'e').replace(/è/g, 'e'));
-    if (s.note) texte(s.note, 9, MUTE);
+    titre(s.titre.replace(/[éèê]/g, 'e').replace(/É/g, 'E'));
+    if (s.note) texte(s.note.replace(/[éèê]/g, 'e').replace(/à/g, 'a').replace(/’/g, "'"), 9, MUTE);
+    if (s.matrice) {
+      const m = s.matrice;
+      doc.autoTable({
+        startY: y, margin: {left: M, right: M},
+        styles: {fontSize: 8, cellPadding: 1.5, textColor: INK},
+        headStyles: {fillColor: GREEN, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7},
+        alternateRowStyles: {fillColor: [240, 245, 242]},
+        columnStyles: Object.fromEntries(m.colonnes.map((_, i) => [i, {halign: i ? 'right' : 'left'}])),
+        head: [m.colonnes.filter((c, i) => masque ? i !== 1 : true).map(c => c.replace(/[éèê]/g, 'e'))],
+        body: m.lignes.map(r => [r.nom, masque ? null : e0(r.total_ht), ...r.valeurs.map(pct)].filter(x => x !== null)),
+      });
+      y = doc.lastAutoTable.finalY + 6;
+      continue;
+    }
     tableau(['Indicateur', total ? 'Total HT' : null, 'Engagement', 'Ce mois', 'Cumul', 'Ecart du mois'].filter(x => x != null),
       s.lignes.map(r => [r.nom, total ? e0(r.total_ht) : null, r.engagement == null ? '—' : pct(r.engagement), pct(r.mois), pct(r.cumul), ecart(r.mois, r.engagement)].filter(x => x !== null)),
       {ecarts: [total ? 5 : 4]});
@@ -81,5 +94,4 @@ function exportBilanPdf(b) {
   tableau(['Mois', masque ? null : 'Achats HT', 'Repas', masque ? null : 'EUR / repas', '% bio', '% EGalim', '% local', '% direct', '% frais'].filter(x => x != null),
     b.evolution.map(e => [e.libelle, masque ? null : e0(e.achats_ht), String(e.repas), masque ? null : (e.prix_par_repas == null ? '—' : n(e.prix_par_repas)),
       pct(e.bio), pct(e.egalim), pct(e.local), pct(e.direct), pct(e.frais)].filter(x => x !== null)));
-  doc.save(`Suivi_approvisionnements_${b.mois}.pdf`);
 }

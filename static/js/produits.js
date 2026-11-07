@@ -95,6 +95,10 @@ function productForm(sups, p = {}, mopts = {}) {
     field('Unité de prix', i.unit = select(['kg', 'g', 'l', 'unité', 'pièce', 'botte', 'barquette', 'colis', 'bidon', 'boite'].map(u => [u, u]), p.unit || 'kg')),
     inp('unit_price', 'Prix unitaire HT (€)', 'number'),
     dsBox,
+    field('Mois de saison (fruits et légumes frais)', i.saison = h('div', {class: 'row', style: 'gap:4px 10px;margin:0'},
+      ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'].map((nom, k) =>
+        h('label', {style: 'display:inline-flex;gap:4px;align-items:center;font-weight:normal;margin:0'},
+          h('input', {type: 'checkbox', value: k + 1, checked: String(p.saison || '').split(',').includes(String(k + 1))}), nom))), 'full'),
     field('Notes', i.notes = h('textarea', {rows: 2, value: p.notes}), 'full'),
     p.id ? hist : null);
   if (p.id) {
@@ -126,6 +130,7 @@ function productForm(sups, p = {}, mopts = {}) {
     d.avoid = i.avoid.checked ? 1 : 0;
     d.favorite = i.favorite.checked ? 1 : 0;
     d.label_egalim = i.label_egalim.value || 'bio';
+    d.saison = [...i.saison.querySelectorAll('input:checked')].map(x => x.value).join(',') || null;
     const r = await api(p.id ? '/products/' + p.id : '/products', {method: p.id ? 'PUT' : 'POST', body: d});
     if (file.files[0]) {
       const fd = new FormData(); fd.append('file', file.files[0]);

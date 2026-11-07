@@ -176,3 +176,67 @@ def test_tarif_repas_reglable(client, jeu):
     client.put("/api/settings", json={"client_names": st["client_names"]})  # sans tarif : inchangé
     assert client.get("/api/settings").json()["tarif_repas"] == 3.5
     client.put("/api/settings", json={"client_names": st["client_names"], "tarif_repas": 2.04})
+
+
+def test_labels_et_origine_par_famille_et_gammes(client, jeu):
+    b = svc.bilan("2040-10")
+    bio = {r["nom"]: r for r in b["bio_familles"]}
+    assert (bio["Légumes et fruits"]["mois"], bio["Légumes et fruits"]["cumul"]) == (100.0, 100.0)
+    assert bio["Viandes et volailles"]["mois"] == 0.0 and bio["Toutes denrées"]["mois"] == 40.0
+    assert bio["Légumes et fruits"]["total_ht"] == 40
+    assert bio["Épicerie"]["mois"] is None  # aucune dépense dans la famille : pas de pourcentage
+    assert [r["nom"] for r in b["egalim_familles"]][-1] == "Toutes denrées"
+    zones = {r["nom"]: {z["cle"]: z for z in r["zones"]} for r in b["zones"]}
+    assert zones["Légumes"]["loire_atlantique"]["mois"] == 100.0 and zones["Légumes"]["ue"]["mois"] == 0.0
+    assert zones["Viande bovine"]["ue"]["mois"] == 100.0 and zones["Viande bovine"]["ue"]["cumul"] == 100.0
+    assert zones["Fruits"]["ue"]["mois"] is None  # famille sans achat
+    assert zones["Légumes"]["inconnue"]["mois"] == 0.0
+    g = {x["nom"].split(" - ")[0]: x for x in b["gammes"]}
+    assert g["1"]["mois"] == 40.0 and g["3"]["mois"] == 60.0
+    assert g["1"]["hors_epicerie"]["mois"] == 40.0  # pas d'épicerie dans le jeu : mêmes valeurs
+
+
+def test_saisonnalite_des_fruits_et_legumes(client):
+    f = client.post("/api/suppliers", json={"name": "Saison Fournisseur"}).json()["id"]
+
+    def produit(nom, saison, categorie="Légumes"):
+        return client.post(
+            "/api/products",
+            json={
+                "name": nom,
+                "supplier_id": f,
+                "unit": "kg",
+                "unit_price": 1,
+                "category": categorie,
+                "gamme": "1",
+                "saison": saison,
+            },
+        ).json()["id"]
+
+    assert client.post("/api/products", json={"name": "Saison invalide", "saison": "13"}).status_code == 422
+    de_saison = produit("Saison courge", "9, 10, 11")  # normalisé en « 9,10,11 »
+    hors_saison = produit("Saison tomate", "6,7,8")
+    sans_info = produit("Saison poireau", None)
+    fruit = produit("Saison pomme", "10", "Fruits: pommes, poires, kiwis")
+    for produit_id, qte in ((de_saison, 60), (hors_saison, 40), (sans_info, 500), (fruit, 10)):
+        r = client.post(
+            "/api/orders",
+            json={
+                "supplier_id": f,
+                "kind": "facture",
+                "date": "2041-10-08",
+                "lines": [{"product_id": produit_id, "qty": qte, "unit": "kg", "unit_price": 1}],
+            },
+        )
+        assert r.status_code == 200, r.text
+    assert next(p for p in client.get("/api/products").json() if p["id"] == de_saison)["saison"] == "9,10,11"
+    s = {x["nom"]: x for x in svc.bilan("2041-10")["saison"]}
+    # légumes : 60 € de saison sur 100 € dont la saison est connue ; le poireau sans saison est compté à part
+    assert (s["Légumes frais"]["mois"], s["Légumes frais"]["cumul"], s["Légumes frais"]["sans_saison"]) == (
+        60.0,
+        60.0,
+        500,
+    )
+    assert s["Légumes frais"]["engagement"] == 95 and s["Fruits frais"]["mois"] == 100.0
+    masque = svc.bilan("2041-10", masquer_prix=True)["saison"]
+    assert all(x["total_ht"] is None and x["sans_saison"] is None for x in masque)

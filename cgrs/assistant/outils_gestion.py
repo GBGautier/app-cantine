@@ -339,7 +339,20 @@ def _bilan_mensuel(user, a):
                 for t in b["tendance"]
             ],
             "engagements_non_atteints_ce_mois": ko,
-            "autres_rubriques": ["labels", "origine", "categories", "direct", "frais", "engagements", "evolution"],
+            "autres_rubriques": [
+                "labels",
+                "bio_familles",
+                "egalim_familles",
+                "origine",
+                "zones",
+                "categories",
+                "direct",
+                "frais",
+                "gammes",
+                "saison",
+                "engagements",
+                "evolution",
+            ],
         }
     if rubrique == "labels":
         return {
@@ -365,6 +378,39 @@ def _bilan_mensuel(user, a):
         return {**base, "direct_producteur_par_famille": lignes(b["direct"], total=True)}
     if rubrique == "frais":
         return {**base, "produits_frais_par_categorie": lignes(b["frais"], total=True)}
+    if rubrique == "bio_familles":
+        return {**base, "bio_par_famille": lignes(b["bio_familles"], total=True)}
+    if rubrique == "egalim_familles":
+        return {**base, "egalim_par_famille": lignes(b["egalim_familles"], total=True)}
+    if rubrique == "zones":
+        return {
+            **base,
+            "origine_par_famille": [
+                {
+                    "nom": r["nom"],
+                    "zones": {z["nom"]: {"mois": _arr(z["mois"]), "cumul": _arr(z["cumul"])} for z in r["zones"]},
+                }
+                for r in b["zones"]
+            ],
+        }
+    if rubrique == "gammes":
+        return {
+            **base,
+            "gammes": [
+                {
+                    "nom": g["nom"],
+                    "mois": _arr(g["mois"]),
+                    "cumul": _arr(g["cumul"]),
+                    "hors_epicerie": {
+                        "mois": _arr(g["hors_epicerie"]["mois"]),
+                        "cumul": _arr(g["hors_epicerie"]["cumul"]),
+                    },
+                }
+                for g in b["gammes"]
+            ],
+        }
+    if rubrique == "saison":
+        return {**base, "saisonnalite_fruits_legumes": lignes(b["saison"], total=True)}
     if rubrique == "engagements":
         return {
             **base,
@@ -381,7 +427,9 @@ def _bilan_mensuel(user, a):
                 for e in b["evolution"]
             ],
         }
-    raise ErreurOutil("rubrique : resume | labels | origine | categories | direct | frais | engagements | evolution")
+    raise ErreurOutil(
+        "rubrique : resume | labels | bio_familles | egalim_familles | origine | zones | categories | direct | frais | gammes | saison | engagements | evolution"
+    )
 
 
 def _anomalies(user, a):
@@ -844,8 +892,8 @@ OUTILS_GESTION = [
         "bilan_mensuel",
         "Bilan mensuel",
         "Le point d'un mois (AAAA-MM, par défaut le dernier mois) comparé au cumul depuis septembre : synthèse, prix par repas "
-        "et déficit, tendance. Rubrique « resume » par défaut ; demandez ensuite une rubrique pour le détail : labels, origine, "
-        "categories, direct (par famille), frais (par catégorie), engagements, evolution (mois par mois).",
+        "et déficit, tendance. Rubrique « resume » par défaut ; demandez ensuite une rubrique pour le détail : labels, bio_familles, egalim_familles, origine, zones (origine par famille), "
+        "categories, direct (par famille), frais (par catégorie), gammes, saison (fruits et légumes de saison), engagements, evolution (mois par mois).",
         _obj({"mois": {"type": "string", "description": "Mois AAAA-MM"}, "rubrique": _STR}),
         _bilan_mensuel,
     ),

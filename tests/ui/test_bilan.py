@@ -1,4 +1,4 @@
-"""Bilan mensuel : la page compare le mois au cumul depuis septembre, et l'export PDF reprend les rubriques du suivi."""
+"""Bilan mensuel : ajouté à l'export PDF de la page Statistiques."""
 
 import pdfplumber
 
@@ -41,24 +41,23 @@ def _donnees(api):
     )
 
 
-def test_page_bilan_et_export_pdf(admin, api, tmp_path):
+def test_export_pdf_des_statistiques_contient_le_bilan(admin, api, tmp_path):
     page = admin
     _donnees(api)
-    aller(page, "Bilan mensuel")
-    page.locator("input[type=month]").fill("2031-10")
-    page.get_by_text("Octobre 2031", exact=False).first.wait_for()
-    corps = page.locator("main, body").first.inner_text()
-    assert "comparé au cumul depuis septembre 2031" in corps
-    assert "Part de bio, toutes denrées" in corps and "Approvisionnement direct de producteurs" in corps
-    assert "Évolution mois par mois" in corps and "septembre 2031" in corps
+    aller(page, "Statistiques")
+    page.locator("#st").fill("2031-10-31")
+    page.get_by_role("button", name="Appliquer").click()
+    page.wait_for_timeout(800)
     with page.expect_download() as dl:
         page.get_by_role("button", name="Exporter en PDF").click()
-    fichier = tmp_path / "bilan.pdf"
+    fichier = tmp_path / "stats.pdf"
     dl.value.save_as(str(fichier))
     with pdfplumber.open(fichier) as pdf:
         texte = "\n".join(p.extract_text() or "" for p in pdf.pages)
     assert "Suivi des approvisionnements" in texte and "Octobre 2031" in texte
     assert "Part de bio, toutes denrees" in texte or "Part de bio, toutes denrées" in texte
+    assert "Produits bio par famille" in texte and "Origine par famille de produits" in texte
+    assert "Repartition par gamme" in texte and "Saisonnalite des fruits et legumes" in texte
     assert "Evolution mois par mois" in texte and "Engagements du marche" in texte
 
 

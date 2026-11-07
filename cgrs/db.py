@@ -199,7 +199,13 @@ NEW_COLUMNS = {
         "order_url": "TEXT",
         "categories": "TEXT",
     },
-    "products": {"ref": "TEXT", "datasheet": "TEXT", "avoid": "INTEGER DEFAULT 0", "favorite": "INTEGER DEFAULT 0"},
+    "products": {
+        "ref": "TEXT",
+        "datasheet": "TEXT",
+        "avoid": "INTEGER DEFAULT 0",
+        "favorite": "INTEGER DEFAULT 0",
+        "saison": "TEXT",  # mois de saison (fruits et légumes frais) : « 5,6,7,8 »
+    },
     "order_lines": {"ref": "TEXT"},
     "orders": {"delivery_date": "TEXT"},
     "commitments": {"level": "TEXT DEFAULT 'marche'", "metrics": "TEXT", "categories": "TEXT", "gammes": "TEXT"},
