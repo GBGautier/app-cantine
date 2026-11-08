@@ -1164,3 +1164,43 @@ def test_recherche_de_produits_par_categorie_et_provenance(client, mcp_client):
     assert noms(requete="courgette espagnole") == {
         "Filtre courgette espagnole"
     }  # tous les mots, dans n'importe quel ordre
+
+
+def test_achats_par_produit_avec_filtres(client, mcp_client):
+    f = client.post("/api/suppliers", json={"name": "Répartition Fournisseur"}).json()["id"]
+    ids = {}
+    for nom, prov in (("Répart tomate UE", "ue"), ("Répart poivron UE", "ue"), ("Répart carotte FR", "france")):
+        ids[nom] = client.post(
+            "/api/products",
+            json={
+                "name": nom,
+                "supplier_id": f,
+                "unit": "kg",
+                "unit_price": 1,
+                "category": "Légumes",
+                "provenance": prov,
+            },
+        ).json()["id"]
+    for nom, qte in (("Répart tomate UE", 30), ("Répart poivron UE", 10), ("Répart carotte FR", 60)):
+        client.post(
+            "/api/orders",
+            json={
+                "supplier_id": f,
+                "kind": "facture",
+                "date": "2070-05-04",
+                "lines": [{"product_id": ids[nom], "qty": qte, "unit": "kg", "unit_price": 1}],
+            },
+        )
+    _, r = appel(
+        mcp_client["lecture"],
+        "achats_par_produit",
+        categorie="Légumes",
+        provenance="UE",
+        date_debut="2070-05-01",
+        date_fin="2070-05-31",
+    )
+    assert r["total_ht"] == 40.0 and r["part_des_achats_de_la_periode_pct"] == 40.0
+    assert [(x["produit"], x["part_pct"]) for x in r["produits"]] == [
+        ("Répart tomate UE", 75.0),
+        ("Répart poivron UE", 25.0),
+    ]

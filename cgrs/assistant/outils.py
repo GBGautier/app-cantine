@@ -343,6 +343,54 @@ def _achats_par_fournisseur(user, a):
     }
 
 
+def _achats_par_produit(user, a):
+    """Montant acheté par produit sur une période, avec les mêmes filtres que la recherche de produits."""
+    if user.get("role") == "stats":
+        raise ErreurOutil("Les montants d'achat ne sont pas accessibles avec ce profil.")
+    d1, d2 = _date(a.get("date_debut"), "date_debut"), _date(a.get("date_fin"), "date_fin")
+    where, args = ["1=1"], []
+    if d1:
+        where.append("o.date >= ?")
+        args.append(d1)
+    if d2:
+        where.append("o.date <= ?")
+        args.append(d2)
+    lignes = db.rows(
+        "SELECT l.order_id, o.total_ht AS order_total, l.qty, COALESCE(l.total_ht, l.qty*l.unit_price) AS spend, "
+        "COALESCE(p.name, l.label) AS produit, p.category, p.provenance, p.label_egalim, p.gamme, p.direct_producteur, "
+        "s.name AS supplier FROM order_lines l JOIN orders o ON o.id=l.order_id "
+        "LEFT JOIN products p ON p.id=l.product_id LEFT JOIN suppliers s ON s.id=o.supplier_id "
+        f"WHERE {' AND '.join(where)}",
+        args,
+    )
+    fill_spend(lignes)
+    total_periode = round(sum(r["spend"] for r in lignes), 2)
+    cat, label, gamme = _norm(a.get("categorie")), _norm(a.get("label_egalim")), str(a.get("gamme") or "")[:1]
+    prov = _cle_provenance(a["provenance"]) if a.get("provenance") else None
+    if a.get("provenance") and prov is None:
+        raise ErreurOutil("provenance : " + ", ".join(PROVENANCES) + " (ou « UE »).")
+    direct, four = a.get("direct_producteur"), _norm(a.get("fournisseur"))
+    lignes = [
+        r
+        for r in lignes
+        if (not cat or cat in _norm(r["category"]))
+        and (not prov or r["provenance"] == prov)
+        and (not label or label == _norm(r["label_egalim"]))
+        and (not gamme or gamme == str(r["gamme"] or ""))
+        and (direct is None or bool(r["direct_producteur"]) == bool(direct))
+        and (not four or four in _norm(r["supplier"]))
+    ]
+    parts = breakdown(lignes, "produit")
+    total = round(sum(r["spend"] for r in lignes), 2)
+    return {
+        "periode": [d1, d2],
+        "total_ht": total,
+        "part_des_achats_de_la_periode_pct": round(100 * total / total_periode, 2) if total_periode else None,
+        "produits": [{"produit": x["label"], "montant_ht": x["amount"], "part_pct": x["pct"]} for x in parts[:40]],
+        "nombre_de_produits": len(parts),
+    }
+
+
 # ------------------------------------------------------------------ écriture
 
 CHAMPS_PRODUIT = tuple(r_products.Product.model_fields)
@@ -692,6 +740,26 @@ OUTILS = [
         "appelez-le une fois par période puis comparez les montants.",
         _obj({"date_debut": _DATE, "date_fin": _DATE, "direct_producteur_seulement": {"type": "boolean"}}),
         _achats_par_fournisseur,
+    ),
+    Outil(
+        "achats_par_produit",
+        "Achats par produit",
+        "Montant acheté (HT) par produit sur une période, avec la part de chaque produit dans le total filtré. Mêmes filtres que "
+        "rechercher_produits (categorie, provenance, label_egalim, gamme, direct_producteur) plus fournisseur. Pour « parmi les "
+        "légumes d'origine UE, leur répartition en valeur d'achat » : categorie=Légumes, provenance=ue.",
+        _obj(
+            {
+                "date_debut": _DATE,
+                "date_fin": _DATE,
+                "categorie": _STR,
+                "provenance": _STR,
+                "label_egalim": _STR,
+                "gamme": _STR,
+                "direct_producteur": {"type": "boolean"},
+                "fournisseur": _STR,
+            }
+        ),
+        _achats_par_produit,
     ),
     Outil(
         "creer_fournisseur",
