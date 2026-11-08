@@ -5,6 +5,7 @@ fonctions des routes existantes : mêmes validations, mêmes calculs de prix, m�
 """
 
 import json
+import re
 
 from cgrs import db
 from cgrs.assistant.outils import (
@@ -36,6 +37,7 @@ from cgrs.routes import suppliers as r_suppliers
 from cgrs.constants import GAMMES
 from cgrs.services import bilan as svc_bilan
 from cgrs.services import bilan_periode as svc_periode
+from cgrs.services.stats import load_lines
 from cgrs.services.units import convert
 from cgrs.utils import log_action
 
@@ -862,20 +864,39 @@ def _produits_en_defaut(user, a):
     )
 
 
+def _singulier(mot):
+    return mot[:-1] if len(mot) > 3 and mot[-1] in "sx" else mot
+
+
+def _produits_nommes(texte):
+    """Ids des produits dont le nom, la référence ou le fournisseur contient tous les mots du texte (« frites » trouve « Frite surgelée »)."""
+    mots = [_singulier(m) for m in re.findall(r"\w+", _norm(texte))]
+    if not mots:
+        return set()
+    trouves = set()
+    for p in _produits():
+        champs = [
+            _singulier(m) for m in re.findall(r"\w+", " ".join(_norm(p[k]) for k in ("name", "ref", "supplier_name")))
+        ]
+        if all(any(c.startswith(m) for c in champs) for m in mots):
+            trouves.add(p["id"])
+    return trouves
+
+
 def _selection_produits(a):
     """Lignes d'achat visées : un produit (nom ou id) ou un ensemble défini par des filtres."""
-    if a.get("produit_id") or a.get("produit"):
-        if a.get("produit_id"):
-            pid = _entier(a, "produit_id")
-        else:
-            p, candidats = trouver_produit(a["produit"])
-            if p is None:
-                raise ErreurOutil(
-                    "Produit introuvable ou ambigu"
-                    + (" : " + ", ".join(f"{c['name']} (id {c['id']})" for c in candidats) if candidats else "")
-                )
-            pid = p["id"]
+    if a.get("produit_id"):
+        pid = _entier(a, "produit_id")
         return (lambda r: r["product_id"] == pid), f"produit {pid}"
+    if a.get("produit"):
+        ids = _produits_nommes(a["produit"])
+        if not ids:
+            raise ErreurOutil(f"Aucun produit ne correspond à « {a['produit']} » (nom, mot du nom ou référence).")
+        if len(ids) > 12:
+            raise ErreurOutil(
+                f"{len(ids)} produits correspondent à « {a['produit']} » : précisez (mot de plus, référence ou fournisseur)."
+            )
+        return (lambda r: r["product_id"] in ids), f"{len(ids)} produit(s)"
     cat, label, gamme = _norm(a.get("categorie")), _norm(a.get("label_egalim")), str(a.get("gamme") or "")[:1]
     prov = _cle_provenance(a["provenance"]) if a.get("provenance") else None
     if a.get("provenance") and prov is None:
@@ -900,6 +921,7 @@ def _selection_produits(a):
 def _simuler_remplacement(user, a):
     d1, d2 = _date(a.get("date_debut"), "date_debut"), _date(a.get("date_fin"), "date_fin")
     selection, _ = _selection_produits(a)
+    visees = sorted({r["produit"] for r in load_lines(d1, d2) if selection(r) and r["produit"]})
     changements = {}
     if a.get("nouvelle_provenance"):
         cle = _cle_provenance(a["nouvelle_provenance"])
@@ -933,7 +955,12 @@ def _simuler_remplacement(user, a):
     if user.get("role") == "stats":
         res.pop("montant_ht_remplace", None)
         res.pop("montant_ht_apres", None)
-    return {"periode": [d1, d2], "hypothese": changements | ({"variation_prix_pct": prix} if prix else {}), **res}
+    return {
+        "periode": [d1, d2],
+        "produits_concernes": visees[:12],
+        "hypothese": changements | ({"variation_prix_pct": prix} if prix else {}),
+        **res,
+    }
 
 
 OUTILS_GESTION = [
@@ -998,7 +1025,7 @@ OUTILS_GESTION = [
         "simuler_remplacement",
         "Simuler un remplacement",
         "Simule, sur une période, l'effet d'un changement d'approvisionnement sur les indicateurs à engagement (sans rien modifier) : "
-        "les achats d'un produit (produit ou produit_id) ou d'un ensemble (categorie, provenance, gamme, label_egalim, "
+        "les achats d'un ou plusieurs produits (produit = nom, mot du nom comme « frites » ou référence ; ou produit_id) ou d'un ensemble (categorie, provenance, gamme, label_egalim, "
         "direct_producteur, fournisseur) prennent une nouvelle provenance, gamme (3 = surgelés, 1 = frais), label, statut direct "
         "producteur et/ou une variation de prix. Ex. « et si ce produit UE surgelé devenait un produit frais France ? » : "
         "produit=…, nouvelle_provenance=france, nouvelle_gamme=1. Rend les indicateurs qui changent (avant, après, points).",

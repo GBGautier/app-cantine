@@ -1245,3 +1245,45 @@ def test_outils_produits_en_defaut_et_simulation(client, mcp_client):
     assert not erreur and r["indicateurs"] and r["hypothese"] == {"provenance": "france", "gamme": "1"}
     erreur, r = appel(lecture, "simuler_remplacement", produit="Simul boeuf surgelé")
     assert erreur and "ce qui change" in str(r)
+
+
+def test_simulation_trouve_les_produits_par_mot_et_reference(client, mcp_client):
+    f = client.post("/api/suppliers", json={"name": "Frites Fournisseur"}).json()["id"]
+    ids = [
+        client.post(
+            "/api/products",
+            json={
+                "name": nom,
+                "ref": ref,
+                "supplier_id": f,
+                "unit": "kg",
+                "unit_price": 1,
+                "category": "Légumes",
+                "provenance": "ue",
+                "gamme": "3",
+            },
+        ).json()["id"]
+        for nom, ref in (("Frite surgelée Zéta 4x2.5kg", "ZZ1044"), ("Pommes frites Zéta fraîches", "ZZ1045"))
+    ]
+    for pid in ids:
+        client.post(
+            "/api/orders",
+            json={
+                "supplier_id": f,
+                "kind": "facture",
+                "date": "2072-10-04",
+                "lines": [{"product_id": pid, "qty": 10, "unit": "kg", "unit_price": 1}],
+            },
+        )
+    periode = {
+        "date_debut": "2072-10-01",
+        "date_fin": "2072-10-31",
+        "nouvelle_provenance": "france",
+        "nouvelle_gamme": "1",
+    }
+    erreur, r = appel(mcp_client["lecture"], "simuler_remplacement", produit="frites zéta", **periode)
+    assert not erreur and len(r["produits_concernes"]) == 2
+    erreur, r = appel(mcp_client["lecture"], "simuler_remplacement", produit="ZZ1044", **periode)
+    assert not erreur and r["produits_concernes"] == ["Frite surgelée Zéta 4x2.5kg"]
+    erreur, r = appel(mcp_client["lecture"], "simuler_remplacement", produit="introuvableXYZ", **periode)
+    assert erreur
