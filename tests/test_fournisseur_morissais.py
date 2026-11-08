@@ -11,3 +11,30 @@ def test_facture_au_nom_de_l_exploitante():
 def test_fournisseur_existant_reconnu_par_mot_cle():
     fournisseurs = [{"id": 3, "name": "Ferme de la Morissais", "keywords": "Chloé Simon"}]
     assert match_supplier("FACTURE\nChloé Simon\nNozay", fournisseurs)["id"] == 3
+
+
+def test_ligne_de_facture_sans_la_ligne_origine():
+    from cgrs.parsers.pdf_parser import table_row_lines
+
+    cols = {"code": 0, "label": 1, "price": 3, "qty": 4, "total": 6}
+    ligne = [
+        "55TIDCBN",
+        "Chou blanc lisse\nOrigine : Fay de Bretagne",
+        "Oui",
+        "2.50 € / kg",
+        "8 8 kg",
+        "",
+        "20.00",
+        "5.5",
+    ]
+    [res] = table_row_lines(ligne, cols, {})
+    assert res["label"] == "Chou blanc lisse" and res["ref"] == "55TIDCBN" and res["total_ht"] == 20.0
+
+
+def test_bon_de_livraison_concerne_par_la_facture():
+    from cgrs.parsers.pdf_parser import BL_CONCERNE_RE
+
+    assert (
+        BL_CONCERNE_RE.search("Date : 08/11/2026\nBon de livraison concerné : n° 31\nLivraison du 13/10").group(1)
+        == "31"
+    )

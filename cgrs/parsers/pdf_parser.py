@@ -255,6 +255,8 @@ def table_row_lines(r, cols, extras):
         qty, unit = to_float(mw.group(1)), unit_norm(mw.group(2))
     if total is None and qty is not None and price is not None:
         total = round(qty * price, 2)
+    # « Origine : France - Fay de Bretagne » sous le nom du produit n'appartient pas au libellé
+    label_lines = [l for l in label_lines if not re.match(r"origine\s*:", l, re.I)]
     label = " ".join(label_lines + ([extra("label")] if extra("label") else []))
     label = re.sub(r"\s+", " ", label).strip(" .")
     ref = " ".join(ref_lines) or None
@@ -480,6 +482,7 @@ REF_RE = re.compile(
     re.IGNORECASE,
 )
 # bons de livraison cités sur une facture : « BL-K52438 (03/09/2026) », « BL N°7364 du … », « B.L No 333713 du … »
+BL_CONCERNE_RE = re.compile(r"bons?\s+de\s+livraison\s+concern[ée]s?\s*:?\s*n[°o]\s*\.?\s*([A-Z0-9][A-Z0-9\-_]*)", re.I)
 BL_CITED_RE = re.compile(r"\bB\.?\s?L\.?\s*(?:n[°o]\.?|:|#)?\s*[-_]?\s*([A-Z]{0,2}[-_]?\d{3,}[A-Z0-9\-_]*)", re.I)
 AMOUNT = r"-?(?:\d{1,3}(?:[. \u00a0\u202f]\d{3})+|\d+)[.,]\d{2}"  # 4.342,93 · 4 342,93 · 143,01
 TOTAL_RE = re.compile(rf"(?:total|montant)\s*(?:h\.?t\.?|hors taxes?)\s*:?\s*({AMOUNT})", re.IGNORECASE)
@@ -810,7 +813,7 @@ def parse_document(text, table_lines, warnings, ocr_used, filename, suppliers, p
     # bons de livraison cités sur une facture (pour proposer de les remplacer)
     bl_refs = []
     if kind == "facture" and not credit:
-        for m in BL_CITED_RE.finditer(text):
+        for m in (*BL_CITED_RE.finditer(text), *BL_CONCERNE_RE.finditer(text)):
             r = m.group(1).rstrip("-_")
             if r and r not in bl_refs:
                 bl_refs.append(r)
