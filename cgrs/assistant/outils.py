@@ -87,6 +87,25 @@ def _produits():
     )
 
 
+def _singulier(mot):
+    return mot[:-1] if len(mot) > 3 and mot[-1] in "sx" else mot
+
+
+def produits_nommes(texte):
+    """Produits dont le nom, la référence ou le fournisseur contient tous les mots du texte (« frites » trouve « Frite surgelée »)."""
+    mots = [_singulier(m) for m in re.findall(r"\w+", _norm(texte))]
+    if not mots:
+        return []
+    trouves = []
+    for p in _produits():
+        champs = [
+            _singulier(m) for m in re.findall(r"\w+", " ".join(_norm(p[k]) for k in ("name", "ref", "supplier_name")))
+        ]
+        if all(any(c.startswith(m) for c in champs) for m in mots):
+            trouves.append(p)
+    return trouves
+
+
 def trouver_produit(nom):
     """Produit désigné par son nom (insensible aux accents et à la casse). Rend (produit ou None, candidats)."""
     cible, tous = _norm(nom), _produits()
@@ -98,6 +117,11 @@ def trouver_produit(nom):
     contient = [p for p in tous if cible in _norm(p["name"]) or (_norm(p["name"]) and _norm(p["name"]) in cible)]
     if len(contient) == 1 and not exacts:
         return contient[0], []
+    if not exacts and not contient:  # dernier recours : les mots du nom, au singulier ou au pluriel, ou la référence
+        mots = produits_nommes(nom)
+        if len(mots) == 1:
+            return mots[0], []
+        return None, mots[:5]
     return None, (exacts or contient)[:5]
 
 

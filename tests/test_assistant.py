@@ -1287,3 +1287,65 @@ def test_simulation_trouve_les_produits_par_mot_et_reference(client, mcp_client)
     assert not erreur and r["produits_concernes"] == ["Frite surgelée Zéta 4x2.5kg"]
     erreur, r = appel(mcp_client["lecture"], "simuler_remplacement", produit="introuvableXYZ", **periode)
     assert erreur
+
+
+def test_simulation_remplacement_par_un_produit_reel_au_prix_reel(client, mcp_client):
+    f = client.post("/api/suppliers", json={"name": "Substitution Fournisseur"}).json()["id"]
+
+    def produit(nom, prix, prov, gamme):
+        return client.post(
+            "/api/products",
+            json={
+                "name": nom,
+                "supplier_id": f,
+                "unit": "kg",
+                "unit_price": prix,
+                "category": "Légumes",
+                "provenance": prov,
+                "gamme": gamme,
+                "label_egalim": "sans",
+            },
+        ).json()["id"]
+
+    frites = produit("Substit frite surgelée", 5.0, "ue", "3")
+    patate = produit("Substit pomme de terre", 1.0, "france", "1")
+    client.post(
+        "/api/orders",
+        json={
+            "supplier_id": f,
+            "kind": "facture",
+            "date": "2073-10-04",
+            "lines": [
+                {"product_id": frites, "qty": 80, "unit": "kg", "unit_price": 5.0},
+                {"product_id": patate, "qty": 20, "unit": "kg", "unit_price": 1.0},
+            ],
+        },
+    )
+    erreur, r = appel(
+        mcp_client["lecture"],
+        "simuler_remplacement",
+        produit="substit frites",
+        remplacer_par="substit pomme de terre",
+        quantite_remplacee=80,
+        quantite_remplacante=100,
+        date_debut="2073-10-01",
+        date_fin="2073-10-31",
+    )
+    assert not erreur
+    assert (r["quantite_remplacee"], r["quantite_apres"]) == (80.0, 100.0)
+    assert (r["montant_ht_remplace"], r["montant_ht_apres"]) == (400.0, 100.0)  # 80 kg à 5 € -> 100 kg à 1 €
+    frais = next(i for i in r["indicateurs"] if i["indicateur"] == "Produits frais par catégorie — Légumes")
+    assert frais["avant"] == 4.76 and frais["apres"] == 100.0  # 20 € frais sur 420 € -> 120 € frais sur 120 €
+    assert r["hypothese"]["quantite_remplacante_par_unite_remplacee"] == 1.25
+
+
+def test_trouver_produit_au_pluriel_ou_par_reference(client):
+    from cgrs.assistant.outils import trouver_produit
+
+    f = client.post("/api/suppliers", json={"name": "Pluriel Fournisseur"}).json()["id"]
+    client.post(
+        "/api/products",
+        json={"name": "Frite surgelée Pluriel", "ref": "PL1044", "supplier_id": f, "unit": "kg", "unit_price": 1},
+    )
+    assert trouver_produit("frites pluriel")[0]["ref"] == "PL1044"
+    assert trouver_produit("PL1044")[0]["name"] == "Frite surgelée Pluriel"

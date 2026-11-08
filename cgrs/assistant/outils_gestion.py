@@ -5,7 +5,6 @@ fonctions des routes existantes : mêmes validations, mêmes calculs de prix, m�
 """
 
 import json
-import re
 
 from cgrs import db
 from cgrs.assistant.outils import (
@@ -25,6 +24,7 @@ from cgrs.assistant.outils import (
     _obj,
     _produits,
     construire_ingredient,
+    produits_nommes,
     trouver_produit,
 )
 from cgrs.routes import meals as r_meals
@@ -864,32 +864,13 @@ def _produits_en_defaut(user, a):
     )
 
 
-def _singulier(mot):
-    return mot[:-1] if len(mot) > 3 and mot[-1] in "sx" else mot
-
-
-def _produits_nommes(texte):
-    """Ids des produits dont le nom, la référence ou le fournisseur contient tous les mots du texte (« frites » trouve « Frite surgelée »)."""
-    mots = [_singulier(m) for m in re.findall(r"\w+", _norm(texte))]
-    if not mots:
-        return set()
-    trouves = set()
-    for p in _produits():
-        champs = [
-            _singulier(m) for m in re.findall(r"\w+", " ".join(_norm(p[k]) for k in ("name", "ref", "supplier_name")))
-        ]
-        if all(any(c.startswith(m) for c in champs) for m in mots):
-            trouves.add(p["id"])
-    return trouves
-
-
 def _selection_produits(a):
     """Lignes d'achat visées : un produit (nom ou id) ou un ensemble défini par des filtres."""
     if a.get("produit_id"):
         pid = _entier(a, "produit_id")
         return (lambda r: r["product_id"] == pid), f"produit {pid}"
     if a.get("produit"):
-        ids = _produits_nommes(a["produit"])
+        ids = {p["id"] for p in produits_nommes(a["produit"])}
         if not ids:
             raise ErreurOutil(f"Aucun produit ne correspond à « {a['produit']} » (nom, mot du nom ou référence).")
         if len(ids) > 12:
@@ -918,11 +899,48 @@ def _selection_produits(a):
     ), "filtres"
 
 
+def _ids_selection(a):
+    if a.get("produit_id"):
+        return {int(a["produit_id"])}
+    return {p["id"] for p in produits_nommes(a["produit"])} if a.get("produit") else set()
+
+
 def _simuler_remplacement(user, a):
     d1, d2 = _date(a.get("date_debut"), "date_debut"), _date(a.get("date_fin"), "date_fin")
     selection, _ = _selection_produits(a)
     visees = sorted({r["produit"] for r in load_lines(d1, d2) if selection(r) and r["produit"]})
-    changements = {}
+    changements, substitut, ratio, avertissements = {}, None, 1.0, []
+    if a.get("remplacer_par"):
+        sub = _produit(
+            {"produit_id": a.get("remplacer_par_id")} if a.get("remplacer_par_id") else {"produit": a["remplacer_par"]}
+        )
+        fiche = db.one("SELECT * FROM products WHERE id=?", (sub["id"],))
+        if not fiche["unit_price"]:
+            raise ErreurOutil(f"« {fiche['name']} » n'a pas de prix : impossible de valoriser le remplacement.")
+        substitut = {
+            "prix": fiche["unit_price"],
+            "caracteristiques": {
+                k: fiche[k]
+                for k in ("provenance", "gamme", "label_egalim", "label_detail", "direct_producteur", "category")
+            },
+        }
+        try:
+            if a.get("quantite_remplacee") and a.get("quantite_remplacante"):
+                ratio = float(a["quantite_remplacante"]) / float(a["quantite_remplacee"])
+            else:
+                ratio = float(a.get("ratio_quantite") or 1)
+        except (TypeError, ValueError, ZeroDivisionError):
+            raise ErreurOutil(
+                "quantités : nombres attendus (ex. quantite_remplacee=80, quantite_remplacante=100)"
+            ) from None
+        if ratio <= 0:
+            raise ErreurOutil("Le rapport de quantités doit être positif.")
+        changements = {"remplacé par": fiche["name"]}
+        unites = {p["unit"] for p in _produits() if p["id"] in _ids_selection(a)} - {fiche["unit"]}
+        if unites:
+            avertissements.append(
+                f"Unités différentes ({', '.join(sorted(map(str, unites)))} remplacées par {fiche['unit']}) : les quantités sont comparées telles quelles."
+            )
     if a.get("nouvelle_provenance"):
         cle = _cle_provenance(a["nouvelle_provenance"])
         if cle is None:
@@ -945,11 +963,13 @@ def _simuler_remplacement(user, a):
         prix = float(a.get("variation_prix_pct") or 0)
     except (TypeError, ValueError):
         raise ErreurOutil("variation_prix_pct : nombre attendu") from None
-    if not changements and not prix:
+    if not changements and not prix and not substitut:
         raise ErreurOutil(
             "Indiquez ce qui change : nouvelle_provenance, nouvelle_gamme, nouveau_label_egalim, nouveau_direct_producteur ou variation_prix_pct."
         )
-    res = svc_periode.simuler(d1, d2, selection, changements, prix)
+    res = svc_periode.simuler(
+        d1, d2, selection, {k: v for k, v in changements.items() if k != "remplacé par"}, prix, substitut, ratio
+    )
     if not res["lignes_concernees"]:
         raise ErreurOutil("Aucun achat ne correspond à cette sélection sur la période.")
     if user.get("role") == "stats":
@@ -958,7 +978,10 @@ def _simuler_remplacement(user, a):
     return {
         "periode": [d1, d2],
         "produits_concernes": visees[:12],
-        "hypothese": changements | ({"variation_prix_pct": prix} if prix else {}),
+        "hypothese": changements
+        | ({"variation_prix_pct": prix} if prix else {})
+        | ({"quantite_remplacante_par_unite_remplacee": round(ratio, 3)} if substitut else {}),
+        **({"avertissements": avertissements} if avertissements else {}),
         **res,
     }
 
@@ -1028,7 +1051,10 @@ OUTILS_GESTION = [
         "les achats d'un ou plusieurs produits (produit = nom, mot du nom comme « frites » ou référence ; ou produit_id) ou d'un ensemble (categorie, provenance, gamme, label_egalim, "
         "direct_producteur, fournisseur) prennent une nouvelle provenance, gamme (3 = surgelés, 1 = frais), label, statut direct "
         "producteur et/ou une variation de prix. Ex. « et si ce produit UE surgelé devenait un produit frais France ? » : "
-        "produit=…, nouvelle_provenance=france, nouvelle_gamme=1. Rend les indicateurs qui changent (avant, après, points).",
+        "produit=…, nouvelle_provenance=france, nouvelle_gamme=1. Pour un remplacement par un PRODUIT RÉEL du catalogue, avec son vrai prix "
+        "et un autre volume (« 80 kg de frites par 100 kg de pommes de terre ») : remplacer_par=pommes de terre (nom, référence ou "
+        "remplacer_par_id), quantite_remplacee=80, quantite_remplacante=100 (ou ratio_quantite=1.25) ; le montant d'achat est alors "
+        "recalculé au prix du nouveau produit. Rend les indicateurs qui changent (avant, après, points), les quantités et les montants.",
         _obj(
             {
                 "produit": _STR,
@@ -1039,6 +1065,11 @@ OUTILS_GESTION = [
                 "label_egalim": _STR,
                 "direct_producteur": {"type": "boolean"},
                 "fournisseur": _STR,
+                "remplacer_par": _STR,
+                "remplacer_par_id": _INT,
+                "ratio_quantite": _NUM,
+                "quantite_remplacee": _NUM,
+                "quantite_remplacante": _NUM,
                 "nouvelle_provenance": _STR,
                 "nouvelle_gamme": _STR,
                 "nouveau_label_egalim": _STR,

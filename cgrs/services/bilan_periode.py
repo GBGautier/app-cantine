@@ -421,11 +421,13 @@ def produits_en_defaut(date_from=None, date_to=None, indicateur=None, limite_ind
     return res[:limite_indicateurs]
 
 
-def simuler(date_from, date_to, selection, changements, variation_prix_pct=0.0):
+def simuler(date_from, date_to, selection, changements, variation_prix_pct=0.0, substitut=None, ratio=1.0):
     """Indicateurs avant/après si les lignes retenues par `selection` prenaient les caractéristiques `changements`.
 
     `changements` : clés parmi provenance, gamme, label_egalim, direct_producteur, category.
     `variation_prix_pct` : variation du prix d'achat des produits remplacés (ex. 10 = 10 % plus cher).
+    `substitut` : produit de remplacement réel (caractéristiques et prix unitaire) ; chaque quantité remplacée est multipliée
+    par `ratio` (ex. 1,25 : 100 kg du nouveau produit pour 80 kg remplacés) et valorisée à son prix.
     """
     lignes = load_lines(date_from, date_to)
     reference = date_to or date.today().isoformat()
@@ -435,7 +437,11 @@ def simuler(date_from, date_to, selection, changements, variation_prix_pct=0.0):
     apres_lignes, arrive = [], 0.0
     for r in lignes:
         if selection(r):
-            r = {**r, **changements, "spend": r["spend"] * (1 + variation_prix_pct / 100)}
+            if substitut:
+                quantite = (r["qty"] if r.get("qty") else 0) * ratio
+                r = {**r, **substitut["caracteristiques"], "spend": quantite * substitut["prix"]}
+            else:
+                r = {**r, **changements, "spend": r["spend"] * (1 + variation_prix_pct / 100)}
             arrive += r["spend"]
         apres_lignes.append(r)
     apres = indicateurs_a_engagement(apres_lignes, reference)
@@ -457,7 +463,10 @@ def simuler(date_from, date_to, selection, changements, variation_prix_pct=0.0):
         )
     modifs.sort(key=lambda m: -abs(m["variation_points"]))
     arrive = round(arrive, 2)
+    quantite_remplacee = round(sum(r.get("qty") or 0 for r in concernees), 2)
     return {
+        "quantite_remplacee": quantite_remplacee,
+        "quantite_apres": round(quantite_remplacee * ratio, 2) if substitut else quantite_remplacee,
         "lignes_concernees": len(concernees),
         "montant_ht_remplace": depart,
         "montant_ht_apres": arrive,
