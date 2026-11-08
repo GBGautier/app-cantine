@@ -122,6 +122,7 @@ def _ligne(nom, lignes, pred, cats=None, cible=None, sens="min"):
         "sens": sens,
         "valeur": v,
         "respecte": ok,
+        "_portee": (lignes, pred, cats),  # sert à repérer les produits en défaut ; retiré avant l'envoi
     }
 
 
@@ -332,9 +333,13 @@ def _evolution(d1, d2):
 def bilan_periode(date_from=None, date_to=None, masquer_prix=False):
     lignes = load_lines(date_from, date_to)
     sections = _sections(lignes, date_to or date.today().isoformat())
+    synthese = _synthese(sections)
+    for s in sections:
+        for r in s.get("lignes", []):
+            r.pop("_portee", None)
     res = {
         "periode": [date_from, date_to],
-        "synthese": _synthese(sections),
+        "synthese": synthese,
         "sections": sections,
         "evolution": _evolution(date_from, date_to),
         "prix_masques": bool(masquer_prix),
@@ -346,3 +351,115 @@ def bilan_periode(date_from=None, date_to=None, masquer_prix=False):
         for e in res["evolution"]:
             e["achats_ht"] = e["prix_par_repas"] = None
     return res
+
+
+# ------------------------------------------------------------------ produits en défaut et simulation
+
+NOM_COMPLET = "{section} — {nom}"
+
+
+def indicateurs_a_engagement(lignes, reference):
+    """Tous les indicateurs du bilan qui ont un engagement : {nom complet: ligne avec sa portée}."""
+    out = {}
+    for s in _sections(lignes, reference):
+        for r in s.get("lignes", []):
+            if r["engagement"] is not None and r["valeur"] is not None:
+                out[NOM_COMPLET.format(section=s["titre"], nom=r["nom"])] = r
+    return out
+
+
+def _en_defaut(r, pred, sens):
+    """Une ligne d'achat s'écarte-t-elle de l'engagement ? Minimum : elle ne remplit pas le critère ; maximum : elle le remplit."""
+    return bool(pred(r)) if sens == "max" else not pred(r)
+
+
+def produits_en_defaut(date_from=None, date_to=None, indicateur=None, limite_indicateurs=6, limite_produits=5):
+    """Pour chaque indicateur non respecté, les produits qui pèsent le plus dans l'écart (et les points qu'ils représentent)."""
+    lignes = load_lines(date_from, date_to)
+    cible = (indicateur or "").lower()
+    res = []
+    for nom, r in indicateurs_a_engagement(lignes, date_to or date.today().isoformat()).items():
+        if r["respecte"] or (cible and cible not in nom.lower()):
+            continue
+        portee, pred, cats = r["_portee"]
+        dans = [x for x in portee if not cats or x["category"] in cats]
+        total = sum(x["spend"] for x in dans) or 1
+        agg = {}
+        for x in dans:
+            if not _en_defaut(x, pred, r["sens"]):
+                continue
+            a = agg.setdefault(
+                (x["product_id"], x["produit"]),
+                {
+                    "produit": x["produit"],
+                    "fournisseur": x["supplier"],
+                    "montant_ht": 0.0,
+                    "provenance": x["provenance"],
+                    "gamme": x["gamme"],
+                    "label_egalim": x["label_egalim"],
+                    "direct_producteur": bool(x["direct_producteur"]),
+                },
+            )
+            a["montant_ht"] += x["spend"]
+        top = sorted(agg.values(), key=lambda a: -a["montant_ht"])[:limite_produits]
+        for a in top:
+            a["points_potentiels"] = round(
+                100 * a["montant_ht"] / total, 2
+            )  # points d'indicateur en jeu pour ce produit
+            a["montant_ht"] = round(a["montant_ht"], 2)
+        res.append(
+            {
+                "indicateur": nom,
+                "valeur": r["valeur"],
+                "engagement": r["engagement"],
+                "sens": r["sens"],
+                "ecart_points": round(abs(r["engagement"] - r["valeur"]), 2),
+                "produits": top,
+            }
+        )
+    res.sort(key=lambda x: -x["ecart_points"])
+    return res[:limite_indicateurs]
+
+
+def simuler(date_from, date_to, selection, changements, variation_prix_pct=0.0):
+    """Indicateurs avant/après si les lignes retenues par `selection` prenaient les caractéristiques `changements`.
+
+    `changements` : clés parmi provenance, gamme, label_egalim, direct_producteur, category.
+    `variation_prix_pct` : variation du prix d'achat des produits remplacés (ex. 10 = 10 % plus cher).
+    """
+    lignes = load_lines(date_from, date_to)
+    reference = date_to or date.today().isoformat()
+    avant = indicateurs_a_engagement(lignes, reference)
+    concernees = [r for r in lignes if selection(r)]
+    depart = round(sum(r["spend"] for r in concernees), 2)
+    apres_lignes, arrive = [], 0.0
+    for r in lignes:
+        if selection(r):
+            r = {**r, **changements, "spend": r["spend"] * (1 + variation_prix_pct / 100)}
+            arrive += r["spend"]
+        apres_lignes.append(r)
+    apres = indicateurs_a_engagement(apres_lignes, reference)
+    modifs = []
+    for nom, a in avant.items():
+        b = apres.get(nom)
+        if b is None or abs((b["valeur"] or 0) - a["valeur"]) < 0.005:
+            continue
+        modifs.append(
+            {
+                "indicateur": nom,
+                "engagement": a["engagement"],
+                "avant": a["valeur"],
+                "apres": b["valeur"],
+                "variation_points": round(b["valeur"] - a["valeur"], 2),
+                "respecte_avant": a["respecte"],
+                "respecte_apres": b["respecte"],
+            }
+        )
+    modifs.sort(key=lambda m: -abs(m["variation_points"]))
+    arrive = round(arrive, 2)
+    return {
+        "lignes_concernees": len(concernees),
+        "montant_ht_remplace": depart,
+        "montant_ht_apres": arrive,
+        "indicateurs": modifs,
+    }

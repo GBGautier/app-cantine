@@ -171,3 +171,37 @@ def test_locaux_manger_bio_comptes_en_direct(client):
     assert direct() == 33.33  # seul le produit local de Manger Bio passe en direct (10 € sur 30 €)
     client.put("/api/settings", json={"client_names": "", "local_manger_bio_direct": False})
     assert direct() == 0.0
+
+
+def test_produits_en_defaut_et_simulation(jeu):
+    from cgrs.services.bilan_periode import produits_en_defaut, simuler
+
+    defauts = {d["indicateur"]: d for d in produits_en_defaut("2050-10-01", "2050-10-31", limite_indicateurs=50)}
+    bio = defauts["Labels — Part de bio, toutes denrées"]
+    assert (bio["valeur"], bio["engagement"], bio["ecart_points"]) == (60.0, 85, 25.0)
+    assert [(p["produit"], p["montant_ht"], p["points_potentiels"]) for p in bio["produits"]] == [
+        ("Période boeuf", 40.0, 40.0)
+    ]
+    frais = defauts["Produits frais par catégorie — Toutes denrées"]
+    assert frais["produits"][0]["produit"] == "Période boeuf" and frais["produits"][0]["gamme"] == "3"
+    assert "Labels — Part de bio hors produits de la mer" in defauts
+
+    res = simuler(
+        "2050-10-01",
+        "2050-10-31",
+        lambda r: r["produit"] == "Période boeuf",
+        {"provenance": "france", "gamme": "1", "label_egalim": "bio"},
+    )
+    par = {m["indicateur"]: m for m in res["indicateurs"]}
+    assert res["lignes_concernees"] == 1 and res["montant_ht_remplace"] == 40.0
+    bio = par["Labels — Part de bio, toutes denrées"]
+    assert (bio["avant"], bio["apres"], bio["variation_points"], bio["respecte_avant"], bio["respecte_apres"]) == (
+        60.0,
+        100.0,
+        40.0,
+        False,
+        True,
+    )
+    assert par["Produits frais par catégorie — Toutes denrées"]["apres"] == 100.0
+    renchere = simuler("2050-10-01", "2050-10-31", lambda r: r["produit"] == "Période boeuf", {"gamme": "1"}, 50)
+    assert renchere["montant_ht_apres"] == 60.0  # 40 € + 50 %

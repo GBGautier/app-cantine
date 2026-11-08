@@ -16,6 +16,7 @@ from cgrs.assistant.outils import (
     Outil,
     STATUTS_REPAS,
     _appel,
+    _cle_provenance,
     _date,
     _entier,
     _lim,
@@ -32,7 +33,9 @@ from cgrs.routes import recipes as r_recipes
 from cgrs.routes import stats as r_stats
 from cgrs.routes import stock as r_stock
 from cgrs.routes import suppliers as r_suppliers
+from cgrs.constants import GAMMES
 from cgrs.services import bilan as svc_bilan
+from cgrs.services import bilan_periode as svc_periode
 from cgrs.services.units import convert
 from cgrs.utils import log_action
 
@@ -845,6 +848,94 @@ def _resume_modif(nom, cle="id"):
     )
 
 
+def _produits_en_defaut(user, a):
+    d1, d2 = _date(a.get("date_debut"), "date_debut"), _date(a.get("date_fin"), "date_fin")
+    res = svc_periode.produits_en_defaut(d1, d2, a.get("indicateur"), _lim(a.get("limite_indicateurs"), 5, 10))
+    if user.get("role") == "stats":
+        for r in res:
+            for p in r["produits"]:
+                p.pop("montant_ht", None)
+    return (
+        {"periode": [d1, d2], "indicateurs_non_respectes": res}
+        if res
+        else {"periode": [d1, d2], "message": "Aucun indicateur à engagement n'est en défaut sur cette période."}
+    )
+
+
+def _selection_produits(a):
+    """Lignes d'achat visées : un produit (nom ou id) ou un ensemble défini par des filtres."""
+    if a.get("produit_id") or a.get("produit"):
+        if a.get("produit_id"):
+            pid = _entier(a, "produit_id")
+        else:
+            p, candidats = trouver_produit(a["produit"])
+            if p is None:
+                raise ErreurOutil(
+                    "Produit introuvable ou ambigu"
+                    + (" : " + ", ".join(f"{c['name']} (id {c['id']})" for c in candidats) if candidats else "")
+                )
+            pid = p["id"]
+        return (lambda r: r["product_id"] == pid), f"produit {pid}"
+    cat, label, gamme = _norm(a.get("categorie")), _norm(a.get("label_egalim")), str(a.get("gamme") or "")[:1]
+    prov = _cle_provenance(a["provenance"]) if a.get("provenance") else None
+    if a.get("provenance") and prov is None:
+        raise ErreurOutil("provenance non reconnue (ue, france, loire_atlantique, pays_loire, cc_nozay, international)")
+    direct, four = a.get("direct_producteur"), _norm(a.get("fournisseur"))
+    if not any([cat, label, gamme, prov, four, direct is not None]):
+        raise ErreurOutil(
+            "Indiquez un produit (nom ou produit_id) ou au moins un filtre (categorie, provenance, gamme, fournisseur…)."
+        )
+    return (
+        lambda r: (
+            (not cat or cat in _norm(r["category"]))
+            and (not prov or r["provenance"] == prov)
+            and (not label or label == _norm(r["label_egalim"]))
+            and (not gamme or gamme == str(r["gamme"] or ""))
+            and (direct is None or bool(r["direct_producteur"]) == bool(direct))
+            and (not four or four in _norm(r["supplier"]))
+        )
+    ), "filtres"
+
+
+def _simuler_remplacement(user, a):
+    d1, d2 = _date(a.get("date_debut"), "date_debut"), _date(a.get("date_fin"), "date_fin")
+    selection, _ = _selection_produits(a)
+    changements = {}
+    if a.get("nouvelle_provenance"):
+        cle = _cle_provenance(a["nouvelle_provenance"])
+        if cle is None:
+            raise ErreurOutil(
+                "nouvelle_provenance non reconnue (ue, france, loire_atlantique, pays_loire, cc_nozay, international)"
+            )
+        changements["provenance"] = cle
+    if a.get("nouvelle_gamme"):
+        g = str(a["nouvelle_gamme"])[:1]
+        if g not in GAMMES:
+            raise ErreurOutil(
+                "nouvelle_gamme : 1 frais et brut, 2 conserves, 3 surgelés, 4 cru prêt à l'emploi, 5 cuit sous vide, 6 déshydratés"
+            )
+        changements["gamme"] = g
+    if a.get("nouveau_label_egalim"):
+        changements["label_egalim"] = str(a["nouveau_label_egalim"]).strip().lower()
+    if a.get("nouveau_direct_producteur") is not None:
+        changements["direct_producteur"] = 1 if a["nouveau_direct_producteur"] else 0
+    try:
+        prix = float(a.get("variation_prix_pct") or 0)
+    except (TypeError, ValueError):
+        raise ErreurOutil("variation_prix_pct : nombre attendu") from None
+    if not changements and not prix:
+        raise ErreurOutil(
+            "Indiquez ce qui change : nouvelle_provenance, nouvelle_gamme, nouveau_label_egalim, nouveau_direct_producteur ou variation_prix_pct."
+        )
+    res = svc_periode.simuler(d1, d2, selection, changements, prix)
+    if not res["lignes_concernees"]:
+        raise ErreurOutil("Aucun achat ne correspond à cette sélection sur la période.")
+    if user.get("role") == "stats":
+        res.pop("montant_ht_remplace", None)
+        res.pop("montant_ht_apres", None)
+    return {"periode": [d1, d2], "hypothese": changements | ({"variation_prix_pct": prix} if prix else {}), **res}
+
+
 OUTILS_GESTION = [
     Outil(
         "voir_reception",
@@ -893,6 +984,44 @@ OUTILS_GESTION = [
         "categories, direct (par famille), frais (par catégorie), gammes, engagements, evolution (mois par mois).",
         _obj({"mois": {"type": "string", "description": "Mois AAAA-MM"}, "rubrique": _STR}),
         _bilan_mensuel,
+    ),
+    Outil(
+        "produits_en_defaut",
+        "Produits en défaut",
+        "Pour chaque indicateur du bilan qui n'atteint pas son engagement (bio, EGalim, local, direct, frais, gammes…), les produits "
+        "qui pèsent le plus dans l'écart, avec le nombre de points d'indicateur en jeu pour chacun. Période optionnelle ; "
+        "indicateur = filtre sur le nom (ex. « direct », « bio »).",
+        _obj({"date_debut": _DATE, "date_fin": _DATE, "indicateur": _STR, "limite_indicateurs": _INT}),
+        _produits_en_defaut,
+    ),
+    Outil(
+        "simuler_remplacement",
+        "Simuler un remplacement",
+        "Simule, sur une période, l'effet d'un changement d'approvisionnement sur les indicateurs à engagement (sans rien modifier) : "
+        "les achats d'un produit (produit ou produit_id) ou d'un ensemble (categorie, provenance, gamme, label_egalim, "
+        "direct_producteur, fournisseur) prennent une nouvelle provenance, gamme (3 = surgelés, 1 = frais), label, statut direct "
+        "producteur et/ou une variation de prix. Ex. « et si ce produit UE surgelé devenait un produit frais France ? » : "
+        "produit=…, nouvelle_provenance=france, nouvelle_gamme=1. Rend les indicateurs qui changent (avant, après, points).",
+        _obj(
+            {
+                "produit": _STR,
+                "produit_id": _INT,
+                "categorie": _STR,
+                "provenance": _STR,
+                "gamme": _STR,
+                "label_egalim": _STR,
+                "direct_producteur": {"type": "boolean"},
+                "fournisseur": _STR,
+                "nouvelle_provenance": _STR,
+                "nouvelle_gamme": _STR,
+                "nouveau_label_egalim": _STR,
+                "nouveau_direct_producteur": {"type": "boolean"},
+                "variation_prix_pct": _NUM,
+                "date_debut": _DATE,
+                "date_fin": _DATE,
+            }
+        ),
+        _simuler_remplacement,
     ),
     Outil(
         "reperer_anomalies",

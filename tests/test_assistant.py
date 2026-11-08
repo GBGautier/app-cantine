@@ -1204,3 +1204,21 @@ def test_achats_par_produit_avec_filtres(client, mcp_client):
         ("Répart tomate UE", 75.0),
         ("Répart poivron UE", 25.0),
     ]
+
+
+def test_outils_produits_en_defaut_et_simulation(mcp_client):
+    lecture = mcp_client["lecture"]
+    erreur, r = appel(lecture, "produits_en_defaut", date_debut="2050-10-01", date_fin="2050-10-31")
+    assert not erreur and r["indicateurs_non_respectes"][0]["produits"]
+    erreur, r = appel(
+        lecture,
+        "simuler_remplacement",
+        produit="Période boeuf",
+        nouvelle_provenance="france",
+        nouvelle_gamme="1",
+        date_debut="2050-10-01",
+        date_fin="2050-10-31",
+    )
+    assert not erreur and r["indicateurs"] and r["hypothese"] == {"provenance": "france", "gamme": "1"}
+    erreur, r = appel(lecture, "simuler_remplacement", produit="Période boeuf")
+    assert erreur and "ce qui change" in str(r)
