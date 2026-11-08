@@ -192,7 +192,13 @@ def _rechercher_produits(user, a):
         for p in _produits()
         if garde(p)
     ]
-    return {"nombre": len(out), "produits": out[: _lim(a.get("limite"), 20, 50)]}
+    res = {"nombre": len(out), "produits": out[: _lim(a.get("limite"), 20, 50)]}
+    if not out and cat:
+        res["indice"] = (
+            "Aucun résultat : categorie accepte un début de nom (« Fruits » couvre tous les fruits). Catégories : "
+            + " ; ".join(CATEGORIES)
+        )
+    return res
 
 
 def _lister_fournisseurs(user, a):
@@ -683,7 +689,7 @@ OUTILS = [
         "rechercher_produits",
         "Rechercher des produits",
         "Cherche des produits de la cantine par nom, référence ou fournisseur (ex. « carotte »), et/ou filtre par categorie "
-        "(ex. Légumes), provenance (ex. ue, france, loire_atlantique ; « sans origine » pour les produits dont l'origine n'est pas renseignée), label_egalim (bio, autre, sans), gamme (1 à 6) ou "
+        "(ex. Légumes ; « Fruits » couvre « Fruits: pommes, poires, kiwis » et « Fruits: autres »), provenance (ex. ue, france, loire_atlantique ; « sans origine » pour les produits dont l'origine n'est pas renseignée), label_egalim (bio, autre, sans), gamme (1 à 6) ou "
         "direct_producteur. Pour « les légumes d'origine UE » : categorie=Légumes, provenance=ue, sans requete. "
         "Rend id, unité, prix, label, provenance.",
         _obj(

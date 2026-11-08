@@ -1370,3 +1370,29 @@ def test_filtre_produits_sans_origine(client, mcp_client):
             mcp_client["lecture"], "rechercher_produits", categorie="Fruits", provenance=formule, requete="sansorig"
         )
         assert [p["nom"] for p in r["produits"]] == ["Sansorig pomme inconnue"], formule
+
+
+def test_fruits_sans_origine_couvrent_toutes_les_categories_de_fruits(client, mcp_client):
+    f = client.post("/api/suppliers", json={"name": "Fruits Fournisseur"}).json()["id"]
+    client.post(
+        "/api/products",
+        json={
+            "name": "Fruitorig banane",
+            "supplier_id": f,
+            "unit": "kg",
+            "unit_price": 1,
+            "category": "Fruits: autres",
+        },
+    )
+    erreur, r = appel(
+        mcp_client["lecture"], "rechercher_produits", categorie="Fruits", provenance="sans origine", requete="fruitorig"
+    )
+    assert [p["nom"] for p in r["produits"]] == ["Fruitorig banane"]
+    erreur, r = appel(
+        mcp_client["lecture"],
+        "rechercher_produits",
+        categorie="Fruits: pommes, poires, kiwis",
+        provenance="sans origine",
+        requete="fruitorig",
+    )
+    assert r["nombre"] == 0 and "Fruits: autres" in r["indice"]
