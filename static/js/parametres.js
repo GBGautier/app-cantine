@@ -24,8 +24,7 @@ function brandingCard() {
 }
 
 async function pageSettings() {
-  const [list, st, users, actionLog] = await Promise.all([api('/commitments'), api('/settings'), api('/users'), api('/action-log')]);
-  const labels = Object.fromEntries(state.meta.metrics);
+  const [st, users, actionLog] = await Promise.all([api('/settings'), api('/users'), api('/action-log')]);
   const assist = await assistantCard();
   const cn = h('input', {value: st.client_names, placeholder: 'ex. Restaurant scolaire ; Cantine municipale'});
   const tarif = h('input', {type: 'number', step: '0.01', min: '0.01', value: st.tarif_repas, style: 'width:110px'});
@@ -49,7 +48,6 @@ async function pageSettings() {
           return tr;
         }))),
       h('div', {style: 'margin-top:10px'}, h('button', {class: 'p', onclick: () => userForm()}, '+ Utilisateur'))),
-    commitmentsCard('Engagements du marché', 'marche', list, labels, 'Cibles du marché, comparées aux valeurs réelles dans la page Statistiques. Un engagement peut être limité à une catégorie de produits (ex. % bio dans les fruits).'),
     h('div', {class: 'card'}, h('h3', {}, 'Convives par défaut'),
       h('p', {class: 'mute', style: 'margin-top:0'}, 'Valeurs proposées par défaut pour les nouveaux repas, les nouvelles recettes et le calculateur de la page Grammages.'),
       h('div', {class: 'row', style: 'margin:0;align-items:end'},
@@ -156,88 +154,5 @@ function userForm(u = {}) {
     } else {
       await api('/users', {method: 'POST', body: {username: i.username.value, password: i.password.value, role: i.role.value}});
     }
-  });
-}
-function engagementsCard(title, items) {
-  return h('div', {class: 'card'}, h('h3', {}, title),
-    items.length ? h('div', {class: 'tablewrap'}, h('table', {},
-      h('tr', {}, ['Engagement', 'Indicateur', 'Cible', 'Réalisé', 'Écart', ''].map((x, k) => h('th', {class: k > 1 && k < 5 ? 'n' : ''}, x))),
-      items.map(c => {
-        const metrics = c.metrics && c.metrics.length ? c.metrics : (c.metric ? [c.metric] : []);
-        const cats = c.categories && c.categories.length ? c.categories : (c.category ? [c.category] : []);
-        const unit = metrics.includes('price_per_meal') ? ' €' : ' %';
-        const gap = c.actual == null ? null : Math.round((c.actual - c.target) * 100) / 100;
-        const catInfo = cats.length ? ' · ' + cats.join(', ') : '';
-        return h('tr', {},
-          h('td', {}, h('b', {}, c.label), catInfo ? h('span', {class: 'mute'}, catInfo) : null),
-          h('td', {class: 'mute'}, c.metric_label || metrics.join(' + ')),
-          h('td', {class: 'n'}, (c.mode === 'max' ? '≤ ' : '≥ ') + num(c.target) + unit),
-          h('td', {class: 'n'}, c.actual == null ? '—' : num(c.actual) + unit),
-          h('td', {class: 'n'}, gap == null ? '—' : (gap > 0 ? '+' : '') + num(gap)),
-          h('td', {}, c.status === 'ok' ? h('span', {class: 'pill'}, 'Respecté') : c.status === 'ko' ? h('span', {class: 'pill w'}, 'Non atteint') : h('span', {class: 'mute'}, 'Pas de données')));
-      })))
-      : h('div', {class: 'empty'}, 'Aucun engagement défini.' + (isAdmin() ? ' Ajoutez-les dans Paramètres.' : '')));
-}
-function commitmentsCard(title, level, list, labels, intro) {
-  const mine = list.filter(c => (c.level || 'marche') === level);
-  return h('div', {class: 'card'}, h('h3', {}, title),
-    h('p', {class: 'mute', style: 'margin-top:0'}, intro),
-    mine.length ? h('div', {class: 'tablewrap'}, h('table', {},
-      h('tr', {}, ['Engagement', 'Indicateur', 'Catégorie', 'Gamme', 'Cible', 'Notes', ''].map(x => h('th', {}, x))),
-      mine.map(c => {
-        const metrics = c.metrics && c.metrics.length ? c.metrics : (c.metric ? [c.metric] : []);
-        const cats = c.categories && c.categories.length ? c.categories : (c.category ? [c.category] : []);
-        const gammes = c.gammes || [];
-        const metricLabel = metrics.map(m => labels[m] || m).join(' + ') || '—';
-        const catLabel = cats.length ? cats.join(', ') : 'Toutes';
-        const gammeLabel = gammes.length ? gammes.map(g => (state.meta.gammes || {})[g] || g).join(', ') : '—';
-        const unit = metrics.includes('price_per_meal') ? ' €' : ' %';
-        const tr = h('tr', {class: 'clickable'},
-          h('td', {}, h('b', {}, c.label)),
-          h('td', {class: 'mute'}, metricLabel),
-          h('td', {}, catLabel),
-          h('td', {class: 'mute'}, gammeLabel),
-          h('td', {}, (c.mode === 'max' ? '≤ ' : '≥ ') + num(c.target) + unit),
-          h('td', {class: 'mute'}, c.notes || ''),
-          h('td', {class: 'n'},
-            h('button', {class: 'icon-btn', title: 'Modifier', onclick: e => { e.stopPropagation(); commitmentForm(c); }}, '✏️'),
-            h('button', {class: 'icon-btn d', title: 'Supprimer', onclick: e => { e.stopPropagation(); confirmDel(`Supprimer « ${c.label} » ?`, () => api('/commitments/' + c.id, {method: 'DELETE'}))(); }}, '🗑️')));
-        tr.addEventListener('click', () => commitmentForm(c));
-        return tr;
-      }))) : h('div', {class: 'empty'}, 'Aucun engagement.'),
-    h('div', {style: 'margin-top:10px'}, h('button', {class: 'p', onclick: () => commitmentForm({level})}, '+ Engagement')));
-}
-function commitmentForm(c = {}) {
-  const i = {};
-  const selMetrics = c.metrics && c.metrics.length ? c.metrics : (c.metric ? [c.metric] : []);
-  const selCats = c.categories && c.categories.length ? c.categories : (c.category ? [c.category] : []);
-  const selGammes = c.gammes || [];
-  const body = h('div', {class: 'f'},
-    field('Type', i.level = select([['marche', 'Engagement du marché'], ['par', 'Engagement PAR']], c.level || 'marche')),
-    field('Intitulé *', i.label = h('input', {value: c.label || '', placeholder: 'ex. Produits bio'})),
-    field('Indicateur(s) *', i.metrics = checkGroup(state.meta.metrics, selMetrics), 'full'),
-    field('Catégorie(s) (optionnel)', i.categories = checkGroup(state.meta.categories.map(x => [x, x]), selCats), 'full'),
-    field('Gamme(s) (optionnel)', i.gammes = checkGroup(Object.entries(state.meta.gammes).map(([k,v]) => [k, v]), selGammes), 'full'),
-    field('Sens', i.mode = select([['min', 'Au moins (≥)'], ['max', 'Au plus (≤)']], c.mode || 'min')),
-    field('Cible (% ou € pour le prix / repas)', i.target = h('input', {type: 'number', step: 'any', value: c.target != null ? c.target : ''})),
-    field('Notes', i.notes = h('input', {value: c.notes || '', placeholder: 'ex. valeur au 1er septembre 2026'}), 'full'));
-  modal(c.id ? "Modifier l'engagement" : 'Nouvel engagement', body, async () => {
-    if (!i.label.value) throw new Error("L'intitulé est obligatoire");
-    if (i.target.value === '') throw new Error('Indiquez la cible');
-    const metrics = i.metrics.values();
-    if (!metrics.length) throw new Error('Choisissez au moins un indicateur');
-    const d = {
-      label: i.label.value,
-      metrics: metrics,
-      metric: metrics[0] || '',
-      categories: i.categories.values(),
-      category: i.categories.values()[0] || null,
-      gammes: i.gammes.values(),
-      mode: i.mode.value,
-      level: i.level.value,
-      target: Number(i.target.value),
-      notes: i.notes.value || null
-    };
-    await api(c.id ? '/commitments/' + c.id : '/commitments', {method: c.id ? 'PUT' : 'POST', body: d});
   });
 }
