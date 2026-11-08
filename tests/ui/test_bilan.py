@@ -88,3 +88,15 @@ def test_page_statistiques_affiche_le_bilan_de_la_periode(admin, api, tmp_path):
     corps = page.locator("main, body").first.inner_text()
     assert "Engagements du marché" not in corps and "Historique des actions" not in corps
     assert corps.index("Sauvegarde") < corps.index("Assistant IA")
+
+
+def test_case_manger_bio_direct_dans_les_parametres(admin, api):
+    page = admin
+    aller(page, "Paramètres")
+    case = page.get_by_label("Compter les produits locaux de Manger Bio comme du direct producteur")
+    case.check()
+    page.wait_for_timeout(400)
+    assert api.get("/api/settings")["local_manger_bio_direct"] is True
+    case.uncheck()
+    page.wait_for_timeout(400)
+    assert api.get("/api/settings")["local_manger_bio_direct"] is False

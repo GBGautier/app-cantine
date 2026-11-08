@@ -97,6 +97,10 @@ def load_lines(date_from=None, date_to=None):
         args,
     )
     fill_spend(lines)
+    if db.one("SELECT 1 AS x FROM settings WHERE key='local_manger_bio_direct' AND value='1'"):
+        for r in lines:  # paramètre : les produits locaux de Manger Bio comptent comme du direct producteur
+            if r["provenance"] in LOCAL and "manger bio" in (r["supplier"] or "").lower().replace("-", " "):
+                r["direct_producteur"] = 1
     return lines
 
 

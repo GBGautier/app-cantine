@@ -18,6 +18,7 @@ class Settings(BaseModel):
     tarif_repas: Optional[float] = (
         None  # tarif de vente d'un repas (€) : sert au déficit du bilan mensuel ; inchangé si absent
     )
+    local_manger_bio_direct: Optional[bool] = None  # produits locaux de Manger Bio comptés en direct producteur
 
 
 TARIF_REPAS_DEFAUT = 2.04
@@ -31,6 +32,12 @@ def get_tarif_repas():
     except (TypeError, ValueError):
         v = TARIF_REPAS_DEFAUT
     return v if v > 0 else TARIF_REPAS_DEFAUT
+
+
+def local_manger_bio_direct():
+    """Les produits locaux achetés chez Manger Bio comptent-ils comme du direct producteur ? (case à cocher)"""
+    r = db.one("SELECT value FROM settings WHERE key='local_manger_bio_direct'")
+    return bool(r and r["value"] == "1")
 
 
 def get_client_names():
@@ -49,6 +56,7 @@ def get_settings(user: dict = ADMIN):
     return {
         "client_names": "; ".join(x.strip() for x in (r["value"] if r else "").split(";") if x.strip()),
         "tarif_repas": get_tarif_repas(),
+        "local_manger_bio_direct": local_manger_bio_direct(),
     }
 
 
@@ -67,7 +75,18 @@ def put_settings(s: Settings, user: dict = ADMIN):
             "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
             (str(round(s.tarif_repas, 2)),),
         )
+    if s.local_manger_bio_direct is not None:
+        db.execute(
+            "INSERT INTO settings (key, value) VALUES ('local_manger_bio_direct', ?) "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            ("1" if s.local_manger_bio_direct else "0",),
+        )
     log_action(
-        user, "update", "settings", None, f"Nom de la cantine : {s.client_names!r} ; tarif repas : {get_tarif_repas()}"
+        user,
+        "update",
+        "settings",
+        None,
+        f"Nom de la cantine : {s.client_names!r} ; tarif repas : {get_tarif_repas()} ; "
+        f"locaux Manger Bio en direct : {local_manger_bio_direct()}",
     )
     return {"ok": True}

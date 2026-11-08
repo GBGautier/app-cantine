@@ -124,3 +124,50 @@ def test_engagements_gammes_qualite_et_origine(jeu):
     matrice = next(s for s in b["sections"] if s.get("matrice"))["matrice"]["lignes"]
     assert next(r for r in matrice if r["nom"] == "Légumes")["engagements"] == [50, 15, 20, 10, 5, 0]
     assert next(r for r in matrice if r["nom"] == "Produits de la pêche")["engagements"] is None
+
+
+def test_locaux_manger_bio_comptes_en_direct(client):
+    f = client.post("/api/suppliers", json={"name": "Manger Bio Pays de la Loire"}).json()["id"]
+    autre = client.post("/api/suppliers", json={"name": "Grossiste quelconque"}).json()["id"]
+
+    def reception(fournisseur, nom, provenance):
+        p = client.post(
+            "/api/products",
+            json={
+                "name": nom,
+                "supplier_id": fournisseur,
+                "unit": "kg",
+                "unit_price": 1,
+                "category": "Légumes",
+                "label_egalim": "bio",
+                "provenance": provenance,
+                "gamme": "1",
+                "direct_producteur": 0,
+            },
+        ).json()["id"]
+        client.post(
+            "/api/orders",
+            json={
+                "supplier_id": fournisseur,
+                "kind": "facture",
+                "date": "2060-03-10",
+                "lines": [{"product_id": p, "qty": 10, "unit": "kg", "unit_price": 1}],
+            },
+        )
+
+    reception(f, "MB local", "loire_atlantique")
+    reception(f, "MB hors région", "ue")
+    reception(autre, "Autre local", "loire_atlantique")
+
+    def direct():
+        return _ligne(bilan_periode("2060-03-01", "2060-03-31"), "Approvisionnement direct de producteurs", "Légumes")[
+            "valeur"
+        ]
+
+    assert client.get("/api/settings").json()["local_manger_bio_direct"] is False
+    assert direct() == 0.0
+    client.put("/api/settings", json={"client_names": "", "local_manger_bio_direct": True})
+    assert client.get("/api/settings").json()["local_manger_bio_direct"] is True
+    assert direct() == 33.33  # seul le produit local de Manger Bio passe en direct (10 € sur 30 €)
+    client.put("/api/settings", json={"client_names": "", "local_manger_bio_direct": False})
+    assert direct() == 0.0
