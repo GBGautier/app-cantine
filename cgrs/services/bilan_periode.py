@@ -86,18 +86,42 @@ ENG_FRAIS = {
     "Produits laitiers": 100,
     TOUTES: 82,
 }
-ENG_GAMME1 = {"hors": 90, "avec": 82}
+# Répartition par gamme (CRT, § « Fraîcheur des produits ») : 1re gamme = minimum de produits frais, les autres = parts attendues
+ENG_GAMMES = {
+    "hors": {"1": 90, "2": 7, "3": 3, "4": 0, "5": 0, "6": 0},
+    "avec": {"1": 82, "2": 6, "3": 3, "4": 1, "5": 1, "6": 7},
+}
+# Origine des matières premières par famille (CRT) : CC Nozay, Loire-Atlantique, Pays de la Loire, France, UE, International
+ENG_ORIGINE = {
+    "Viande bovine": [80, 10, 0, 10, 0, 0],
+    "Volailles": [0, 100, 0, 0, 0, 0],
+    "Viande de porc": [100, 0, 0, 0, 0, 0],
+    "Fruits": [0, 35, 5, 40, 20, 0],
+    "Légumes": [50, 15, 20, 10, 5, 0],
+    "Produits laitiers": [25, 40, 0, 35, 0, 0],
+    "Ovoproduits": [35, 35, 0, 30, 0, 0],
+}
+# Origine France par famille : part des zones françaises du tableau d'origine du CRT (tout sauf UE et international)
+ENG_FRANCE = {
+    "Viande (bœuf, porc, volaille)": 100,
+    "Fruits": 80,
+    "Légumes": 95,
+    "Produits laitiers": 100,
+    "Ovoproduits": 100,
+}
 ENG_MSC = 100  # 100 % des achats de poissons frais sous label MSC
 
 
-def _ligne(nom, lignes, pred, cats=None, cible=None):
+def _ligne(nom, lignes, pred, cats=None, cible=None, sens="min"):
     v = _part(lignes, pred, cats)
+    ok = None if cible is None or v is None else (v <= cible if sens == "max" else v >= cible)
     return {
         "nom": nom,
         "total_ht": _total(lignes, cats),
         "engagement": cible,
+        "sens": sens,
         "valeur": v,
-        "respecte": None if cible is None or v is None else v >= cible,
+        "respecte": ok,
     }
 
 
@@ -110,7 +134,9 @@ def _zones(lignes):
     for nom, cats in FAMILLES_ZONES:
         zones = [_part(lignes, lambda r, k=k: r["provenance"] == k, cats) for k in PROVENANCES]
         zones.append(_part(lignes, lambda r: r["provenance"] not in PROVENANCES, cats))
-        rows.append({"nom": nom, "total_ht": _total(lignes, cats), "valeurs": zones})
+        rows.append(
+            {"nom": nom, "total_ht": _total(lignes, cats), "valeurs": zones, "engagements": ENG_ORIGINE.get(nom)}
+        )
     return {"colonnes": ["Famille", "Total HT", *PROVENANCES.values(), "Non renseignée"], "lignes": rows}
 
 
@@ -154,14 +180,17 @@ def _sections(lignes, reference):
         },
         {
             "titre": "Origine par famille de produits",
-            "note": "Part de la valeur achetée dans chaque zone.",
+            "note": "Part de la valeur achetée dans chaque zone, avec l'engagement du CRT sous la valeur.",
             "matrice": _zones(lignes),
         },
         {
             "titre": "Qualité par catégorie",
-            "note": "Origine France, sauf le poisson (label MSC).",
+            "note": "Part d'origine France (zones françaises du CRT) ; pour le poisson, label MSC.",
             "lignes": [
-                *(_ligne(nom, lignes, lambda r: r["provenance"] in FRANCE, cats) for nom, cats in FAMILLES_ORIGINE),
+                *(
+                    _ligne(nom, lignes, lambda r: r["provenance"] in FRANCE, cats, ENG_FRANCE.get(nom))
+                    for nom, cats in FAMILLES_ORIGINE
+                ),
                 _ligne(
                     "Poisson sous label MSC",
                     lignes,
@@ -185,14 +214,15 @@ def _sections(lignes, reference):
         },
         {
             "titre": "Répartition par gamme",
-            "note": "Part de chaque gamme, hors épicerie puis toutes denrées. Engagement sur la 1re gamme.",
+            "note": "Part de chaque gamme, hors épicerie puis toutes denrées : minimum pour la 1re gamme, maximum pour les autres.",
             "lignes": [
                 *(
                     _ligne(
                         f"{nom} (hors épicerie)",
                         hors_ep,
                         lambda r, k=k: r["gamme"] == k,
-                        cible=ENG_GAMME1["hors"] if k == "1" else None,
+                        cible=ENG_GAMMES["hors"][k],
+                        sens="min" if k == "1" else "max",
                     )
                     for k, nom in GAMMES.items()
                 ),
@@ -201,7 +231,8 @@ def _sections(lignes, reference):
                         f"{nom} (avec épicerie)",
                         lignes,
                         lambda r, k=k: r["gamme"] == k,
-                        cible=ENG_GAMME1["avec"] if k == "1" else None,
+                        cible=ENG_GAMMES["avec"][k],
+                        sens="min" if k == "1" else "max",
                     )
                     for k, nom in GAMMES.items()
                 ),

@@ -11,7 +11,8 @@ function tableauBilan(s, masque) {
       h('div', {class: 'tablewrap'}, h('table', {},
         h('tr', {}, m.colonnes.filter((c, i) => !(masque && i === 1)).map((x, k) => h('th', {class: k ? 'n' : ''}, x))),
         m.lignes.map(r => h('tr', {}, h('td', {}, r.nom), masque ? null : h('td', {class: 'n'}, eur(r.total_ht)),
-          r.valeurs.map(v => h('td', {class: 'n'}, pctf(v))))))));
+          r.valeurs.map((v, i) => h('td', {class: 'n'}, pctf(v),
+            r.engagements && r.engagements[i] != null ? h('div', {class: 'mute', style: 'font-size:11px'}, 'obj. ' + pctf(r.engagements[i])) : null)))))));
   }
   const aTotal = s.total && !masque;
   return h('div', {class: 'card'}, h('h3', {}, s.titre),
@@ -22,7 +23,7 @@ function tableauBilan(s, masque) {
       s.lignes.map(r => h('tr', {},
         h('td', {}, r.nom),
         aTotal ? h('td', {class: 'n'}, eur(r.total_ht)) : null,
-        h('td', {class: 'n'}, r.engagement == null ? '—' : pctf(r.engagement)),
+        h('td', {class: 'n'}, r.engagement == null ? '—' : (r.sens === 'max' ? '≤ ' : '≥ ') + pctf(r.engagement)),
         h('td', {class: 'n'}, h('b', {}, pctf(r.valeur))),
         h('td', {}, badgeEngagement(r.respecte)))))));
 }

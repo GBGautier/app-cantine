@@ -103,3 +103,24 @@ def test_masque_pour_le_profil_stats(jeu, client):
     assert b["prix_masques"] and all(r["total_ht"] is None for s in b["sections"] for r in s.get("lignes", []))
     assert all(e["achats_ht"] is None for e in b["evolution"])
     assert client.get("/api/bilan/periode?date_from=2050-10-01&date_to=2050-10-31").status_code == 200
+
+
+def test_engagements_gammes_qualite_et_origine(jeu):
+    b = bilan_periode("2050-10-01", "2050-10-31")
+    gamme1 = _ligne(b, "Répartition par gamme", "1 - frais et brut (hors épicerie)")
+    assert (gamme1["engagement"], gamme1["sens"], gamme1["valeur"], gamme1["respecte"]) == (90, "min", 60.0, False)
+    gammes = next(s for s in b["sections"] if s["titre"] == "Répartition par gamme")["lignes"]
+    assert [(r["engagement"], r["sens"]) for r in gammes[:6]] == [
+        (90, "min"),
+        (7, "max"),
+        (3, "max"),
+        (0, "max"),
+        (0, "max"),
+        (0, "max"),
+    ]
+    assert [r["engagement"] for r in gammes[6:]] == [82, 6, 3, 1, 1, 7]
+    assert _ligne(b, "Qualité par catégorie", "Légumes")["engagement"] == 95
+    assert _ligne(b, "Qualité par catégorie", "Fruits")["engagement"] == 80
+    matrice = next(s for s in b["sections"] if s.get("matrice"))["matrice"]["lignes"]
+    assert next(r for r in matrice if r["nom"] == "Légumes")["engagements"] == [50, 15, 20, 10, 5, 0]
+    assert next(r for r in matrice if r["nom"] == "Produits de la pêche")["engagements"] is None
