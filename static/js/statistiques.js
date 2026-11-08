@@ -11,7 +11,7 @@ async function pageStats() {
   return h('div', {},
     h('div', {class: 'tools'},
       h('h2', {}, 'Statistiques des achats'),
-      h('button', {onclick: () => exportStatsPdf(s, f)}, '⬇ Exporter en PDF')),
+      h('button', {onclick: () => exportStatsPdf(s, f, bilan)}, '⬇ Exporter en PDF')),
     h('div', {class: 'card row'},
       field('Du', h('input', {id: 'sf', type: 'date', value: f.from})),
       field('Au', h('input', {id: 'st', type: 'date', value: f.to})),

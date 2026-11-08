@@ -1,5 +1,5 @@
 /* ---------- Export PDF Statistiques ---------- */
-function exportStatsPdf(s, f) {
+function exportStatsPdf(s, f, bilan) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({orientation: 'portrait', unit: 'mm', format: 'a4'});
   const hid = s.prices_hidden;
@@ -88,48 +88,62 @@ function exportStatsPdf(s, f) {
   });
   y += Math.ceil(kpis.length / 2) * 10 + 4;
 
-  // Engagements
-  const allCommitments = s.commitments || [];
-  const engGroups = [
-    {title: 'Engagements du marché', items: allCommitments.filter(c => c.level !== 'par')},
-  ];
-  for (const {title, items} of engGroups) {
-    if (!items.length) continue;
-    if (y > 240) { doc.addPage(); y = margin; }
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(...INK);
-    doc.text(title, margin, y);
-    y += 3;
+  // Bilan CRT de la période (mêmes tableaux que la page) : synthèse, indicateurs et engagements, évolution
+  const accent = t => String(t).replace(/[éèê]/g, 'e').replace(/É/g, 'E').replace(/à/g, 'a').replace(/’/g, "'");
+  const ecrire = (t, {gras = false, taille = 10, couleur = INK, pas = 5} = {}) => {
+    doc.setFont('helvetica', gras ? 'bold' : 'normal'); doc.setFontSize(taille); doc.setTextColor(...couleur);
+    for (const l of doc.splitTextToSize(t, pageW - 2 * margin)) {
+      if (y > 280) { doc.addPage(); y = margin; }
+      doc.text(l, margin, y); y += pas;
+    }
+  };
+  const tableau = (head, body, {badge = -1, align = true} = {}) => {
     doc.autoTable({
-      startY: y,
-      margin: {left: margin, right: margin},
-      styles: {fontSize: 9, cellPadding: 2, textColor: INK},
-      headStyles: {fillColor: GREEN, textColor: [255,255,255], fontStyle: 'bold', fontSize: 8},
+      startY: y, margin: {left: margin, right: margin},
+      styles: {fontSize: 8.5, cellPadding: 1.6, textColor: INK},
+      headStyles: {fillColor: GREEN, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5},
       alternateRowStyles: {fillColor: [240, 245, 242]},
-      head: [['Engagement', 'Indicateur', 'Cible', 'Réalisé', 'Écart', 'Statut']],
-      body: items.map(c => {
-        const metrics = c.metrics && c.metrics.length ? c.metrics : (c.metric ? [c.metric] : []);
-        const unit = metrics.includes('price_per_meal') ? ' €' : ' %';
-        const gap = c.actual == null ? null : Math.round((c.actual - c.target) * 100) / 100;
-        return [
-          c.label,
-          c.metric_label || metrics.join(' + '),
-          (c.mode === 'max' ? '<= ' : '>= ') + pdfNum(c.target) + unit,
-          c.actual == null ? '—' : pdfNum(c.actual) + unit,
-          gap == null ? '—' : (gap > 0 ? '+' : '') + pdfNum(gap),
-          c.status === 'ok' ? 'Respecté' : c.status === 'ko' ? 'Non atteint' : '—'
-        ];
-      }),
-      didParseCell(data) {
-        if (data.section === 'body' && data.column.index === 5) {
-          const v = data.cell.raw;
-          if (v === 'Respecté') data.cell.styles.textColor = [47, 107, 79];
-          else if (v === 'Non atteint') data.cell.styles.textColor = [180, 83, 42];
+      columnStyles: Object.fromEntries(head.map((_, i) => [i, {halign: i && align ? 'right' : 'left'}])),
+      head: [head], body,
+      didParseCell(d) {
+        if (d.section === 'body' && d.column.index === badge) {
+          d.cell.styles.halign = 'left';
+          if (d.cell.raw === 'Respecte') d.cell.styles.textColor = GREEN;
+          else if (d.cell.raw === 'Non respecte') d.cell.styles.textColor = [180, 83, 42];
         }
-      }
+      },
     });
     y = doc.lastAutoTable.finalY + 6;
+  };
+  if (bilan) {
+    if (y > 250) { doc.addPage(); y = margin; }
+    ecrire('Synthèse de la période', {gras: true, taille: 11, pas: 6});
+    for (const t of bilan.synthese) ecrire('• ' + accent(t), {taille: 9});
+    y += 3;
+    for (const sec of bilan.sections) {
+      if (y > 245) { doc.addPage(); y = margin; }
+      ecrire(accent(sec.titre), {gras: true, taille: 11, pas: 5});
+      if (sec.note) ecrire(accent(sec.note), {taille: 8, couleur: MUTE, pas: 4});
+      if (sec.matrice) {
+        const m = sec.matrice, cols = m.colonnes.map((c, i) => [c, i]).filter(([, i]) => !(hid && i === 1));
+        tableau(cols.map(([c]) => accent(c)), m.lignes.map(r => [
+          r.nom, ...(hid ? [] : [pdfEur(r.total_ht)]),
+          ...r.valeurs.map((v, i) => pdfPct(v) + (r.engagements && r.engagements[i] != null ? ' (obj. ' + pdfNum(r.engagements[i]) + ')' : '')),
+        ].filter(x => x !== undefined)));
+        continue;
+      }
+      const total = sec.total && !hid;
+      tableau(['Indicateur', total ? 'Total HT' : null, 'Engagement', 'Période', ''].filter(x => x != null),
+        sec.lignes.map(r => [accent(r.nom), total ? pdfEur(r.total_ht) : null,
+          r.engagement == null ? '—' : (r.sens === 'max' ? '<= ' : '>= ') + pdfPct(r.engagement), pdfPct(r.valeur),
+          r.respecte == null ? '' : r.respecte ? 'Respecte' : 'Non respecte'].filter(x => x !== null)),
+        {badge: total ? 4 : 3});
+    }
+    if (y > 245) { doc.addPage(); y = margin; }
+    ecrire('Évolution mois par mois', {gras: true, taille: 11, pas: 5});
+    tableau(['Mois', hid ? null : 'Achats HT', 'Repas', hid ? null : '€ / repas', '% bio', '% EGalim', '% local', '% direct', '% frais'].filter(x => x != null),
+      bilan.evolution.map(e => [e.libelle, hid ? null : pdfEur(e.achats_ht), String(e.repas), hid ? null : (e.prix_par_repas == null ? '—' : pdfEur(e.prix_par_repas)),
+        pdfPct(e.bio), pdfPct(e.egalim), pdfPct(e.local), pdfPct(e.direct), pdfPct(e.frais)].filter(x => x !== null)));
   }
 
   // Répartitions (barres) : deux colonnes ; une rangée de deux sections n'est jamais coupée par un saut de page

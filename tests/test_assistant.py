@@ -1130,3 +1130,13 @@ def test_bilan_mensuel_par_rubrique(mcp_client, client):
     assert (
         len(json.dumps(_lec(mcp_client, "bilan_mensuel", mois="2034-10"))) < 3500
     )  # tient dans la limite d'un résultat d'outil
+
+
+def test_actions_journalisees_dans_le_fichier_de_log(caplog):
+    import logging
+
+    from cgrs.utils import log_action
+
+    with caplog.at_level(logging.INFO, logger="cgrs.actions"):
+        log_action({"username": "alice"}, "create", "supplier", 7, "Fournisseur ajouté")
+    assert any("alice" in r.getMessage() and "Fournisseur ajouté" in r.getMessage() for r in caplog.records)

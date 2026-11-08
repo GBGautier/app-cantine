@@ -1,4 +1,6 @@
-"""Tarif de vente d'un repas (utilisé par le bilan mensuel de l'assistant)."""
+"""Bilan CRT de la page Statistiques et de son export PDF, tarif d'un repas, ordre de la page Paramètres."""
+
+import pdfplumber
 
 from .conftest import aller
 
@@ -13,7 +15,7 @@ def test_tarif_repas_dans_les_parametres(admin, api):
     assert api.get("/api/settings")["tarif_repas"] == 2.5
 
 
-def test_page_statistiques_affiche_le_bilan_de_la_periode(admin, api):
+def test_page_statistiques_affiche_le_bilan_de_la_periode(admin, api, tmp_path):
     page = admin
     f = api.post("/api/suppliers", {"name": "Ferme Stats Bilan", "direct_producteur": 1})["id"]
     p = api.post(
@@ -64,5 +66,25 @@ def test_page_statistiques_affiche_le_bilan_de_la_periode(admin, api):
         "Le mois par rapport",
     ):
         assert interdit not in corps
+    with page.expect_download() as dl:
+        page.get_by_role("button", name="Exporter en PDF").click()
+    fichier = tmp_path / "stats.pdf"
+    dl.value.save_as(str(fichier))
+    with pdfplumber.open(fichier) as pdf:
+        texte = "\n".join(p.extract_text() or "" for p in pdf.pages)
+    for attendu in (
+        "Statistiques des achats",
+        "Synthèse de la période",
+        "Produits bio par famille",
+        "Origine par famille de produits",
+        "Repartition par gamme",
+        "Respecte",
+        "Évolution mois par mois",
+    ):
+        assert attendu in texte
+    assert "Engagements du marché" not in texte and "cumul" not in texte.lower()
     aller(page, "Paramètres")
-    assert "Engagements du marché" not in page.locator("main, body").first.inner_text()
+    page.get_by_text("Assistant IA").first.wait_for()
+    corps = page.locator("main, body").first.inner_text()
+    assert "Engagements du marché" not in corps and "Historique des actions" not in corps
+    assert corps.index("Sauvegarde") < corps.index("Assistant IA")

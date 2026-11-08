@@ -24,7 +24,7 @@ function brandingCard() {
 }
 
 async function pageSettings() {
-  const [st, users, actionLog] = await Promise.all([api('/settings'), api('/users'), api('/action-log')]);
+  const [st, users] = await Promise.all([api('/settings'), api('/users')]);
   const assist = await assistantCard();
   const cn = h('input', {value: st.client_names, placeholder: 'ex. Restaurant scolaire ; Cantine municipale'});
   const tarif = h('input', {type: 'number', step: '0.01', min: '0.01', value: st.tarif_repas, style: 'width:110px'});
@@ -32,7 +32,6 @@ async function pageSettings() {
   return h('div', {},
     h('h2', {}, 'Paramètres'),
     brandingCard(),
-    assist,
     h('div', {class: 'card'}, h('h3', {}, 'Utilisateurs'),
       h('p', {class: 'mute', style: 'margin-top:0'}, 'Administrateur : tous les droits. Lecture seule : consulte tout sans rien modifier. Statistiques : accès à la seule page Statistiques, sans aucun prix (achats HT, prix par repas, coûts matières).'),
       h('div', {class: 'tablewrap'}, h('table', {},
@@ -84,21 +83,7 @@ async function pageSettings() {
         h('label', {class: 'btn', style: 'color:var(--ink)'}, '⬆ Restaurer une sauvegarde',
           h('input', {type: 'file', accept: '.zip', style: 'display:none', onchange: restoreBackup}))),
       h('p', {class: 'mute', style: 'font-size:12px;margin-bottom:0'}, 'Restaurer remplace toutes les données actuelles par celles de la sauvegarde (une copie de sécurité de l\'état actuel est conservée sur le serveur). Vous devrez vous reconnecter.')),
-    h('div', {class: 'card'}, h('h3', {}, 'Historique des actions'),
-      h('p', {class: 'mute', style: 'margin-top:0'}, 'Les 200 dernières actions enregistrées (création, modification, suppression d\'utilisateurs et de paramètres).'),
-      actionLog.length ? h('div', {class: 'tablewrap'}, h('table', {},
-        h('tr', {}, ['Date / heure', 'Utilisateur', 'Action', 'Description'].map(x => h('th', {}, x))),
-        actionLog.map(e => {
-          const ACTION_LABELS = {create: 'Création', update: 'Modification', delete: 'Suppression'};
-          const dt = (e.ts || '').replace('T', '\u00a0').slice(0, 16);
-          const dtFr = dt ? dt.slice(8, 10) + '/' + dt.slice(5, 7) + '/' + dt.slice(0, 4) + '\u00a0' + dt.slice(11) : '—';
-          return h('tr', {},
-            h('td', {class: 'mute'}, dtFr),
-            h('td', {}, h('b', {}, e.username || '')),
-            h('td', {}, h('span', {class: e.action === 'delete' ? 'pill w' : 'pill'}, ACTION_LABELS[e.action] || e.action)),
-            h('td', {}, e.description || ''));
-        })))
-      : h('div', {class: 'empty'}, 'Aucune action enregistrée pour le moment.')));
+    assist);
 }
 async function downloadBackup() {
   busy(true);

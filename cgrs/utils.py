@@ -1,6 +1,7 @@
 """Outils communs : horodatage, journal d'actions, unités, lecture/écriture SQL générique."""
 
 import json
+import logging
 from datetime import datetime, timezone
 
 from pydantic import BaseModel
@@ -14,7 +15,10 @@ def now_iso():
 
 
 def log_action(user: dict, action: str, entity: str, entity_id, description: str = None):
-    """Enregistre une action dans le journal (action_log)."""
+    """Enregistre une action dans le journal (action_log) et dans le journal technique (fichier cgrs.log)."""
+    logging.getLogger("cgrs.actions").info(
+        "%s %s %s #%s %s", user.get("username"), action, entity, entity_id, description or ""
+    )
     try:
         db.execute(
             "INSERT INTO action_log (ts, username, action, entity, entity_id, description) VALUES (?,?,?,?,?,?)",
