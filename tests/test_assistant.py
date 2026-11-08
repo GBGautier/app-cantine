@@ -1206,19 +1206,42 @@ def test_achats_par_produit_avec_filtres(client, mcp_client):
     ]
 
 
-def test_outils_produits_en_defaut_et_simulation(mcp_client):
+def test_outils_produits_en_defaut_et_simulation(client, mcp_client):
+    f = client.post("/api/suppliers", json={"name": "Simulation Fournisseur"}).json()["id"]
+    p = client.post(
+        "/api/products",
+        json={
+            "name": "Simul boeuf surgelé",
+            "supplier_id": f,
+            "unit": "kg",
+            "unit_price": 1,
+            "category": "Viande de boeuf",
+            "label_egalim": "sans",
+            "provenance": "ue",
+            "gamme": "3",
+        },
+    ).json()["id"]
+    client.post(
+        "/api/orders",
+        json={
+            "supplier_id": f,
+            "kind": "facture",
+            "date": "2071-10-04",
+            "lines": [{"product_id": p, "qty": 40, "unit": "kg", "unit_price": 1}],
+        },
+    )
     lecture = mcp_client["lecture"]
-    erreur, r = appel(lecture, "produits_en_defaut", date_debut="2050-10-01", date_fin="2050-10-31")
-    assert not erreur and r["indicateurs_non_respectes"][0]["produits"]
+    erreur, r = appel(lecture, "produits_en_defaut", date_debut="2071-10-01", date_fin="2071-10-31")
+    assert not erreur and r["indicateurs_non_respectes"][0]["produits"][0]["produit"] == "Simul boeuf surgelé"
     erreur, r = appel(
         lecture,
         "simuler_remplacement",
-        produit="Période boeuf",
+        produit="Simul boeuf surgelé",
         nouvelle_provenance="france",
         nouvelle_gamme="1",
-        date_debut="2050-10-01",
-        date_fin="2050-10-31",
+        date_debut="2071-10-01",
+        date_fin="2071-10-31",
     )
     assert not erreur and r["indicateurs"] and r["hypothese"] == {"provenance": "france", "gamme": "1"}
-    erreur, r = appel(lecture, "simuler_remplacement", produit="Période boeuf")
+    erreur, r = appel(lecture, "simuler_remplacement", produit="Simul boeuf surgelé")
     assert erreur and "ce qui change" in str(r)
