@@ -540,6 +540,7 @@ SUPPLIER_ALIASES = {
 KNOWN_SUPPLIERS = (
     ("episaveurs", "Episaveurs"),
     ("grainesdebio", "Graines de Bio"),
+    ("chloesimon", "Ferme de la Morissais"),  # les factures sont établies au nom de l'exploitante
 )
 # Factures dont le texte du PDF est mélangé (numéro et date superposés à d'autres mots) : le nom du fichier
 # « …FACTURW0000638917 20260917 8282885435.pdf » porte la date (AAAAMMJJ) et le numéro (10 chiffres).
