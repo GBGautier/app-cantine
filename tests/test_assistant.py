@@ -1140,3 +1140,27 @@ def test_actions_journalisees_dans_le_fichier_de_log(caplog):
     with caplog.at_level(logging.INFO, logger="cgrs.actions"):
         log_action({"username": "alice"}, "create", "supplier", 7, "Fournisseur ajouté")
     assert any("alice" in r.getMessage() and "Fournisseur ajouté" in r.getMessage() for r in caplog.records)
+
+
+def test_recherche_de_produits_par_categorie_et_provenance(client, mcp_client):
+    f = client.post("/api/suppliers", json={"name": "Filtre Fournisseur"}).json()["id"]
+    for nom, cat, prov in (
+        ("Filtre courgette espagnole", "Légumes", "ue"),
+        ("Filtre poireau local", "Légumes", "loire_atlantique"),
+        ("Filtre pomme polonaise", "Fruits: pommes, poires, kiwis", "ue"),
+    ):
+        client.post(
+            "/api/products",
+            json={"name": nom, "supplier_id": f, "unit": "kg", "unit_price": 1, "category": cat, "provenance": prov},
+        )
+
+    def noms(**filtres):
+        _, r = appel(mcp_client["lecture"], "rechercher_produits", **filtres)
+        return {p["nom"] for p in r["produits"]}
+
+    assert noms(categorie="Légumes", provenance="UE", requete="filtre") == {"Filtre courgette espagnole"}
+    assert noms(categorie="legumes", provenance="Union européenne", requete="Filtre") == {"Filtre courgette espagnole"}
+    assert noms(provenance="ue", requete="filtre") == {"Filtre courgette espagnole", "Filtre pomme polonaise"}
+    assert noms(requete="courgette espagnole") == {
+        "Filtre courgette espagnole"
+    }  # tous les mots, dans n'importe quel ordre

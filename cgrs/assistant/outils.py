@@ -82,7 +82,7 @@ def _appel(fn, *args):
 
 def _produits():
     return db.rows(
-        "SELECT p.id, p.ref, p.name, p.unit, p.unit_price, p.category, p.gamme, p.label_egalim, p.provenance, "
+        "SELECT p.id, p.ref, p.name, p.unit, p.unit_price, p.category, p.gamme, p.label_egalim, p.provenance, p.direct_producteur, "
         "p.supplier_id, s.name AS supplier_name FROM products p LEFT JOIN suppliers s ON s.id=p.supplier_id ORDER BY p.name"
     )
 
@@ -104,8 +104,39 @@ def trouver_produit(nom):
 # ------------------------------------------------------------------ lecture
 
 
+def _cle_provenance(valeur):
+    """« UE », « union européenne », « loire-atlantique »… -> clé de provenance (ou None si inconnue)."""
+    v = _norm(valeur).replace("-", " ")
+    if not v:
+        return None
+    if v in ("ue", "europe", "union europeenne", "europeen"):
+        return "ue"
+    for cle, nom in PROVENANCES.items():
+        if v in (_norm(cle).replace("_", " "), _norm(nom).replace("-", " ")):
+            return cle
+    return next((cle for cle, nom in PROVENANCES.items() if v in _norm(nom).replace("-", " ")), None)
+
+
 def _rechercher_produits(user, a):
     q = _norm(a.get("requete"))
+    cat, label, gamme = _norm(a.get("categorie")), _norm(a.get("label_egalim")), str(a.get("gamme") or "")[:1]
+    prov = None
+    if a.get("provenance"):
+        prov = _cle_provenance(a["provenance"])
+        if prov is None:
+            raise ErreurOutil("provenance : " + ", ".join(PROVENANCES) + " (ou « UE »).")
+    direct = a.get("direct_producteur")
+
+    def garde(p):
+        return (
+            (not q or all(m in " ".join(_norm(p[k]) for k in ("name", "ref", "supplier_name")) for m in q.split()))
+            and (not cat or cat in _norm(p["category"]))
+            and (not prov or p["provenance"] == prov)
+            and (not label or label == _norm(p["label_egalim"]))
+            and (not gamme or gamme == str(p["gamme"] or ""))
+            and (direct is None or bool(p["direct_producteur"]) == bool(direct))
+        )
+
     out = [
         {
             "id": p["id"],
@@ -118,9 +149,10 @@ def _rechercher_produits(user, a):
             "gamme": p["gamme"],
             "label_egalim": p["label_egalim"],
             "provenance": p["provenance"],
+            "direct_producteur": bool(p["direct_producteur"]),
         }
         for p in _produits()
-        if not q or q in _norm(p["name"]) or q in _norm(p["ref"]) or q in _norm(p["supplier_name"])
+        if garde(p)
     ]
     return {"nombre": len(out), "produits": out[: _lim(a.get("limite"), 20, 50)]}
 
@@ -560,8 +592,21 @@ OUTILS = [
     Outil(
         "rechercher_produits",
         "Rechercher des produits",
-        "Cherche des produits de la cantine par nom, référence ou fournisseur (ex. « carotte »). Rend id, unité, prix, label, provenance.",
-        _obj({"requete": _STR, "limite": _INT}),
+        "Cherche des produits de la cantine par nom, référence ou fournisseur (ex. « carotte »), et/ou filtre par categorie "
+        "(ex. Légumes), provenance (ex. ue, france, loire_atlantique), label_egalim (bio, autre, sans), gamme (1 à 6) ou "
+        "direct_producteur. Pour « les légumes d'origine UE » : categorie=Légumes, provenance=ue, sans requete. "
+        "Rend id, unité, prix, label, provenance.",
+        _obj(
+            {
+                "requete": _STR,
+                "categorie": _STR,
+                "provenance": _STR,
+                "label_egalim": _STR,
+                "gamme": _STR,
+                "direct_producteur": {"type": "boolean"},
+                "limite": _INT,
+            }
+        ),
         _rechercher_produits,
     ),
     Outil(
