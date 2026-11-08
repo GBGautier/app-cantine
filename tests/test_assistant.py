@@ -1349,3 +1349,24 @@ def test_trouver_produit_au_pluriel_ou_par_reference(client):
     )
     assert trouver_produit("frites pluriel")[0]["ref"] == "PL1044"
     assert trouver_produit("PL1044")[0]["name"] == "Frite surgelée Pluriel"
+
+
+def test_filtre_produits_sans_origine(client, mcp_client):
+    f = client.post("/api/suppliers", json={"name": "Sans origine Fournisseur"}).json()["id"]
+    for nom, prov in (("Sansorig pomme inconnue", None), ("Sansorig poire connue", "france")):
+        client.post(
+            "/api/products",
+            json={
+                "name": nom,
+                "supplier_id": f,
+                "unit": "kg",
+                "unit_price": 1,
+                "category": "Fruits: pommes, poires, kiwis",
+                "provenance": prov,
+            },
+        )
+    for formule in ("sans origine", "non renseignée", "inconnue"):
+        _, r = appel(
+            mcp_client["lecture"], "rechercher_produits", categorie="Fruits", provenance=formule, requete="sansorig"
+        )
+        assert [p["nom"] for p in r["produits"]] == ["Sansorig pomme inconnue"], formule

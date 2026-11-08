@@ -128,11 +128,21 @@ def trouver_produit(nom):
 # ------------------------------------------------------------------ lecture
 
 
+SANS_ORIGINE = "?"  # filtre « origine non renseignée »
+
+
+def provenance_ok(filtre, valeur):
+    """La provenance d'un produit répond-elle au filtre (une zone, ou SANS_ORIGINE : aucune origine renseignée) ?"""
+    return valeur not in PROVENANCES if filtre == SANS_ORIGINE else valeur == filtre
+
+
 def _cle_provenance(valeur):
     """« UE », « union européenne », « loire-atlantique »… -> clé de provenance (ou None si inconnue)."""
     v = _norm(valeur).replace("-", " ")
     if not v:
         return None
+    if re.fullmatch(r"(sans|aucune?|pas d) ?(origine|provenance)?|non renseignee?|inconnue?|vide|manquante?|\?", v):
+        return SANS_ORIGINE
     if v in ("ue", "europe", "union europeenne", "europeen"):
         return "ue"
     for cle, nom in PROVENANCES.items():
@@ -148,14 +158,18 @@ def _rechercher_produits(user, a):
     if a.get("provenance"):
         prov = _cle_provenance(a["provenance"])
         if prov is None:
-            raise ErreurOutil("provenance : " + ", ".join(PROVENANCES) + " (ou « UE »).")
+            raise ErreurOutil(
+                "provenance : "
+                + ", ".join(PROVENANCES)
+                + " (ou « UE », ou « sans origine » pour les provenances non renseignées)."
+            )
     direct = a.get("direct_producteur")
 
     def garde(p):
         return (
             (not q or all(m in " ".join(_norm(p[k]) for k in ("name", "ref", "supplier_name")) for m in q.split()))
             and (not cat or cat in _norm(p["category"]))
-            and (not prov or p["provenance"] == prov)
+            and (not prov or provenance_ok(prov, p["provenance"]))
             and (not label or label == _norm(p["label_egalim"]))
             and (not gamme or gamme == str(p["gamme"] or ""))
             and (direct is None or bool(p["direct_producteur"]) == bool(direct))
@@ -392,13 +406,17 @@ def _achats_par_produit(user, a):
     cat, label, gamme = _norm(a.get("categorie")), _norm(a.get("label_egalim")), str(a.get("gamme") or "")[:1]
     prov = _cle_provenance(a["provenance"]) if a.get("provenance") else None
     if a.get("provenance") and prov is None:
-        raise ErreurOutil("provenance : " + ", ".join(PROVENANCES) + " (ou « UE »).")
+        raise ErreurOutil(
+            "provenance : "
+            + ", ".join(PROVENANCES)
+            + " (ou « UE », ou « sans origine » pour les provenances non renseignées)."
+        )
     direct, four = a.get("direct_producteur"), _norm(a.get("fournisseur"))
     lignes = [
         r
         for r in lignes
         if (not cat or cat in _norm(r["category"]))
-        and (not prov or r["provenance"] == prov)
+        and (not prov or provenance_ok(prov, r["provenance"]))
         and (not label or label == _norm(r["label_egalim"]))
         and (not gamme or gamme == str(r["gamme"] or ""))
         and (direct is None or bool(r["direct_producteur"]) == bool(direct))
@@ -665,7 +683,7 @@ OUTILS = [
         "rechercher_produits",
         "Rechercher des produits",
         "Cherche des produits de la cantine par nom, référence ou fournisseur (ex. « carotte »), et/ou filtre par categorie "
-        "(ex. Légumes), provenance (ex. ue, france, loire_atlantique), label_egalim (bio, autre, sans), gamme (1 à 6) ou "
+        "(ex. Légumes), provenance (ex. ue, france, loire_atlantique ; « sans origine » pour les produits dont l'origine n'est pas renseignée), label_egalim (bio, autre, sans), gamme (1 à 6) ou "
         "direct_producteur. Pour « les légumes d'origine UE » : categorie=Légumes, provenance=ue, sans requete. "
         "Rend id, unité, prix, label, provenance.",
         _obj(

@@ -17,6 +17,7 @@ from cgrs.assistant.outils import (
     STATUTS_REPAS,
     _appel,
     _cle_provenance,
+    provenance_ok,
     _date,
     _entier,
     _lim,
@@ -881,7 +882,9 @@ def _selection_produits(a):
     cat, label, gamme = _norm(a.get("categorie")), _norm(a.get("label_egalim")), str(a.get("gamme") or "")[:1]
     prov = _cle_provenance(a["provenance"]) if a.get("provenance") else None
     if a.get("provenance") and prov is None:
-        raise ErreurOutil("provenance non reconnue (ue, france, loire_atlantique, pays_loire, cc_nozay, international)")
+        raise ErreurOutil(
+            "provenance non reconnue (sans origine, ue, france, loire_atlantique, pays_loire, cc_nozay, international)"
+        )
     direct, four = a.get("direct_producteur"), _norm(a.get("fournisseur"))
     if not any([cat, label, gamme, prov, four, direct is not None]):
         raise ErreurOutil(
@@ -890,7 +893,7 @@ def _selection_produits(a):
     return (
         lambda r: (
             (not cat or cat in _norm(r["category"]))
-            and (not prov or r["provenance"] == prov)
+            and (not prov or provenance_ok(prov, r["provenance"]))
             and (not label or label == _norm(r["label_egalim"]))
             and (not gamme or gamme == str(r["gamme"] or ""))
             and (direct is None or bool(r["direct_producteur"]) == bool(direct))
