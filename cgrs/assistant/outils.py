@@ -193,6 +193,19 @@ def _rechercher_produits(user, a):
         if garde(p)
     ]
     res = {"nombre": len(out), "produits": out[: _lim(a.get("limite"), 20, 50)]}
+    if prov == SANS_ORIGINE and not q:
+        # des achats sans produit rattaché (ligne libre, produit supprimé) n'ont aucune origine : ils comptent dans « non renseignée »
+        libres = db.rows(
+            "SELECT COALESCE(l.label, '(sans libellé)') AS libelle, s.name AS fournisseur, o.date, "
+            "COALESCE(l.total_ht, l.qty*l.unit_price) AS montant_ht FROM order_lines l JOIN orders o ON o.id=l.order_id "
+            "LEFT JOIN suppliers s ON s.id=o.supplier_id WHERE l.product_id IS NULL ORDER BY montant_ht DESC LIMIT 15"
+        )
+        if libres:
+            res["achats_sans_produit_rattache"] = libres
+            res["note"] = (
+                "Ces lignes d'achat ne sont reliées à aucun produit : elles n'ont donc ni origine ni catégorie et pèsent dans la "
+                "part « non renseignée » des statistiques. Rattachez-les à un produit (réception > modifier) pour les corriger."
+            )
     if not out and cat:
         res["indice"] = (
             "Aucun résultat : categorie accepte un début de nom (« Fruits » couvre tous les fruits). Catégories : "

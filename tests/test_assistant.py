@@ -1396,3 +1396,22 @@ def test_fruits_sans_origine_couvrent_toutes_les_categories_de_fruits(client, mc
         requete="fruitorig",
     )
     assert r["nombre"] == 0 and "Fruits: autres" in r["indice"]
+
+
+def test_origine_non_renseignee_signale_les_lignes_sans_produit(client, mcp_client):
+    f = client.post("/api/suppliers", json={"name": "Libre Fournisseur"}).json()["id"]
+    client.post(
+        "/api/orders",
+        json={
+            "supplier_id": f,
+            "kind": "facture",
+            "date": "2074-10-04",
+            "lines": [{"label": "Ligne libre sans produit", "qty": 3, "unit": "kg", "unit_price": 7}],
+        },
+    )
+    _, r = appel(mcp_client["lecture"], "rechercher_produits", provenance="sans origine")
+    assert any(
+        x["libelle"] == "Ligne libre sans produit" and x["montant_ht"] == 21.0
+        for x in r["achats_sans_produit_rattache"]
+    )
+    assert "non renseignée" in r["note"]
