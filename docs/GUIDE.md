@@ -205,4 +205,5 @@ consultable par l'assistant, outil `journal_actions`).
 - **Assistant IA** (nouveau) : chat, outils de consultation et d'écriture, bilan mensuel, produits en défaut,
   simulation de remplacement, Gemini / Mistral / Groq / Ollama, serveur MCP.
 - **Import PDF** : factures de ferme (libellés sans la ligne « Origine », bon de livraison concerné), fournisseur
-  « Chloé Simon » = Ferme de la Morissais.
+  « Chloé Simon » = Ferme de la Morissais ; plusieurs bons de livraison cités sur une même facture
+  (« Bons de livraison concernés : n° 44057, 44126 ») sont tous repérés.

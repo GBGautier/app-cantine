@@ -28,6 +28,7 @@ RACINE = Path(__file__).resolve().parents[1]
 SORTIE = RACINE / "docs" / "guide-application.pdf"
 EMPREINTE = RACINE / "docs" / "guide-application.empreinte"
 MOT_DE_PASSE = "Motdepasse1"
+DEMO = RACINE / "docs" / "demo"  # PDF fictifs utilisés pour montrer les imports
 H = {"X-Requested-With": "cgrs"}
 MOIS = [
     "janvier",
@@ -162,6 +163,27 @@ DIAPOSITIVES = [
     ),
     (
         "RÉCEPTIONS",
+        "Importer une facture PDF",
+        "import_pdf",
+        [
+            (
+                "Lecture automatique",
+                "Fournisseur, numéro, date, type, total HT et lignes sont reconnus ; l’OCR prend le relais pour une page scannée.",
+            ),
+            (
+                "Vérifier avant d’enregistrer",
+                "Les avertissements s’affichent en couleur (montant qui ne correspond pas, produit inconnu…).",
+            ),
+            ("Rattachement aux produits", "Référence reconnue : produit existant, sinon création en un clic."),
+            (
+                "Bons de livraison remplacés",
+                "Les bons cités par la facture sont repérés ; plusieurs bons peuvent être cités.",
+            ),
+        ],
+        "Facture fictive, données anonymisées.",
+    ),
+    (
+        "RÉCEPTIONS",
         "Chaque réception garde son PDF",
         "reception",
         [
@@ -207,6 +229,17 @@ DIAPOSITIVES = [
             ("Liste de courses PDF", "Exportable une fois les coûts estimés, pour passer commande."),
         ],
         "",
+    ),
+    (
+        "REPAS",
+        "Importer le menu depuis un PDF",
+        "import_menu",
+        [
+            ("Bouton « Importer PDF menu »", "Dans la page Repas, on choisit le PDF du menu du mois."),
+            ("Repas détectés", "Date, entrée, plat, accompagnement, laitage et dessert."),
+            ("Vous cochez, puis enregistrez", "Les repas déjà présents sont grisés ; les autres sont créés d’un coup."),
+        ],
+        "On importe en général mois par mois.",
     ),
     (
         "REPAS",
@@ -724,12 +757,24 @@ def prendre_captures(base: str, navigateur) -> dict[str, str]:
     page.wait_for_timeout(400)
     c["saisie"] = png(page)
     fermer(page)
+    page.locator("input[type=file]").first.set_input_files(str(DEMO / "facture-demo.pdf"))
+    page.locator(".modal").first.wait_for(timeout=20000)
+    page.wait_for_timeout(1200)
+    c["import_pdf"] = png(page)
+    fermer(page)
 
     aller(page, "Recettes")
     c["recettes"] = png(page)
 
     aller(page, "Repas")
     c["repas"] = png(page)
+    with page.expect_file_chooser() as fc:
+        page.get_by_role("button", name="Importer PDF menu").click()
+    fc.value.set_files(str(DEMO / "menu-demo.pdf"))
+    page.locator(".modal").first.wait_for(timeout=20000)
+    page.wait_for_timeout(1200)
+    c["import_menu"] = png(page)
+    fermer(page)
     ouvrir_premiere_fiche(page)
     c["repas_fiche"] = png(page)
     fermer(page)

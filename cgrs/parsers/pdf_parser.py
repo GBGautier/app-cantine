@@ -482,7 +482,11 @@ REF_RE = re.compile(
     re.IGNORECASE,
 )
 # bons de livraison cités sur une facture : « BL-K52438 (03/09/2026) », « BL N°7364 du … », « B.L No 333713 du … »
-BL_CONCERNE_RE = re.compile(r"bons?\s+de\s+livraison\s+concern[ée]s?\s*:?\s*n[°o]\s*\.?\s*([A-Z0-9][A-Z0-9\-_]*)", re.I)
+BL_CONCERNE_RE = re.compile(
+    r"bons?\s+de\s+livraison\s+concern[ée]s?\s*:?\s*n[°o]\s*\.?\s*"
+    r"([A-Z0-9][A-Z0-9\-_]*(?:\s*(?:,|;|et)\s*(?=[A-Z0-9\-_]*\d)[A-Z0-9][A-Z0-9\-_]*)*)",  # « n° 44057, 44126 »
+    re.I,
+)
 BL_CITED_RE = re.compile(r"\bB\.?\s?L\.?\s*(?:n[°o]\.?|:|#)?\s*[-_]?\s*([A-Z]{0,2}[-_]?\d{3,}[A-Z0-9\-_]*)", re.I)
 AMOUNT = r"-?(?:\d{1,3}(?:[. \u00a0\u202f]\d{3})+|\d+)[.,]\d{2}"  # 4.342,93 · 4 342,93 · 143,01
 TOTAL_RE = re.compile(rf"(?:total|montant)\s*(?:h\.?t\.?|hors taxes?)\s*:?\s*({AMOUNT})", re.IGNORECASE)
@@ -813,8 +817,11 @@ def parse_document(text, table_lines, warnings, ocr_used, filename, suppliers, p
     # bons de livraison cités sur une facture (pour proposer de les remplacer)
     bl_refs = []
     if kind == "facture" and not credit:
-        for m in (*BL_CITED_RE.finditer(text), *BL_CONCERNE_RE.finditer(text)):
-            r = m.group(1).rstrip("-_")
+        cites = [m.group(1) for m in BL_CITED_RE.finditer(text)]
+        for m in BL_CONCERNE_RE.finditer(text):
+            cites += re.split(r"\s*(?:,|;|\bet\b)\s*", m.group(1), flags=re.I)
+        for r in cites:
+            r = r.rstrip("-_")
             if r and r not in bl_refs:
                 bl_refs.append(r)
 

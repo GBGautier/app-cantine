@@ -38,3 +38,11 @@ def test_bon_de_livraison_concerne_par_la_facture():
         BL_CONCERNE_RE.search("Date : 08/11/2026\nBon de livraison concerné : n° 31\nLivraison du 13/10").group(1)
         == "31"
     )
+
+
+def test_plusieurs_bons_de_livraison_concernes():
+    from cgrs.parsers.pdf_parser import BL_CONCERNE_RE
+
+    m = BL_CONCERNE_RE.search("Bons de livraison concernés : n° 44057, 44126\nLivraison : Restaurant scolaire")
+    assert m.group(1) == "44057, 44126"
+    assert BL_CONCERNE_RE.search("Bon de livraison concerné : n° 31\nLivraison du 13/10").group(1) == "31"
