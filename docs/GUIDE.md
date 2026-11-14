@@ -209,5 +209,5 @@ consultable par l'assistant, outil `journal_actions`).
   simulation de remplacement, Gemini / Mistral / Groq / Ollama, serveur MCP.
 - **Import PDF** : factures de ferme (libellés sans la ligne « Origine », bon de livraison concerné), fournisseur
   « Chloé Simon » = Ferme de la Morissais ; plusieurs bons de livraison cités sur une même facture
-  (« Bons de livraison concernés : n° 44057, 44126 ») sont tous repérés ; les lignes de bons de ferme du type « 1,644 kg (1 u.) 16,29 €/kg » sont lues.
+  (« Bons de livraison concernés : n° 44057, 44126 ») sont tous repérés ; les lignes de bons de ferme du type « 1,644 kg (1 u.) 16,29 €/kg » sont lues ; bons de fruits à colonnes « Description / Nbre colis / Qté » et « Total HT Net » lus correctement (quantité en kg, total du document).
 - **Paramètres** : nouvelle carte « Export des produits et prix d'achat » (CSV / Excel, une ligne par produit et par prix).

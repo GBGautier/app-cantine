@@ -151,8 +151,8 @@ def ocr_page(page):
 
 
 HEAD_FIELDS = (
-    ("label", ("designation", "produit", "libelle")),
-    ("price", ("prix", "pu")),
+    ("label", ("designation", "produit", "libelle", "description")),
+    ("price", ("prix", "pu", "p u")),
     ("total", ("mont", "montant", "tt ht")),
     ("qty", ("qte", "quantite")),
     ("unit", ("unite",)),
@@ -492,7 +492,7 @@ BL_CITED_RE = re.compile(r"\bB\.?\s?L\.?\s*(?:n[°o]\.?|:|#)?\s*[-_]?\s*([A-Z]{0
 AMOUNT = r"-?(?:\d{1,3}(?:[. \u00a0\u202f]\d{3})+|\d+)[.,]\d{2}"  # 4.342,93 · 4 342,93 · 143,01
 TOTAL_RE = re.compile(rf"(?:total|montant)\s*(?:h\.?t\.?|hors taxes?)\s*:?\s*({AMOUNT})", re.IGNORECASE)
 AVOIR_RE = re.compile(r"avoir\s*n[°o]\s*:?\s*([A-Z0-9][A-Z0-9\-/]*)", re.IGNORECASE)
-TOTAL_NET_RE = re.compile(rf"total\s*net\s*ht\s*:?\s*({AMOUNT})", re.IGNORECASE)
+TOTAL_NET_RE = re.compile(rf"total\s*(?:net\s*ht|ht\s*net)\s*:?\s*({AMOUNT})", re.IGNORECASE)
 TOTAL_ALT_RE = re.compile(rf"(?im)^\s*HT\s*:?\s*({AMOUNT})")
 
 SKIP_WORDS = (
