@@ -251,13 +251,26 @@ DIAPOSITIVES = [
     ),
     (
         "STATISTIQUES",
-        "Répartitions et coût par repas",
+        "Origine des produits par famille",
         "stats_repartitions",
         [
-            ("Répartitions", "Label, provenance, gamme, catégorie, fournisseur."),
-            ("Origine par famille", "Pour repérer les produits dont la provenance manque."),
-            ("Coût matières par repas", "Graphique et tableau."),
-            ("Évolution", "Mois par mois, sur la période."),
+            (
+                "Origine par famille",
+                "Pour chaque famille de produits, la part de chaque provenance ; « Non renseigné » repère les produits à compléter.",
+            ),
+            ("Calculé sur la période", "Seuls les achats de la période choisie sont comptés."),
+            ("Autres répartitions", "Label, gamme, catégorie et fournisseur sont présentés en haut de la page."),
+        ],
+        "",
+    ),
+    (
+        "STATISTIQUES",
+        "Coût matières par repas",
+        "stats_cout",
+        [
+            ("Graphique et tableau", "Le coût matières de chaque repas de la période, et le coût par convive."),
+            ("Une barre par repas", "Les dates des repas de la période choisie."),
+            ("Export PDF", "Le bouton « Exporter en PDF » reprend toute la page."),
         ],
         "",
     ),
@@ -647,6 +660,7 @@ def prendre_captures(base: str, navigateur) -> dict[str, str]:
     c["assistant"] = capture_assistant(page)
     c["stats_bilan"] = defiler_vers(page, "Part de bio, toutes denrées")
     c["stats_repartitions"] = defiler_vers(page, "Origine par famille de produits")
+    c["stats_cout"] = defiler_vers(page, "Coût matières par repas")
 
     aller(page, "Paramètres")
     page.get_by_text("Assistant IA").first.wait_for()
