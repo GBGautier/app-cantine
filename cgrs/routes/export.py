@@ -13,7 +13,17 @@ from cgrs import db
 from cgrs.config import UPLOADS
 from cgrs.parsers import dolibarr
 from cgrs.security import READ
-from cgrs.services.exports import KINDS, check_period, csv_text, line_row, xlsx_lines, zip_member_name
+from cgrs.services.exports import (
+    KINDS,
+    PRODUITS_PRIX_HEADER,
+    check_period,
+    csv_text,
+    line_row,
+    produits_prix_rows,
+    xlsx_lines,
+    xlsx_produits_prix,
+    zip_member_name,
+)
 
 
 router = APIRouter()
@@ -38,6 +48,35 @@ def export_dolibarr_orders(user: dict = READ):
 @router.get("/api/export/dolibarr/meals")
 def export_dolibarr_meals(user: dict = READ):
     return dolibarr.meals_csv(db)
+
+
+# ---------- Produits et prix d'achat HT ----------
+def _produits_prix():
+    produits = db.rows(
+        "SELECT p.*, s.name AS supplier_name FROM products p LEFT JOIN suppliers s ON s.id=p.supplier_id "
+        "ORDER BY s.name, p.name, p.id"
+    )
+    historique = db.rows("SELECT product_id, date, price FROM price_history ORDER BY date, id")
+    return produits_prix_rows(produits, historique)
+
+
+@router.get("/api/export/produits-prix.csv")
+def export_produits_prix(user: dict = READ):
+    """Un produit par ligne et par prix d'achat HT (ligne dupliquée si le prix a varié), séparateur « ; »."""
+    return Response(
+        "\ufeff" + csv_text(_produits_prix(), PRODUITS_PRIX_HEADER),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="produits-prix-achat-ht.csv"'},
+    )
+
+
+@router.get("/api/export/produits-prix.xlsx")
+def export_produits_prix_xlsx(user: dict = READ):
+    return Response(
+        xlsx_produits_prix(_produits_prix()),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="produits-prix-achat-ht.xlsx"'},
+    )
 
 
 # ---------- Réceptions d'une période ----------

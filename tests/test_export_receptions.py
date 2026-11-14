@@ -271,3 +271,47 @@ def test_xlsx_dates_nombres_et_caracteres_speciaux():
     _, a, b = lire_xlsx(contenu)
     assert a == {"A": 36526.0, "B": 1.25, "C": "a & <b> é"}  # 2000-01-01 = 36526 ; caractère interdit retiré
     assert b == {"A": "pas une date", "B": "x"}  # valeur illisible gardée en texte, cellule vide omise
+
+
+def test_produits_prix_ligne_dupliquee_par_prix():
+    from cgrs.services.exports import PRODUITS_PRIX_HEADER, produits_prix_rows
+
+    produits = [
+        {
+            "id": 1,
+            "ref": "A1",
+            "name": "Carottes",
+            "supplier_id": 7,
+            "supplier_name": "Ferme",
+            "unit": "kg",
+            "unit_price": 2.0,
+        },
+        {
+            "id": 2,
+            "ref": "",
+            "name": "Poires",
+            "supplier_id": 7,
+            "supplier_name": "Ferme",
+            "unit": "kg",
+            "unit_price": None,
+        },
+        {"id": 3, "ref": "C", "name": "Pommes", "supplier_id": None, "unit": "kg", "unit_price": 1.5},
+    ]
+    histo = [
+        {"product_id": 1, "date": "2026-09-01", "price": 1.8},
+        {"product_id": 1, "date": "2026-10-01", "price": 2.0},
+        {"product_id": 1, "date": "2026-10-15", "price": 2.0},
+    ]
+    rows = produits_prix_rows(produits, histo)
+    carottes = [r for r in rows if r[0] == 1]
+    assert [(r[7], r[8]) for r in carottes] == [("2", "2026-10-15"), ("1,8", "2026-09-01")]
+    assert carottes[0][:7] == [1, "A1", "Carottes", 7, "Ferme", "", "kg"]
+    assert [r for r in rows if r[0] == 2][0][7:] == ["", ""]  # produit sans prix : une ligne vide
+    assert [r[7] for r in rows if r[0] == 3] == ["1,5"]  # prix courant sans relevé
+    assert len(rows[0]) == len(PRODUITS_PRIX_HEADER)
+
+
+def test_export_produits_prix_route(client):
+    r = client.get("/api/export/produits-prix.csv")
+    assert r.status_code == 200 and r.text.startswith("﻿id_produit;reference;produit;")
+    assert client.get("/api/export/produits-prix.xlsx").content[:2] == b"PK"

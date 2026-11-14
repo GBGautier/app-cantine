@@ -178,6 +178,9 @@ pommes de terre à la place de 80 kg ? ».
 - **Direct producteur** : case « Compter les produits locaux de Manger Bio comme du direct producteur » (provenance
   locale, fournisseur dont le nom contient « Manger Bio » ; s'applique aux statistiques, au bilan et à l'assistant sans
   modifier les fiches produits).
+- **Export des produits et prix d'achat** : fichier CSV ou Excel avec, pour chaque produit, son identifiant, sa
+  référence fournisseur, son fournisseur, sa catégorie, son unité et son prix d'achat HT ; quand le prix a varié, la ligne
+  est dupliquée avec chaque prix distinct et la date de son dernier relevé (prix courant en premier).
 - **Export Dolibarr** : 4 fichiers CSV (séparateur « ; », UTF-8) à importer dans l'ordre : fournisseurs, produits,
   réceptions (commandes fournisseurs), repas (commandes clients).
 - **Sauvegarde** : tout sauvegarder (base, PDF importés, fiches techniques) ou restaurer ; l'archive contient des
@@ -207,3 +210,4 @@ consultable par l'assistant, outil `journal_actions`).
 - **Import PDF** : factures de ferme (libellés sans la ligne « Origine », bon de livraison concerné), fournisseur
   « Chloé Simon » = Ferme de la Morissais ; plusieurs bons de livraison cités sur une même facture
   (« Bons de livraison concernés : n° 44057, 44126 ») sont tous repérés.
+- **Paramètres** : nouvelle carte « Export des produits et prix d'achat » (CSV / Excel, une ligne par produit et par prix).

@@ -387,6 +387,10 @@ DIAPOSITIVES = [
             ("Convives par défaut", "Proposés pour les nouveaux repas, recettes et le calculateur."),
             ("Nom de la cantine", "Plusieurs noms possibles : l’import PDF ne le prendra jamais pour un fournisseur."),
             ("Direct producteur", "Case : compter les produits locaux de Manger Bio comme du direct producteur."),
+            (
+                "Export des produits et prix",
+                "CSV ou Excel : identifiant et prix d’achat HT de chaque produit, une ligne par prix.",
+            ),
             ("Utilisateurs et personnalisation", "Comptes et profils, logo et couleurs, tarif de vente d’un repas."),
         ],
         "",

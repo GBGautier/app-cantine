@@ -97,11 +97,11 @@ def line_row(line):
     ]
 
 
-def csv_text(rows):
+def csv_text(rows, header=None):
     """Texte CSV (séparateur « ; », fins de ligne Windows) avec l'en-tête ; l'appelant ajoute le BOM pour Excel."""
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";", lineterminator="\r\n")
-    w.writerow(CSV_HEADER)
+    w.writerow(header or CSV_HEADER)
     w.writerows(rows)
     return buf.getvalue()
 
@@ -136,3 +136,58 @@ def zip_member_name(order, used):
         n += 1
     used.add(name)
     return name
+
+
+# ---------- Produits et prix d'achat HT ----------
+PRODUITS_PRIX_HEADER = [
+    "id_produit",
+    "reference",
+    "produit",
+    "id_fournisseur",
+    "fournisseur",
+    "categorie",
+    "unite",
+    "prix_achat_ht",
+    "date_dernier_releve",
+]
+PRODUITS_PRIX_NUMBERS = ("prix_achat_ht",)
+
+
+def produits_prix_rows(products, history):
+    """Une ligne par produit et par prix d'achat HT distinct (la ligne est dupliquée quand le prix a varié).
+
+    `products` : produits avec leur fournisseur ; `history` : relevés de prix (product_id, date, price), du plus
+    ancien au plus récent. Chaque prix porte la date de son dernier relevé ; le prix courant du produit vient en
+    premier. Un produit sans relevé garde sa ligne avec son prix courant (ou vide).
+    """
+    par_produit: dict[int, dict[float, str]] = {}
+    for h in history:
+        par_produit.setdefault(h["product_id"], {})[round(h["price"], 4)] = h.get("date") or ""
+    rows = []
+    for p in products:
+        prix = dict(par_produit.get(p["id"], {}))
+        courant = p.get("unit_price")
+        if courant is not None and round(courant, 4) not in prix:
+            prix[round(courant, 4)] = ""
+        base = [
+            p["id"],
+            p.get("ref") or "",
+            p.get("name") or "",
+            p.get("supplier_id") or "",
+            p.get("supplier_name") or "",
+            p.get("category") or "",
+            p.get("unit") or "",
+        ]
+        if not prix:
+            rows.append([*base, "", ""])
+            continue
+        # prix courant d'abord, puis du plus récent au plus ancien
+        c = round(courant, 4) if courant is not None else None
+        autres = sorted((v for v in prix if v != c), key=lambda v: prix[v], reverse=True)
+        for v in ([c] if c in prix else []) + autres:
+            rows.append([*base, _num(v), prix[v]])
+    return rows
+
+
+def xlsx_produits_prix(rows):
+    return xlsx_bytes(PRODUITS_PRIX_HEADER, rows, ("date_dernier_releve",), PRODUITS_PRIX_NUMBERS, "Produits et prix")
