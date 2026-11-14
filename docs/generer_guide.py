@@ -63,15 +63,14 @@ DIAPOSITIVES = [
                 "Import de PDF, y compris les pages scannées (OCR), rattachement aux produits.",
             ),
             (
-                "Suivre les prix et les engagements",
-                "Historique des prix ; bilan de la période comparé aux engagements du marché (CRT).",
+                "Suivre les prix et nos engagements",
+                "Historique des prix ; bilan de la période comparé à nos engagements.",
             ),
             ("Calculer le coût matières", "Par repas et par convive, avec la part de bio et de local."),
             (
                 "Interroger l’assistant IA",
                 "Questions en langage courant sur les achats, simulation de remplacement de produits.",
             ),
-            ("Exporter vers Dolibarr", "Quatre fichiers CSV pour l’assistant d’import."),
         ],
         "",
     ),
@@ -136,6 +135,17 @@ DIAPOSITIVES = [
         "Toute fiche s’ouvre en consultation : « Modifier » pour la déverrouiller.",
     ),
     (
+        "PRODUITS",
+        "L’historique des prix",
+        "historique_prix",
+        [
+            ("Un relevé par réception", "Graphique et tableau : date, prix HT, origine de la réception."),
+            ("Mise à jour automatique", "Le prix de la fiche change à l’enregistrement d’une réception."),
+            ("Jamais saisi deux fois", "Le prix alimente la fiche produit, les statistiques et le coût des repas."),
+        ],
+        "",
+    ),
+    (
         "RÉCEPTIONS",
         "Les réceptions : bons de livraison et factures",
         "receptions",
@@ -159,6 +169,18 @@ DIAPOSITIVES = [
             ("PDF d’origine", "Consultable en un clic depuis la réception."),
             ("Saisie manuelle", "Un bon sans PDF se saisit ligne par ligne."),
             ("Prix mis à jour", "Le prix du produit est actualisé à l’enregistrement."),
+        ],
+        "",
+    ),
+    (
+        "RÉCEPTIONS",
+        "La saisie manuelle",
+        "saisie",
+        [
+            ("Un bon sans PDF", "Saisi ligne par ligne, avec un PDF joint si vous en avez un."),
+            ("Chaque ligne", "Référence, produit rattaché, nom, quantité, unité, prix HT et total."),
+            ("Bon de livraison ou facture", "Le type se choisit en haut du formulaire."),
+            ("Suppression possible", "D’une réception saisie par erreur."),
         ],
         "",
     ),
@@ -226,6 +248,17 @@ DIAPOSITIVES = [
         "Aucune saisie : le stock se calcule tout seul à partir des réceptions et des repas.",
     ),
     (
+        "STOCKS",
+        "Corriger le stock par inventaire",
+        "inventaire",
+        [
+            ("Stock calculé", "Affiché pour rappel, avant la correction."),
+            ("Quantité réelle", "Vous saisissez ce qui est réellement présent."),
+            ("Écart enregistré", "Comme un ajustement, avec un motif facultatif (ex. inventaire du 18/10)."),
+        ],
+        "Le bouton « Inventaire » de chaque ligne ouvre cette fenêtre.",
+    ),
+    (
         "STATISTIQUES",
         "Les chiffres clés de la période",
         "stats_haut",
@@ -239,11 +272,14 @@ DIAPOSITIVES = [
     ),
     (
         "STATISTIQUES",
-        "Le bilan de la période par rapport au CRT",
+        "Le bilan de la période vis-à-vis de nos engagements",
         "stats_bilan",
         [
             ("Calculé sur la période choisie", "Aucun cumul : seuls les achats de la période comptent."),
-            ("Engagements fixes du CRT", "Bio, EGalim, local, direct producteur, produits frais, origine…"),
+            (
+                "Nos engagements",
+                "Bio, EGalim, local, direct producteur, produits frais, origine… : cible et réalisé pour chaque indicateur.",
+            ),
             ("Badges", "« Respecté » ou « Non respecté » pour chaque indicateur."),
             ("Réglage", "Le local de Manger Bio peut compter comme direct producteur (Paramètres)."),
         ],
@@ -293,6 +329,24 @@ DIAPOSITIVES = [
         "Fournisseurs possibles : Gemini, Mistral, Groq ou Ollama (local).",
     ),
     (
+        "ASSISTANT IA",
+        "L’assistant peut aussi créer",
+        "assistant_creation",
+        [
+            ("Recettes", "« Crée une recette de gratin de courgettes pour 120 convives »."),
+            (
+                "Repas, produits, fournisseurs",
+                "Création d’un repas, d’un produit ou d’un fournisseur à partir d’une simple demande.",
+            ),
+            ("Réceptions et sorties", "Saisie d’une réception ou des produits sortis pour un repas."),
+            (
+                "Toujours validé par vous",
+                "Rien n’est enregistré avant votre clic sur « Valider » ; vous pouvez refuser.",
+            ),
+        ],
+        "Les profils en lecture seule ne peuvent que consulter.",
+    ),
+    (
         "PARAMÈTRES",
         "Réglages de la cantine",
         "parametres",
@@ -300,7 +354,7 @@ DIAPOSITIVES = [
             ("Convives par défaut", "Proposés pour les nouveaux repas, recettes et le calculateur."),
             ("Nom de la cantine", "Plusieurs noms possibles : l’import PDF ne le prendra jamais pour un fournisseur."),
             ("Direct producteur", "Case : compter les produits locaux de Manger Bio comme du direct producteur."),
-            ("Export Dolibarr", "4 fichiers CSV à importer dans l’ordre : fournisseurs, produits, réceptions, repas."),
+            ("Utilisateurs et personnalisation", "Comptes et profils, logo et couleurs, tarif de vente d’un repas."),
         ],
         "",
     ),
@@ -472,7 +526,14 @@ def preparer_donnees(base: str, p) -> None:
             for i, nom in enumerate(noms):
                 pu = next(x[4] for x in PRODUITS if x[0] == nom)
                 unite = next(x[3] for x in PRODUITS if x[0] == nom)
-                lignes.append({"product_id": prods[nom], "qty": 20 + 7 * i + mois, "unit": unite, "unit_price": pu})
+                lignes.append(
+                    {
+                        "product_id": prods[nom],
+                        "qty": 20 + 7 * i + mois,
+                        "unit": unite,
+                        "unit_price": round(pu * (1.06 if mois == 10 else 1), 2),
+                    }
+                )
             post(
                 "/api/orders",
                 {
@@ -579,33 +640,50 @@ REPONSE = (
 )
 
 
-def capture_assistant(page) -> str:
-    """Le modèle de langage n'est pas appelé : l'échange affiché est un exemple écrit pour la présentation."""
+QUESTION_2 = "Crée une recette de gratin de courgettes pour 120 convives"
+ATTENTE = [
+    {
+        "id": "a1",
+        "resume": "Créer la recette « Gratin de courgettes » (120 convives)",
+        "arguments": {"name": "Gratin de courgettes", "categorie": "plat", "nb_elementaires": 120},
+    }
+]
+
+
+def capture_assistant(page) -> tuple[str, str]:
+    """Le modèle de langage n'est pas appelé : les échanges affichés sont des exemples écrits pour la présentation."""
+    cas = {
+        QUESTION: ("produits_en_defaut", REPONSE, []),
+        QUESTION_2: ("creer_recette", "", ATTENTE),
+    }
 
     def etat(route):
         route.fulfill(json={"configure": True, "fournisseur": "Mistral", "peut_ecrire": True})
 
     def chat(route):
         msgs = route.request.post_data_json["messages"]
-        appel = {"id": "x", "type": "function", "function": {"name": "produits_en_defaut", "arguments": "{}"}}
-        msgs = msgs + [
-            {"role": "assistant", "content": "", "tool_calls": [appel]},
-            {"role": "assistant", "content": REPONSE},
-        ]
-        route.fulfill(json={"messages": msgs, "attente": [], "ecritures": False})
+        outil, texte, attente = cas[next(m["content"] for m in reversed(msgs) if m["role"] == "user")]
+        appel = {"id": "x", "type": "function", "function": {"name": outil, "arguments": "{}"}}
+        msgs = msgs + [{"role": "assistant", "content": "", "tool_calls": [appel]}]
+        if texte:
+            msgs.append({"role": "assistant", "content": texte})
+        route.fulfill(json={"messages": msgs, "attente": attente, "ecritures": False})
 
     page.route("**/api/assistant/etat", etat)
     page.route("**/api/assistant/chat", chat)
-    page.locator("#assistant-btn").click()
-    page.locator("#assistant-panel textarea").fill(QUESTION)
-    page.locator("#assistant-panel button.p").click()
-    page.locator("#assistant-panel .as-a").wait_for()
-    page.wait_for_timeout(300)
-    img = png(page)
-    page.locator("#assistant-panel button[title=Fermer]").click()
+    images = []
+    for question in (QUESTION, QUESTION_2):
+        page.locator("#assistant-btn").click()
+        page.locator("#assistant-panel button", has_text="Nouvelle").click()
+        page.locator("#assistant-panel textarea").fill(question)
+        page.locator("#assistant-panel button.p").click()
+        page.locator("#assistant-panel .as-tool").wait_for()
+        page.wait_for_timeout(400)
+        images.append(png(page))
+        page.locator("#assistant-panel button[title=Fermer]").click()
     page.unroute("**/api/assistant/etat")
     page.unroute("**/api/assistant/chat")
-    return img
+    return images[0], images[1]
 
 
 def prendre_captures(base: str, navigateur) -> dict[str, str]:
@@ -629,12 +707,22 @@ def prendre_captures(base: str, navigateur) -> dict[str, str]:
     c["produits"] = png(page)
     ouvrir_premiere_fiche(page)
     c["fiche_produit"] = png(page)
+    page.evaluate(
+        "document.querySelectorAll('.modal, .modal *').forEach(e => { if (e.scrollHeight > e.clientHeight + 5) e.scrollTop = e.scrollHeight })"
+    )
+    page.wait_for_timeout(400)
+    c["historique_prix"] = png(page)
     fermer(page)
 
     aller(page, "Réceptions")
     c["receptions"] = png(page)
     ouvrir_premiere_fiche(page)
     c["reception"] = png(page)
+    fermer(page)
+    page.get_by_role("button", name="+ Saisie manuelle").click()
+    page.locator(".modal").first.wait_for()
+    page.wait_for_timeout(400)
+    c["saisie"] = png(page)
     fermer(page)
 
     aller(page, "Recettes")
@@ -651,13 +739,18 @@ def prendre_captures(base: str, navigateur) -> dict[str, str]:
 
     aller(page, "Stocks")
     c["stocks"] = png(page)
+    page.get_by_role("button", name="Inventaire").first.click()
+    page.locator(".modal").first.wait_for()
+    page.wait_for_timeout(400)
+    c["inventaire"] = png(page)
+    fermer(page)
 
     aller(page, "Statistiques")
     page.evaluate("store.set('cgrs.sf', '2026-10-01'); store.set('cgrs.st', '2026-10-31'); render()")
     page.get_by_text("Synthèse de la période").wait_for()
     page.wait_for_timeout(800)
     c["stats_haut"] = png(page)
-    c["assistant"] = capture_assistant(page)
+    c["assistant"], c["assistant_creation"] = capture_assistant(page)
     c["stats_bilan"] = defiler_vers(page, "Part de bio, toutes denrées")
     c["stats_repartitions"] = defiler_vers(page, "Origine par famille de produits")
     c["stats_cout"] = defiler_vers(page, "Coût matières par repas")
