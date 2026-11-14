@@ -25,6 +25,8 @@ Puis ouvrez <http://localhost:8000>.
 sur le poste). Il n'est pas signé : selon la configuration, Windows peut le bloquer (« l'éditeur ne peut pas être
 vérifié », Smart App Control). Dans ce cas, utilisez `windows\lancer.bat`. Détails dans `docs/DEPLOIEMENT.md`.
 
+Le guide complet de l'application, page par page, est dans [`docs/GUIDE.md`](docs/GUIDE.md).
+
 ## Première utilisation
 
 Le premier écran demande de créer le compte administrateur. Ensuite, Paramètres > Utilisateurs permet d'ajouter :
@@ -128,6 +130,7 @@ ruff check . && ruff format --check .
 | `tests/` | Tests unitaires et d'API ; `tests/ui/` : tests d'interface (Playwright) |
 | `windows/` | Lanceur, construction de l'exécutable, icône |
 | `requirements/`, `requirements.txt` | Dépendances (versions et empreintes figées : ne pas modifier `requirements.txt` à la main) |
+| `docs/GUIDE.md` | Guide de l'application (toutes les pages et fonctions, à jour ; `docs/guide-application.pdf` : présentation en diapositives, régénérée par `python docs/generer_guide.py`) |
 | `docs/DEPLOIEMENT.md` | Exploitation : hébergement sur Internet, options, sauvegarde, dépannage, mise à jour des dépendances |
 
 L'intégration continue (GitHub Actions) lance ces contrôles sous Windows et Linux, avec Python 3.12 et 3.13.

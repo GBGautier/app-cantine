@@ -90,6 +90,7 @@ const ASSIST_OUTILS = {
   lister_receptions: 'Liste des réceptions', statistiques: 'Statistiques', creer_fournisseur: 'Création d\'un fournisseur',
   creer_produit: 'Création d\'un produit', creer_recette: 'Création d\'une recette', creer_repas: 'Création d\'un repas',
   saisir_sorties_repas: 'Sorties de produits', creer_reception: 'Création d\'une réception',
+  produits_en_defaut: 'Produits qui éloignent des objectifs', simuler_remplacement: 'Simulation d\'un remplacement',
 };
 
 /* ---------- Réglages : clé API gratuite et accès MCP ---------- */
