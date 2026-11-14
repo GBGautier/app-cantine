@@ -378,11 +378,12 @@ PROFILES = [
         ),
     ),
     # Factures de fermes : [Libellé] 420 unités 0,45 € 5,5 % 189,00 €
+    # (variantes : « 1,644 kg (1 u.) 16,29 €/kg 5,5 % 26,78 € » — pièces entre parenthèses, unité du prix)
     (
         "platform",
         re.compile(
-            rf"^(?:(?P<label>.+?)\s+)?(?P<qty>{N})\s+(?P<unit>unit[eé]s?|kg|g|l|litres?|pi[eè]ces?|u)\s+"
-            rf"(?P<unit_price>{N})\s*€\s+(?P<tva>{N})\s*%\s+(?P<total>-?\d+[.,]\d{{2}})\s*€",
+            rf"^(?:(?P<label>.+?)\s+)?(?P<qty>{N})\s+(?P<unit>unit[eé]s?|kg|g|l|litres?|pi[eè]ces?|u)(?:\s*\([^)]*\))?\s+"
+            rf"(?P<unit_price>{N})\s*€(?:\s*/\s*[A-Za-zÀ-ÿ.]+)?\s+(?P<tva>{N})\s*%\s+(?P<total>-?\d+[.,]\d{{2}})\s*€",
             re.I,
         ),
     ),

@@ -46,3 +46,18 @@ def test_plusieurs_bons_de_livraison_concernes():
     m = BL_CONCERNE_RE.search("Bons de livraison concernés : n° 44057, 44126\nLivraison : Restaurant scolaire")
     assert m.group(1) == "44057, 44126"
     assert BL_CONCERNE_RE.search("Bon de livraison concerné : n° 31\nLivraison du 13/10").group(1) == "31"
+
+
+def test_ligne_de_ferme_avec_pieces_et_prix_au_kilo():
+    """BL de ferme : « 1,644 kg (1 u.) 16,29 €/kg 5,5 % 26,78 € » était ignorée (somme des lignes ≠ total)."""
+    from cgrs.parsers.pdf_parser import parse_lines
+
+    lignes = parse_lines(
+        "La meule de Belchamp - AB* 5,846 kg 18,44 € 5,5 % 107,80 €\n"
+        "Lot 1407 dlc 23.12.26\n"
+        "La tomme jeune - AB* 1,644 kg (1 u.) 16,29 €/kg 5,5 % 26,78 €\n"
+    )
+    assert [(x["label"], x["qty"], x["unit_price"], x["total_ht"]) for x in lignes] == [
+        ("La meule de Belchamp - AB*", 5.846, 18.44, 107.8),
+        ("La tomme jeune - AB*", 1.644, 16.29, 26.78),
+    ]
